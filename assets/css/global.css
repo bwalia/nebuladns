@@ -1,0 +1,54 @@
+@import "~/assets/css/variables.css";
+
+body {
+    font-family: var(--font);
+    line-height: 1.5em;
+    color: var(--default);
+    margin: 0;
+}
+
+* { box-sizing: border-box; }
+
+img { 
+    max-width: 100%; 
+    border: 0; 
+    height: auto;
+}
+
+a {
+    color: var(--foil);
+    text-decoration: underline;
+}
+
+p {
+    margin: 1em 0;
+    line-height: 1.5em
+}
+
+ul {
+    margin: 0;
+    padding: 0 0 0 0.75em;
+}
+
+li {
+    margin: 1em 0;
+    padding: 0;
+    list-style-type: square;
+}
+
+
+blockquote {
+    border-left: 4px solid var(--foil);
+    margin: 2em 0;
+    padding-left: 1.5em;
+    color: var(--deep);
+    font-weight: bold;
+    line-height: 1.5em;
+}
+
+blockquote cite {
+    display: block;
+    color: var(--default);
+    font-weight: normal;
+}
+

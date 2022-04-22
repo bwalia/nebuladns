@@ -1,0 +1,66 @@
+@import "~/assets/css/variables.css";
+
+// Typographic scale
+$scale-min: 0.75rem;
+$scale-default: 1rem;
+$scale-font2: 1.3rem;
+$scale-font3: 1.8rem;
+$scale-font4: 2.5rem;
+
+// Factor by which scale is reduced for mobile
+$mob-scale: 0.66; 
+
+// Reduce the scale for mobile
+@function mob($size) {
+    $mob: ( ( $size - 1 ) * $mob-scale ) +1;
+    @return $mob;
+}
+
+// Set root font size
+html {
+    font-size: 16px;
+    line-height: 1.6em;
+    @media (min-width: 640px) {
+      font-size: calc(10px + 0.75vw);
+    }
+}
+
+// Heading sizes
+h4,
+.u-font1 { 
+    font-size: $scale-default; 
+    line-height: 1.4em; 
+}
+
+h3,
+.u-font2 { 
+    font-size: mob($scale-font2);
+    @media (min-width: 640px) { font-size: $scale-font2; }
+    line-height: 1.3em; 
+}
+
+h2,
+.u-font3 { 
+    font-size: mob($scale-font3);
+    @media (min-width: 640px) { font-size: $scale-font3; }
+    line-height: 1.2em; 
+    word-spacing: -0.02em;
+}
+
+h1,
+.u-font4 { 
+    font-size: mob($scale-font4);
+    @media (min-width: 640px) { font-size: $scale-font4; }
+    line-height: 1.1em; 
+    word-spacing: -0.02em;
+}
+
+.u-intro { 
+    font-size: mob($scale-font2);
+    @media (min-width: 640px) { font-size: $scale-font2; }
+}
+
+.u-min { 
+    font-size: mob($scale-min);
+    @media (min-width: 640px) { font-size: $scale-min; }
+}

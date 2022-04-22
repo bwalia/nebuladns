@@ -1,0 +1,14 @@
+
+
+:root {
+    --default: #2C3033;
+    --foil: #397BAA;
+    --tint: #ECF1F3;
+    --rule: #D1DBE1;
+    --dark: #6A757B;
+    --error: #aa0011;
+
+    --font: 'Source Sans Pro', arial, sans-serif;
+    --gutter: 3%;
+
+}
