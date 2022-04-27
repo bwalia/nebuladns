@@ -7,26 +7,26 @@
             <table cellpadding="0" cellspacing="0" border="0">
                 <thead>
                     <tr>
-                        <th>Strategy</th>
-                        <th class="u-dt">Inception</th>
-                        <th class="u-dt">Target</th>
-                        <th class="u-dt">Drawdown</th>
-                        <th>YTD</th>
-                        <th>Performance</th>
+                        <th>Sl</th>
+                        <th class="u-dt">Title</th>
+                        <th class="u-dt">Sub Title</th>
+                        <th class="u-dt">Code</th>
+                        
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="strategy in strategies">
+
+                    <tr v-for="(strategy,i) in strategies">
                         <td>
-                            <nuxt-link :to="'/clients/' + strategy.url">
-                                {{strategy.strategy}}
+                            <nuxt-link  :to="{ path: '/clients/' + strategy.id}" >
+                                {{++i}}
                             </nuxt-link>
                         </td>
-                        <td class="u-dt"><small>{{strategy.inception}}</small></td>
-                        <td class="u-dt">{{strategy.target}}<small>%pa</small></td>
-                        <td class="u-dt"><{{strategy.drawdown}}<small>%</small></td>
-                        <td><ticker :performance="strategy.ytd" /></td>
-                        <td><ticker :performance="strategy.performance" /></td>
+                        <td class="u-dt"><small>{{strategy.title}}</small></td>
+                        <td class="u-dt">{{strategy.sub_title}}<small>%pa</small></td>
+                        <td class="u-dt">{{strategy.code}}<small>%</small></td>
+                        <!-- <td><ticker :performance="strategy.ytd" /></td>
+                        <td><ticker :performance="strategy.performance" /></td> -->
                     </tr>
                 </tbody>
             </table>
@@ -40,52 +40,19 @@
 
 <script>
 export default {
+    // middleware: 'auth',
     async asyncData({$content, params }) {
         const page = await $content('/clients', params.report || "index").fetch()
         return { 
             page
         }
     },
+
     data() {
         return {
-            strategies: [
-                {
-                    strategy: 'Systematic Equity ECM',
-                    url: 'systematic-equity-ecm',
-                    target: 25,
-                    drawdown: 10,
-                    ytd: 3,
-                    performance: 15,
-                    inception: 'Dec 2021'
-                },
-                {
-                    strategy: 'Volatility Arbitrage',
-                    url: 'volatility-arbitrage',
-                    target: 25,
-                    drawdown: 10,
-                    ytd: 3,
-                    performance: 15,
-                    inception: 'Dec 2021'
-                },
-                {
-                    strategy: 'Active Equity',
-                    url: 'active-equity',
-                    target: 25,
-                    drawdown: 10,
-                    ytd: -2.2,
-                    performance: 9.3,
-                    inception: 'Dec 2021'
-                },
-                {
-                    strategy: 'Systematic Macro',
-                    url: 'systematic-macro',
-                    target: 25,
-                    drawdown: 10,
-                    ytd: 3.1,
-                    performance: 15.8,
-                    inception: 'Dec 2021'
-                }
-            ]
+            strategies: [],
+            token: '',
+            sl : 1
         }
     },
     head() {
@@ -94,6 +61,31 @@ export default {
             meta: [
                 { hid:"og:title", property:"og:title", content: 'Odin Clients' },
             ]
+        }
+    },
+    created() {
+        if(!this.$auth.$storage.getUniversal('token'))
+        {
+            this.$router.push('/login')
+        }
+        let token=this.$auth.$storage.getUniversal('token')
+        this.$axios.setToken(token, 'Bearer')
+        this.$axios
+          .get("https://test-my.workstation.co.uk/api/webpages", {
+          })
+          .then((res) => {
+            console.log(res.data);
+            this.strategies=res.data.data;
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+        
+    },
+    methods: {
+        inc(){
+            this.sl=this.sl + 1;
+            return this.sl;
         }
     }
 }

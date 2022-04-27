@@ -13,9 +13,9 @@
         <report-item 
             v-for="(item, i) in reportdata"
             :key="i" 
-            :subhead="(item.subhead) ? item.subhead : 'Section'"
-            :content="(item.content) ? item.content : null"
-            :chart="(item.chart) ? item.chart : null" />
+            :subhead="(item.title) ? item.title : 'Section'"
+            :content="(item.text) ? item.text : null"
+            :chart="null" />
     </div>
 </template>
 

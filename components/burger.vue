@@ -27,11 +27,17 @@
                             </nuxt-link>
                         </div>                        
                         <div class="login">
-                            <a href="/clients">
+                            <a href="/login" v-if="!this.$auth.$storage.getUniversal('token')">
                                 Log-in
                                 <svg><use xlink:href="#user"></use></svg>
                             </a>
+                            <a href="/clients" v-if="this.$auth.$storage.getUniversal('token')">
+                                {{this.$auth.$storage.getUniversal('name')}}
+                            </a>
                         </div>
+                         <a  v-on:click="logout()"  v-if="this.$auth.$storage.getUniversal('token')">
+                            Logout
+                        </a>
                     </nav>
 
                     <div class="menu" @click="toggle()">
@@ -73,7 +79,14 @@ export default {
                     behavior: 'smooth',
                 });
             }
+        },
+        logout(){
+            if(this.$auth.$storage.getUniversal('token')){
+                this.$auth.$storage.setUniversal('token',null);
+                this.$router.push('/login')
+            }
         }
+
   },
   created() {
         this.links = [

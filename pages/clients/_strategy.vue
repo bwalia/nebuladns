@@ -83,7 +83,29 @@
 </template>
 
 <script>
+
 export default {
+    mounted(){
+        if(!this.$auth.$storage.getUniversal('token') || !this.$route.params.strategy)
+        {
+            this.$router.push('/login')
+        }
+        let url="https://test-my.workstation.co.uk/api/webpagesEdit/"+this.$route.params.strategy;
+        let token=this.$auth.$storage.getUniversal('token')
+        this.$axios.setToken(token, 'Bearer')
+        this.$axios
+          .get(url, {
+          })
+          .then((res) => {
+            
+            console.log(res.data.data)
+            this.items=res.data.data.blockList
+            console.log(res.data.data.blockList)
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+    },
     data() {
         return {
             strategy: 'Volatility Arbitrage',
@@ -187,7 +209,17 @@ export default {
         },
         legacyDocuments() {
             return this.documents.filter(el => !el.current);
+        },
+        getServerSideProps(context) {
+          const  { slug } = context.params;
+          console.log(slug)
+        },
+        query() {
+          return this.$route.query.name
         }
+    },
+    methods: {
+        
     }
 }
 </script>
