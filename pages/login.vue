@@ -43,7 +43,7 @@
           <nuxt-link to="/signup"> Get Register </nuxt-link>
         </label>
       </div>
-      <button class="btn btn-lg btn-primary btn-block" type="submit">
+      <button class="row col-6 btn btn-sm btn-primary ml-1" type="submit">
         Sign in
       </button>
     </form>
@@ -203,8 +203,6 @@ export default {
 div:focus {
     background-color: red;
 }
-input.is-invalid {
-    border: 1px solid red;
-}
+
 
 </style>

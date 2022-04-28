@@ -62,7 +62,7 @@
           <nuxt-link to="/login"> Log In </nuxt-link>
         </label>
       </div>
-      <button class="btn btn-lg btn-primary btn-block" type="submit">
+      <button class="row col-6 btn btn-lg btn-primary ml-1" type="submit">
         Sign Up
       </button>
     </form>
@@ -213,7 +213,5 @@ export default {
   user-select: none;
 }
 
-input.is-invalid {
-    border: 1px solid red;
-}
+
 </style>
