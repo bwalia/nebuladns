@@ -86,7 +86,7 @@
 
 export default {
     mounted(){
-        if(!this.$auth.$storage.getUniversal('token') || !this.$route.params.strategy)
+        if(!this.$auth.$storage.getUniversal('loggedIn') || !this.$route.params.strategy)
         {
             this.$router.push('/login')
         }

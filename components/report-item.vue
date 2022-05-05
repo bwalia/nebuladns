@@ -25,7 +25,7 @@ export default {
     props: ['subhead', 'content', 'chart', 'documents'],
     data () {
         return {
-            isOpen: true
+            isOpen: false
         }
     },
     methods: {
@@ -49,10 +49,9 @@ export default {
     padding: 0 0.75em;
     line-height: 56px;
     cursor: pointer;
-    display: flex;
+    display: block;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: nowrap;
     border-bottom: 1px solid #fff;
     border-collapse: collapse;
 
@@ -92,7 +91,9 @@ export default {
 
 .report-layout {
     margin: 2em 5em 2em 2em;
-    overflow: auto;
+    overflow-y: auto;
+    width:100%;
+    display:inline-grid;
     @media (min-width: 640px) {
         column-count: 2;
         column-gap: 4%;

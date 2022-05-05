@@ -53,7 +53,7 @@
 <script>
 export default {
     mounted(){
-        if(this.$auth.$storage.getUniversal('token'))
+        if(this.$auth.$storage.getUniversal('loggedIn'))
         {
           this.$router.push('/clients')
         }

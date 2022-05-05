@@ -63,8 +63,15 @@ export default {
             ]
         }
     },
+    mounted(){
+        if(this.$auth.$storage.getUniversal('token'))
+        {
+            this.$auth.$storage.setUniversal('loggedIn', true)
+            this.$auth.$storage.setUniversal('user', this.$auth.$storage.getUniversal('user'))
+        }
+    },
     created() {
-        if(!this.$auth.$storage.getUniversal('token'))
+        if(!this.$auth.$storage.getUniversal('loggedIn'))
         {
             this.$router.push('/login')
         }
