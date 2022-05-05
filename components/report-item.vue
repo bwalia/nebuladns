@@ -79,6 +79,7 @@ export default {
 
 .report-item.is-open .report-content {
     max-height: 999px; 
+    overflow-y: scroll;
 }
 
 .report-item.is-open h2 {
@@ -90,7 +91,8 @@ export default {
 }
 
 .report-layout {
-    margin: 2em;
+    margin: 2em 5em 2em 2em;
+    overflow: auto;
     @media (min-width: 640px) {
         column-count: 2;
         column-gap: 4%;
