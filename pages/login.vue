@@ -87,7 +87,7 @@ export default {
                }
              )
              .then((res) => {
-               console.log(res.data.access_token);
+               // console.log(res.data.access_token);
                if(res.data.access_token)
                {
                 // nthis.$cookies.set('token', res.data.access_token)

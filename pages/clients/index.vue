@@ -74,7 +74,7 @@ export default {
           .get("https://test-my.workstation.co.uk/api/webpages", {
           })
           .then((res) => {
-            console.log(res.data);
+            //console.log(res.data);
             this.strategies=res.data.data;
           })
           .catch(function (error) {
