@@ -107,6 +107,20 @@ export default {
           .catch(function (error) {
             console.log(error);
           });
+
+        url="https://test-my.workstation.co.uk/api/getDocument";
+        this.$axios.setToken(token, 'Bearer')
+        this.$axios
+          .get(url, {
+          })
+          .then((res) => {
+            
+            this.documents=res.data.data
+            console.log(this.documents)
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
     },
     data() {
         return {
