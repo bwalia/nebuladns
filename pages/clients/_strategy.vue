@@ -98,9 +98,11 @@ export default {
           })
           .then((res) => {
             
-            console.log(res.data.data)
-            this.items=res.data.data.blockList
-            console.log(res.data.data.blockList)
+            this.items=res.data.data[0].blockList
+            for(const i=1;i<res.data.data.length;i++)
+            {
+                this.items.push(res.data.data[i].blockList)
+            }
           })
           .catch(function (error) {
             console.log(error);
