@@ -94,6 +94,8 @@ export default {
                 this.$auth.$storage.setUniversal('token', res.data.access_token)
                 this.$auth.$storage.setUniversal('name', res.data.user.name)
                 this.$auth.$storage.setUniversal('id', res.data.user.id)
+                this.$auth.$storage.setUniversal('loggedIn', true)
+                this.$auth.$storage.setUniversal('user', res.data.user)
                 this.$router.push('/clients')
                }
                else{

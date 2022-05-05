@@ -27,15 +27,15 @@
                             </nuxt-link>
                         </div>                        
                         <div class="login">
-                            <a href="/login" v-if="!isLoggedIn">
+                            <a href="/login" v-if="!this.$store.state.auth.loggedIn">
                                 Log-in
                                 <svg><use xlink:href="#user"></use></svg>
                             </a>
-                            <a href="/clients" v-if="isLoggedIn">
+                            <a href="/clients" v-if="this.$store.state.auth.loggedIn">
                                 Clients
                             </a>
                         </div>
-                         <a  v-on:click="logout()"  v-if="isLoggedIn">
+                         <a  v-on:click="logout()"  v-if="this.$store.state.auth.loggedIn">
                             Logout
                         </a>
                     </nav>
@@ -61,8 +61,7 @@ export default {
   data () {
     return {
         isOpen: false,
-        links: '',
-        isLoggedIn: false
+        links: ''
     }
   },
   methods: {
@@ -84,28 +83,12 @@ export default {
         logout(){
             if(this.$auth.$storage.getUniversal('token')){
                 this.$auth.$storage.setUniversal('token',null);
+                this.$auth.$storage.setUniversal('loggedIn', false)
+                this.$auth.$storage.setUniversal('user', null)
                 this.$router.push('/login')
-                this.isLoggedIn=false
             }
         }
 
-  },
-  mounted()
-  {
-    this.$nextTick(function () {
-        if(this.$auth.$storage.getUniversal('token'))
-        {
-            this.isLoggedIn=true
-        }
-    })
-  },
-  updated(){
-    this.$nextTick(function () {
-        if(this.$auth.$storage.getUniversal('token'))
-        {
-            this.isLoggedIn=true
-        }
-    })
   },
   created() {
         this.links = [
