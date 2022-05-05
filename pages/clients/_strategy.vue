@@ -40,10 +40,10 @@
                 <tbody>
                     <tr v-for="(document,i) in currentDocuments" :key="i">
                         <td>
-                            <nuxt-link :to="document.file">
-                                <span>{{document.title}}</span>
+                            <a :href="document.file" target="_blank">
+                                <span>{{document.metadata}}</span>
                                 <svg><use xlink:href="#pdf"></use></svg>
-                            </nuxt-link>
+                            </a>
                         </td>
                     </tr>
                 </tbody>
@@ -60,10 +60,10 @@
                 <tbody>
                     <tr v-for="(document,i) in legacyDocuments" :key="i">
                         <td>
-                            <nuxt-link :to="document.file">
-                                <span>{{document.title}}</span>
+                            <a :href="document.file" target="_blank">
+                                <span>{{document.metadata}}</span>
                                 <svg><use xlink:href="#pdf"></use></svg>
-                            </nuxt-link>
+                            </a>
                         </td>
                     </tr>
                 </tbody>
