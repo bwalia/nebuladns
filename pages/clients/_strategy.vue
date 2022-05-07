@@ -90,7 +90,7 @@ export default {
         {
             this.$router.push('/login')
         }
-        let url="https://test-my.workstation.co.uk/api/webpagesEdit/"+this.$route.params.strategy;
+        let url=process.env.baseUrl+"/api/webpagesEdit/"+this.$route.params.strategy;
         let token=this.$auth.$storage.getUniversal('token')
         this.$axios.setToken(token, 'Bearer')
         this.$axios

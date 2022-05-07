@@ -78,7 +78,7 @@ export default {
         let token=this.$auth.$storage.getUniversal('token')
         this.$axios.setToken(token, 'Bearer')
         this.$axios
-          .get("https://test-my.workstation.co.uk/api/webpages", {
+          .get(process.env.baseUrl+"/api/webpages", {
           })
           .then((res) => {
             //console.log(res.data);

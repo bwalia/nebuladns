@@ -74,7 +74,7 @@ export default {
       {
          this.$axios
              .post(
-               'https://test-my.workstation.co.uk/auth/login',
+               process.env.baseUrl+'/auth/login',
                {
                  email: this.email,
                  password: this.password
@@ -99,7 +99,7 @@ export default {
                 this.$router.push('/clients')
                }
                else{
-                alert(res.data.message);
+                alert(res.data.error);
                 //this.$toast.error(res.data.message, {timeout:2000}); 
                }
                
