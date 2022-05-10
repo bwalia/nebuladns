@@ -78,7 +78,7 @@ export default {
         let token=this.$auth.$storage.getUniversal('token')
         this.$axios.setToken(token, 'Bearer')
         this.$axios
-          .get(process.env.baseUrl+"/api/webpages", {
+          .get(process.env.baseUrl+"/api/webpages/"+this.$auth.$storage.getUniversal('user').client_id, {
           })
           .then((res) => {
             //console.log(res.data);
