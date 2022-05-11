@@ -38,11 +38,11 @@
         </div>
       </div>
       
-      <div class="checkbox mb-3">
+      <!-- <div class="checkbox mb-3">
         <label>
           <nuxt-link to="/signup"> Get Register </nuxt-link>
         </label>
-      </div>
+      </div> -->
       <button class="row col-6 btn btn-sm btn-primary ml-1" type="submit">
         Sign in
       </button>
