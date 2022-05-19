@@ -81,7 +81,7 @@ export default {
                },
                {
                 headers: {
-                  'Access-Control-Allow-Origin': 'http://localhost',
+                  'Access-Control-Allow-Origin': '*',
                   'Content-Type': 'application/Json'
                 }
                }
