@@ -1,7 +1,16 @@
 <template>
   <div class="form">
+
+
+
+
     <form class="form-signin" @submit.prevent="handleLogin" @onkeydown="clearError">
-      <h1 class="u-font-2">Client Log-in</h1>
+
+      <logo style="max-width: 180px;" />
+      <br/>
+
+
+      <h1 class="u-font4">Client Log-in</h1>
       <div class="">
         <div class="form-group" >
           <label for="inputEmail" class="sr-only">Email address</label>
@@ -46,7 +55,9 @@
       <button class="u-button u-shim-t" type="submit">
         Log-in
       </button>
+
     </form>
+
   </div>
 </template>
 
@@ -162,8 +173,8 @@ export default {
   display: flex;
   -ms-flex-align: center;
   align-items: center;
-  padding-top: 40px;
-  padding-bottom: 40px;
+  padding-top: 30px;
+  padding-bottom: 50px;
   background-color: #f5f5f5;
 }
 .form-signin {
@@ -181,6 +192,11 @@ export default {
   height: auto;
   padding: 10px;
   font-size: 16px;
+}
+
+.form-signin input {
+  width: 100%;
+  max-width: 300px;
 }
 .form-signin .form-control:focus {
   z-index: 2;
