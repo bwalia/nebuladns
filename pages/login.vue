@@ -1,7 +1,7 @@
 <template>
   <div class="form">
     <form class="form-signin" @submit.prevent="handleLogin" @onkeydown="clearError">
-      <h1 class="h3 mb-3 font-weight-normal">Log In</h1>
+      <h1 class="h3 mb-3 font-weight-normal">Log Ins</h1>
       <div class="row col-12">
         <div class="form-group" >
           <label for="inputEmail" class="sr-only">Email address</label>
