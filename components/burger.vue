@@ -32,11 +32,11 @@
                                 <svg><use xlink:href="#user"></use></svg>
                             </a>
                             <a href="/clients" v-if="this.$store.state.auth.loggedIn">
-                                Clients
+                                Strategies
                             </a>
                         </div>
                          <a  v-on:click="logout()"  v-if="this.$store.state.auth.loggedIn">
-                            Logout
+                            Log-out
                         </a>
                     </nav>
 
