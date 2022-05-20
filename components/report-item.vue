@@ -6,14 +6,17 @@
         </h2>
         <div class="report-content">
 
-            <template v-if="content">
+            <template v-if="!chart">
                 <div class="report-layout" v-html="content" />
             </template>
 
             <template v-if="chart">
+                
                 <!-- <pre>{{chart.data}}</pre> -->
                 <!-- <pre>{{chart.options}}</pre> -->
-                <line-chart class="line-chart" :data="chart.data" :options="chart.options" />
+                <pre>{{chartObject}}</pre>
+                <!-- <div class="report-layout" v-html="content" /> -->
+                <!-- <line-chart class="line-chart" :data="chart.data" :options="chart.options" /> -->
             </template>
 
         </div>
@@ -25,13 +28,19 @@ export default {
     props: ['subhead', 'content', 'chart', 'documents'],
     data () {
         return {
-            isOpen: false
+            isOpen: true,
+            chartObject: {}
         }
     },
     methods: {
         toggle: function(){
             this.isOpen = !this.isOpen
         }
+    },
+    mounted: function() {
+        if (this.chart) {
+            this.chartObject = this.content;
+        } 
     }
 }
 </script>
@@ -49,9 +58,10 @@ export default {
     padding: 0 0.75em;
     line-height: 56px;
     cursor: pointer;
-    display: block;
+    display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: nowrap;
     border-bottom: 1px solid #fff;
     border-collapse: collapse;
 
@@ -75,10 +85,8 @@ export default {
     margin-right: 0.5em;
 }
 
-
 .report-item.is-open .report-content {
     max-height: 999px; 
-    overflow-y: scroll;
 }
 
 .report-item.is-open h2 {
@@ -90,15 +98,11 @@ export default {
 }
 
 .report-layout {
-    margin: 2em 5em 2em 2em;
-    overflow-y: auto;
-    width:100%;
-    display:inline-grid;
+    margin: 2em;
     @media (min-width: 640px) {
         column-count: 2;
         column-gap: 4%;
     }
-
 }
 
 .report-layout *:first-child {

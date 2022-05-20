@@ -7,11 +7,12 @@
             <table cellpadding="0" cellspacing="0" border="0">
                 <thead>
                     <tr>
-                        <th>Sl</th>
-                        <th class="u-dt">Title</th>
-                        <th class="u-dt">Sub Title</th>
-                        <th class="u-dt">Code</th>
-                        
+                        <th>Strategy</th>
+                        <th class="u-dt">Inception</th>
+                        <th class="u-dt">Target</th>
+                        <th class="u-dt">Drawdown</th>
+                        <th>YTD</th>
+                        <th>Performance</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -19,14 +20,15 @@
                     <tr v-for="(strategy,i) in strategies">
                         <td>
                             <nuxt-link  :to="{ path: '/clients/' + strategy.id}" >
-                                {{++i}}
+                                {{strategy.title}}
                             </nuxt-link>
+                            <!-- <pre>{{strategy}}</pre> -->
                         </td>
-                        <td class="u-dt"><small>{{strategy.title}}</small></td>
-                        <td class="u-dt">{{strategy.sub_title}}<small>%pa</small></td>
-                        <td class="u-dt">{{strategy.code}}<small>%</small></td>
-                        <!-- <td><ticker :performance="strategy.ytd" /></td>
-                        <td><ticker :performance="strategy.performance" /></td> -->
+                                                <td class="u-dt"><small>[mmm yyyy]</small></td>
+                        <td class="u-dt">[9]<small>%pa</small></td>
+                        <td class="u-dt"><[9]<small>%</small></td>
+                        <td><ticker :performance="9" /></td>
+                        <td><ticker :performance="9" /></td>
                     </tr>
                 </tbody>
             </table>
