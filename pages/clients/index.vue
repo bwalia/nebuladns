@@ -22,6 +22,7 @@
                             <nuxt-link  :to="{ path: '/clients/' + strategy.id}" >
                                 {{strategy.title}}
                             </nuxt-link>
+                            <!-- <pre>{{strategy}}</pre> -->
                         </td>
                                                 <td class="u-dt"><small>[mmm yyyy]</small></td>
                         <td class="u-dt">[9]<small>%pa</small></td>

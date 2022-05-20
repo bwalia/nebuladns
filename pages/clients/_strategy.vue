@@ -19,11 +19,17 @@
         <part>
             <tile-hero class="u-but-b">
                 <h1 class="u-font1 u-but-b">Strategy:</h1>
-                <h2 class="u-font4 u-hbar u-but-t">{{strategy}}</h2>
+                <template v-if="items && items[0] && items[0].title">
+                    <h2 class="u-font4 u-hbar u-but-t">{{items[0].title}}</h2>
+                </template>
             </tile-hero>
-
             <div class="u-pad-h u-line-tap">
-                <nuxt-link to="/clients" class="u-weight-b">All Strategies</nuxt-link><b> / </b><b>{{strategy}}</b>
+                <nuxt-link to="/clients" class="u-weight-b">All Strategies</nuxt-link><b> / </b>
+                
+                <template v-if="items && items[0] && items[0].title">
+                    <b>{{items[0].title}}</b>
+                </template>
+                
             </div>
             <div class="u-pad-h">
                 <report-list :reportdata="items" />
@@ -129,13 +135,6 @@ export default {
     },
     data() {
         return {
-            strategy: 'Volatility Arbitrage',
-            url: 'volatility-arbitrage',
-            target: 25,
-            drawdown: 10,
-            ytd: 3,
-            performance: 15,
-            inception: 'Dec 2021',
             items: [],
             documents: []
         }

@@ -15,7 +15,7 @@
             :key="i" 
             :subhead="(item.title) ? item.title : 'Section'"
             :content="(item.text) ? item.text : null"
-            :chart="null" />
+            :chart="(item.code==='chart'?true:false)" />
     </div>
 </template>
 

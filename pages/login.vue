@@ -1,8 +1,8 @@
 <template>
   <div class="form">
     <form class="form-signin" @submit.prevent="handleLogin" @onkeydown="clearError">
-      <h1 class="h3 mb-3 font-weight-normal">Log Ins</h1>
-      <div class="row col-12">
+      <h1 class="u-font-2">Client Log-in</h1>
+      <div class="">
         <div class="form-group" >
           <label for="inputEmail" class="sr-only">Email address</label>
           <input
@@ -21,9 +21,9 @@
       </div>
       
       
-      <div class="row col-12">
+      <div class="u-shim-t">
         <div class="form-group" >
-        <label for="inputPassword" class="sr-only">Password</label>
+        <label for="inputPassword" class="sr-only">Password</label><br/>
         <input
           id="inputPassword"
           v-model="password"
@@ -43,8 +43,8 @@
           <nuxt-link to="/signup"> Get Register </nuxt-link>
         </label>
       </div> -->
-      <button class="row col-6 btn btn-sm btn-primary ml-1" type="submit">
-        Sign in
+      <button class="u-button u-shim-t" type="submit">
+        Log-in
       </button>
     </form>
   </div>
@@ -52,12 +52,13 @@
 
 <script>
 export default {
-    mounted(){
-        if(this.$auth.$storage.getUniversal('loggedIn'))
-        {
-          this.$router.push('/clients')
-        }
-    },
+  layout: 'blank',
+  mounted(){
+      if(this.$auth.$storage.getUniversal('loggedIn'))
+      {
+        this.$router.push('/clients')
+      }
+  },
   data() {
     return {
       email: "",

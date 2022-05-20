@@ -11,9 +11,10 @@
             </template>
 
             <template v-if="chart">
+                
                 <!-- <pre>{{chart.data}}</pre> -->
                 <!-- <pre>{{chart.options}}</pre> -->
-                {{content}}
+                <pre>{{chartObject}}</pre>
                 <!-- <div class="report-layout" v-html="content" /> -->
                 <!-- <line-chart class="line-chart" :data="chart.data" :options="chart.options" /> -->
             </template>
@@ -27,16 +28,19 @@ export default {
     props: ['subhead', 'content', 'chart', 'documents'],
     data () {
         return {
-            isOpen: true
+            isOpen: true,
+            chartObject: {}
         }
     },
     methods: {
         toggle: function(){
             this.isOpen = !this.isOpen
-        },
-        parseToJson: function(string) {
-            return JSON.parse(string);
         }
+    },
+    mounted: function() {
+        if (this.chart) {
+            this.chartObject = this.content;
+        } 
     }
 }
 </script>
