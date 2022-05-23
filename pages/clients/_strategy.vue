@@ -31,6 +31,7 @@
                 </template>
                 
             </div>
+            <!-- <pre>{{items}}</pre> -->
             <div class="u-pad-h">
                 <report-list :reportdata="items" />
             </div>

@@ -9,10 +9,10 @@
                     <tr>
                         <th>Strategy</th>
                         <th class="u-dt">Inception</th>
-                        <th class="u-dt">Target</th>
-                        <th class="u-dt">Drawdown</th>
-                        <th>YTD</th>
-                        <th>Performance</th>
+                        <!-- <th class="u-dt">Target</th>
+                        <th class="u-dt">Drawdown</th> -->
+                        <th>Return YTD</th>
+                        <th>Return PA</th>
                     </tr>
                 </thead>
                 <tbody>
