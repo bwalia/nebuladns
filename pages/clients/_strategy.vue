@@ -17,7 +17,7 @@
         </svg>
 
         <part>
-            <tile-hero class="u-but-b">
+            <tile-hero class="u-but-b" image="https://res.cloudinary.com/logdog/image/upload/q_50/v1653494123/odin/hero-6.jpg">
                 <h1 class="u-font1 u-but-b">Strategy:</h1>
                 <template v-if="items && items[0] && items[0].title">
                     <h2 class="u-font4 u-hbar u-but-t">{{items[0].title}}</h2>

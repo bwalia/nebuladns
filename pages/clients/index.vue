@@ -24,9 +24,7 @@
                             </nuxt-link>
                             <!-- <pre>{{strategy}}</pre> -->
                         </td>
-                                                <td class="u-dt"><small>[mmm yyyy]</small></td>
-                        <td class="u-dt">[9]<small>%pa</small></td>
-                        <td class="u-dt"><[9]<small>%</small></td>
+                        <td class="u-dt"><small>[mmm yyyy]</small></td>
                         <td><ticker :performance="9" /></td>
                         <td><ticker :performance="9" /></td>
                     </tr>
@@ -49,7 +47,6 @@ export default {
             page
         }
     },
-
     data() {
         return {
             strategies: [],

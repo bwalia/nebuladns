@@ -3,7 +3,7 @@ Title: Explore Odin
 ---
 
 
-<tile-hero>
+<tile-hero image="https://res.cloudinary.com/logdog/image/upload/q_50/v1653494122/odin/hero-4.jpg">
 <h1 class="u-font1 u-but-b">Explore:</h1>
 <h2 class="u-font3 u-hbar u-but-t">We look beyond numbers to provide secure, risk controlled, investment strategies.</h2>
 </tile-hero>
