@@ -53,7 +53,6 @@ export default {
         top: 0;
         left: 0;
         content: ' ';
-        background: pink;
         background: linear-gradient(100deg, rgba(38,62,90,0.66), rgba(38,62,90,0));
         width: 100%; 
         height: 100%;
