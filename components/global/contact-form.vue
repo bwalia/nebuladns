@@ -127,7 +127,7 @@ export default {
     },
     methods: {
         processAndSend: function() {
-            let formString = 'https://test-my.workstation.co.uk/api/send-email';
+            let formString = process.env.baseUrl+'/api/sendEmail';
             formString += '?location=' + 'contact';
             this.fields.forEach(function(item, index) {
                 if (item.data && item.name && item.data.length > 0) {
