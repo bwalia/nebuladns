@@ -126,6 +126,37 @@ export default {
         }
     },
     methods: {
+        processAndSend: function() {
+            let formString = 'https://test-my.workstation.co.uk/api/send-email';
+            formString += '?location=' + 'contact';
+            this.fields.forEach(function(item, index) {
+                if (item.data && item.name && item.data.length > 0) {
+                    formString += '&';
+                    formString += item.name;
+                    formString += '=';
+                    formString += encodeURIComponent(item.data);
+                }
+            });
+            console.log(formString);
+
+            try {
+                fetch(formString)
+                    .then(response => response.text())
+                    .then(data => {
+                        console.log(data);
+
+                        if (data.indexOf('success') > -1) {
+                            this.$router.push({
+                                path: '/contact-form-thanks'   
+                            })
+                        } else {
+                            console.log('Something went wrong')
+                        }
+                    });
+            } catch(error) {
+                return error;
+            }
+        },
         validateForm: function(e) {
             this.errors = 0;
             var vm = this;
@@ -148,6 +179,7 @@ export default {
                 console.log('send data');
             }
             e.preventDefault();
+            this.processAndSend();
         }
     }
 }
