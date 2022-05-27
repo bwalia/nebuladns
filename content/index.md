@@ -15,7 +15,7 @@ Explore
 
 <grid class="u-gap-v">
 <tile>
-<h3 class="u-but u-hbar">Private investors</h3>
+<h3 class="u-but u-hbar">Professional investors</h3>
 <p>Learn why smart investors are choosing Odin</p>
 <primary-button link="/advisers">
 Why Odin?
@@ -23,9 +23,9 @@ Why Odin?
 </tile>
 
 <tile>
-<h3 class="u-but u-hbar">Investment advisors & portfolio managers</h3>
+<h3 class="u-but u-hbar">Investment advisers & portfolio managers</h3>
 <p>Learn why smart investment advisers and portfolio managers are choosing Odin</p>
-<primary-button link="/">Odin for Advisers</primary-button>
+<primary-button link="/advisers">Odin for Advisers</primary-button>
 </tile>
 </grid>
 
