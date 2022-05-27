@@ -8,8 +8,8 @@
 
             <div class="legals">
                 <nav>
-                    <nuxt-link to="/terms-conditions">Terms & Conditions</nuxt-link><span>&nbsp;&nbsp;|&nbsp;&nbsp;</span>
-                    <nuxt-link to="/privacy-policy">Privacy Policy</nuxt-link><span>&nbsp;&nbsp;|&nbsp;&nbsp;</span>
+                    <!-- <nuxt-link to="/terms-conditions">Terms & Conditions</nuxt-link><span>&nbsp;&nbsp;|&nbsp;&nbsp;</span> -->
+                    <!-- <nuxt-link to="/privacy-policy">Privacy Policy</nuxt-link><span>&nbsp;&nbsp;|&nbsp;&nbsp;</span> -->
                     <nuxt-link to="/cookie-policy">Cookie Policy</nuxt-link>                
                 </nav>    
 

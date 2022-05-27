@@ -2,7 +2,7 @@
 Title: 'Odin: Professional Investors'
 ---
 
-<tile-hero image="https://res.cloudinary.com/logdog/image/upload/q_50/v1653494123/odin/hero-3.jpg">
+<tile-hero image="https://res.cloudinary.com/logdog/image/upload/q_50/v1653494122/odin/hero-4.jpg">
 <h1 class="u-font1 u-but-b">Professional Investors:</h1>
 <h2 class="u-font3 u-hbar u-but-t">Access high performance strategies that can transform your portfolio and financial outcomes. </h2>
 </tile-hero>

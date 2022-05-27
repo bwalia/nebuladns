@@ -27,7 +27,7 @@
                             </nuxt-link>
                         </div>                        
                         <div class="login">
-                            <a href="/login" v-if="this.$store.state.auth.loggedIn">
+                            <a href="/login" v-if="!this.$store.state.auth.loggedIn">
                                 Log-in
                                 <svg><use xlink:href="#user"></use></svg>
                             </a>
