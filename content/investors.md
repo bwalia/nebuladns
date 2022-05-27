@@ -1,9 +1,9 @@
 ---
-Title: 'Odin: Private Investors'
+Title: 'Odin: Professional Investors'
 ---
 
 <tile-hero image="https://res.cloudinary.com/logdog/image/upload/q_50/v1653494123/odin/hero-3.jpg">
-<h1 class="u-font1 u-but-b">Private Investors:</h1>
+<h1 class="u-font1 u-but-b">Professional Investors:</h1>
 <h2 class="u-font3 u-hbar u-but-t">Access high performance strategies that can transform your portfolio and financial outcomes. </h2>
 </tile-hero>
 
@@ -22,7 +22,7 @@ Title: 'Odin: Private Investors'
 <li>Digital Assets</li>
 </ul-table>
 
-<p class="u-min">Existing customers <a href="https://clients.odincm.com">Log-in</a><p>
+<!-- <p class="u-min">Existing customers <a href="https://clients.odincm.com">Log-in</a><p> -->
 
 <p class="u-min"><i>We engage with sophisticated professional investors after a thorough accreditation and suitability assessment.</i></p>
 

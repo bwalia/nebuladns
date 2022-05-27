@@ -32,7 +32,7 @@ Title: Explore Odin
 
 <grid class="u-gap-v">
 <tile>
-<h3 class="u-but u-hbar">Private investors</h3>
+<h3 class="u-but u-hbar">Professional investors</h3>
 <p>Learn why smart investors are choosing Odin</p>
 <primary-button link="/investors">Odin for Investors</primary-button>
 </tile>
