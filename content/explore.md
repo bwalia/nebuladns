@@ -3,7 +3,7 @@ Title: Explore Odin
 ---
 
 
-<tile-hero image="https://res.cloudinary.com/logdog/image/upload/q_50/v1653494122/odin/hero-4.jpg">
+<tile-hero image="https://res.cloudinary.com/logdog/image/upload/q_50/v1653494123/odin/hero-3.jpg">
 <h1 class="u-font1 u-but-b">Explore:</h1>
 <h2 class="u-font3 u-hbar u-but-t">We look beyond numbers to provide secure, risk controlled, investment strategies.</h2>
 </tile-hero>
@@ -38,7 +38,7 @@ Title: Explore Odin
 </tile>
 
 <tile>
-<h3 class="u-but u-hbar">Investment advisors & portfolio managers</h3>
+<h3 class="u-but u-hbar">Investment advisers & portfolio managers</h3>
 <p>Learn why smart investment advisers and portfolio managers are choosing Odin</p>
 <primary-button link="/advisers">Odin for Advisers</primary-button>
 </tile>
