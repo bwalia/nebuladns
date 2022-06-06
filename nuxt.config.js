@@ -72,9 +72,10 @@ export default {
   },
 
   generate: {
+    fallback: true,
     routes: [
       '/', 
-      '/privacy-policy'
+      '/cookie-policy'
     ]
   }
 
