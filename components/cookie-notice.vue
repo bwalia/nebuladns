@@ -2,15 +2,15 @@
 
     <div :class="'cookie-notice' + ( this.showNotice ? ' show-notice' : '')"> 
 
-        <part snug="true">  
+        <part flush="true">  
 
             <div class="cookie-layout">
    
                 <div class="cookie-message">
-                    This site uses <b>cookies</b> and respects your privacy. <nuxt-link to="/privacy-policy" class="u-nobr">Privacy policy</nuxt-link>   
+                    This site uses <b>cookies</b> and respects your privacy. <nuxt-link to="/cookie-policy" class="u-nobr">Cookie policy</nuxt-link>     
                 </div>
 
-                <primary-button v-on:click.native="rememberMyCookiePreference()">Accept</primary-button>
+                <div class="cookie-button" v-on:click="rememberMyCookiePreference()">Accept</div>
 
             </div>
 
@@ -58,9 +58,6 @@
             } else {
                 console.log('not a thing');
             }
-           
-
-
             
         }
 	}
@@ -68,12 +65,15 @@
 
 <style lang="scss" scoped>
 
+@import "~/assets/css/variables.css";
+
 .cookie-notice {
     position: fixed;
     bottom: 0;
     left: 0;
     width: 100vw;
-    background: #fff;
+    background: var(--default);
+    color: #fff;
     padding: 1.25em 0;
     z-index: 9999;
     box-shadow: 0 0 3px rgba(72, 81, 119, 0.08), 0 -3px 12px rgba(72, 81, 119, 0.08);
@@ -98,8 +98,19 @@
         }
     }
 
+    a { color: #fff; }
+
     &.show-notice {
         transform: translateY(0);
+    }
+
+    .cookie-button {
+        background: #fff;
+        color: var(--default);
+        line-height: 56px;
+        padding: 0 1.5em;
+        border-radius: 20px;
+        font-weight: bold;
     }
 }
 

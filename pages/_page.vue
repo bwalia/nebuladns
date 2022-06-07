@@ -5,7 +5,7 @@
             <nuxt-content :document="page" />
         </part>
 
-        <!-- <cookie-notice /> -->
+        <cookie-notice />
         
     </div>
 
