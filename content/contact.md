@@ -5,7 +5,7 @@ Title: Contact Odin
 
 <tile-hero image="https://res.cloudinary.com/logdog/image/upload/q_50/v1653494123/odin/hero-1.jpg">
 <h1 class="u-font1 u-but-b">Contact:</h1>
-<h2 class="u-font4 u-hbar u-but-t">Connect with us.</h2>
+<h2 class="u-font4 u-hbar u-but-t">Connect with us</h2>
 </tile-hero>
 
 <grid class="u-gap-v">
