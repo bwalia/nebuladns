@@ -13,7 +13,7 @@ Title: 'Odin: Advisers'
 <div class="u-gap-h">
 <p>If you are a portfolio manager with a proven investment strategy, partnering with Odin can provide you with institutional quality risk management and compliance oversight.</p>
 
-<p>For the right investment offering Odin’s capital raising capabilities can fast track the growth of your fund.</p>
+<p>For the right investment offering Odin’s capital raising capabilities can fast track the growth of your fund</p>
 
 <p>We specialise in small emerging managers with a clear investment edge, entrepreneurial drive to launch their own fund and a culture that aligns with Odin.</p>
 </div>
