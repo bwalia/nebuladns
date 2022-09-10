@@ -2,7 +2,7 @@
 Title: 'Odin: Advisers'
 ---
 
-<tile-hero video="https://res.cloudinary.com/logdog/video/upload/br_600k,c_fit,h_1100,vc_auto,w_2200/v1653495561/odin/Sequence_02.mp4" poster="https://res.cloudinary.com/logdog/image/upload/c_scale,q_50,w_2600/v1654518757/odin/ezgif-frame-001-1.jpg">
+<tile-hero class="tile-focus-l" video="https://res.cloudinary.com/logdog/video/upload/br_600k,c_fit,h_1100,vc_auto,w_2200/v1653495561/odin/Sequence_02.mp4" poster="https://res.cloudinary.com/logdog/image/upload/c_scale,q_50,w_2600/v1654518757/odin/ezgif-frame-001-1.jpg">
 <h1 class="u-font1 u-but-b">Investment Managers:</h1>
 <h2 class="u-font4 u-hbar u-but-t">Fast track the growth of <span class="u-nobr">your fund</span></h2>
 </tile-hero>

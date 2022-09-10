@@ -46,11 +46,8 @@
                 <br/>
                 <b class="error-message u-error" v-if="field.errors">{{ field.errors }}</b>
             </p>
-            
 
         </template>
-        
-        
 
         <input type="submit" :value="(cta) ? cta : 'Send'" />
         
@@ -201,7 +198,7 @@ input[type="submit"] {
     margin: 1em 0;
     border-radius: 30px;
     border: none;
+    -webkit-appearance: none;
 }
-
 
 </style>
