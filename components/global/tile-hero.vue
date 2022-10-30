@@ -67,23 +67,36 @@ export default {
         height: 100%;
         z-index: 1;
         img {
-            object-fit: cover;
-            object-position: 15% 50%;
             opacity: 1;
             width: 100%;
             height: 100%;
+            object-fit: cover;
+            object-position: 60% 50%;
+            @media (min-width: 400px) { object-position: 50% 50%; }
+            @media (min-width: 800px) { object-position: 15% 50%; }
         }
         video {
             position: absolute;
             width: 100%;
+            max-width: none;
             min-height: 100%;
             left: 0;
             top: 0;
-            object-fit: cover;
             z-index: -1;
+            object-fit: cover;
+            object-position: 50% 50%;
+            @media (min-width: 400px) { object-position: 30% 50%; }
+            @media (min-width: 800px) { object-position: 40% 50%; }
         }
+        
     }
-
+    &.tile-focus-l img, 
+    &.tile-focus-l video {
+        width: 120%;
+        object-position: 0% 50%;
+        @media (min-width: 400px) { width: 140%;}
+        @media (min-width: 800px) { width: 120%;}
+    }
 
     .hero-content {
         position: relative;
