@@ -82,8 +82,6 @@
 
 
         </part>
-
-        <!-- <cookie-notice /> -->
         
     </div>
 
@@ -103,7 +101,6 @@ export default {
             this.$auth.$storage.setUniversal('user', this.$auth.$storage.getUniversal('user'))
         }
         let url=process.env.baseUrl+"/api/webpagesEdit/"+this.$route.params.strategy;
-        console.log(url);
         let token=this.$auth.$storage.getUniversal('token')
         this.$axios.setToken(token, 'Bearer')
         this.$axios
