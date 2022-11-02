@@ -57,6 +57,7 @@ $burger-size: calc( 38px + 4vw );
             width: 100%;
             height: 100%;
             display: inline-block;
+            color: red;
         }
     }
 }

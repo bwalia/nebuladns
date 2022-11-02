@@ -103,6 +103,7 @@ export default {
             this.$auth.$storage.setUniversal('user', this.$auth.$storage.getUniversal('user'))
         }
         let url=process.env.baseUrl+"/api/webpagesEdit/"+this.$route.params.strategy;
+        console.log(url);
         let token=this.$auth.$storage.getUniversal('token')
         this.$axios.setToken(token, 'Bearer')
         this.$axios
@@ -120,19 +121,19 @@ export default {
             console.log(error);
           });
 
-        // url="https://test-my.workstation.co.uk/api/getDocument";
-        // this.$axios.setToken(token, 'Bearer')
-        // this.$axios
-        //   .get(url, {
-        //   })
-        //   .then((res) => {
+        url="https://test-my.workstation.co.uk/api/getDocument";
+        this.$axios.setToken(token, 'Bearer')
+        this.$axios
+          .get(url, {
+          })
+          .then((res) => {
             
-        //     this.documents=res.data.data
-        //     console.log(this.documents)
-        //   })
-        //   .catch(function (error) {
-        //     console.log(error);
-        //   });
+            this.documents=res.data.data
+            console.log(this.documents)
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
     },
     data() {
         return {

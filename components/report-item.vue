@@ -1,25 +1,30 @@
 <template>
     <div class="report-item" :class="{ 'is-open': isOpen }">
         <h2 @click="toggle()">
-            <span>{{subhead}}</span> 
+            <span>{{(subhead ? subhead : ' ')}}</span> 
             <svg><use xlink:href="#twisty"></use></svg>
         </h2>
         <div class="report-content">
+
+            <!-- <pre>{{content}}</pre> -->
+            <!-- <pre>{{chartDataObject}}</pre> -->
 
             <template v-if="!ischart">
                 <div class="report-layout" v-html="content" />
             </template>
 
             <template v-if="ischart">
-                
-                <!-- <pre>{{chart.data}}</pre> -->
-                <!-- <pre>{{chart.options}}</pre> -->
-                <!-- <pre>{{content}}</pre> -->
-                <!-- <pre>{{chartObject}}</pre> -->
-                <!-- <div class="report-layout" v-html="content" /> -->
-                <template v-if="chartObject">
-                    <line-chart class="line-chart" :data="chart.data" :options="chart.options" />
-                </template>
+                <line-chart 
+                    class="line-chart" 
+                    :series="(this.chartDataObject && this.chartDataObject.chartData)
+                        ? this.chartDataObject.chartData
+                        : []" 
+                    :benchmark="(chartDataObject && chartDataObject.benchmarkData)
+                        ? chartDataObject.benchmarkData
+                        : []"
+                    :labels="(chartDataObject && chartDataObject.chartLabels)
+                        ? chartDataObject.chartLabels
+                        : []" />
             </template>
 
         </div>
@@ -35,32 +40,6 @@ export default {
             temp: {
                 cleaned: '',
                 lines: []
-            },
-            chartObject: {},
-            chart: {
-                data: {
-                    labels: ["Q3'20","Q4'20","Q1'21","Q2'21","Q3'21","Q4'21","Q1'22"],
-                    datasets: [
-                        {
-                            label: "% increase since inception",
-                            borderColor: "#1790E3",
-                            borderWidth: 5,
-                            fill: false,
-                            data: [0, 1.6, 2.4, 2.5, 4.1, 6.2, 7, 8.8]
-                        },
-                        {
-                            label: "Benchmark",
-                            borderColor: "#d5d5d5",
-                            borderWidth: 5,
-                            fill: false,
-                            data: [0, 1, 2, 3, 4, 5, 6, 7]
-                        }
-                    ]
-                },
-                options: {
-                    maintainAspectRatio: false,
-                    responsive: true
-                }
             }
         }
     },
@@ -68,24 +47,29 @@ export default {
         toggle: function(){
             this.isOpen = !this.isOpen
         }
-        // stringToKeyPair: function(string) {
-        //     var keyPair = {};
-        //     var split = string.split(':');
-        //     keyPair[split[0]] = split[1];
-        //     return keyPair;
-        // }
     },
-    mounted: function() {
-        if (this.ischart) {
-            this.temp.cleaned = this.content.replaceAll('\"','');
-            this.temp.lines = this.temp.cleaned.split('\r\n');    
-            this.temp.lines.map(line => {
-                var pair = line.split(':');
-                this.chartObject[pair[0]] = pair[1]; 
-            }); 
-            console.log(this.chartObject);
-            // this.chart.data.datasets[0].data = this.chartObject.chartData;    
-        } 
+    computed: {
+        splitChartData: function() {
+            if (this.ischart && this.content) {
+                return this.content.split(/\r?\n/);
+            } else {
+                return false;
+            }
+        },
+        chartDataObject: function() {
+            let dataObject = {};
+            if(this.splitChartData) {
+                this.splitChartData.forEach((item, index) => {
+                    let splitRecord = item.split(':');
+                    
+                    if(splitRecord && splitRecord.length > 1) {
+                        let dataArray = splitRecord[1].split(',');
+                        dataObject[splitRecord[0]] = dataArray;
+                    }
+                });
+                return dataObject;
+            }
+        }
     }
 }
 </script>
