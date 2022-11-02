@@ -118,7 +118,7 @@ export default {
             console.log(error);
           });
 
-        url="https://test-my.workstation.co.uk/api/getDocument";
+        url="https://my.workstation.co.uk/api/getDocument";
         this.$axios.setToken(token, 'Bearer')
         this.$axios
           .get(url, {

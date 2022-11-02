@@ -68,7 +68,7 @@ export default {
   build: {
   },
   env: {
-    baseUrl: process.env.BASE_URL || 'https://test-my.workstation.co.uk'
+    baseUrl: process.env.BASE_URL || 'https://my.workstation.co.uk'
   },
 
   generate: {
