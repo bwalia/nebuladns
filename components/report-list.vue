@@ -16,6 +16,8 @@
             :subhead="(item.title) ? item.title : 'Section'"
             :content="(item.text) ? item.text : null"
             :ischart="(item.code==='chart'?true:false)" />
+
+        <!-- <pre>{{reportdata}}</pre> -->
     </div>
 </template>
 

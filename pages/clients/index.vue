@@ -4,6 +4,9 @@
         <part>
             <nuxt-content :document="page" />
 
+            <!-- <pre>{{page}}</pre> -->
+            <!-- <pre>{{strategies}}</pre> -->
+            
             <table cellpadding="0" cellspacing="0" border="0">
                 <thead>
                     <tr>
@@ -31,8 +34,6 @@
                 </tbody>
             </table>
         </part>
-
-        <!-- <cookie-notice /> -->
         
     </div>
 
@@ -70,6 +71,12 @@ export default {
         }
     },
     created() {
+        let testUrl = (process.env.baseUrl && this.$auth.$storage.getUniversal('user'))
+            ? process.env.baseUrl+"/api/webpages/"+this.$auth.$storage.getUniversal('user').client_id
+            : 'null';
+        console.log(testUrl);
+
+
         if(!this.$auth.$storage.getUniversal('loggedIn'))
         {
             this.$router.push('/login')
@@ -77,7 +84,9 @@ export default {
         let token=this.$auth.$storage.getUniversal('token')
         this.$axios.setToken(token, 'Bearer')
         this.$axios
-          .get(process.env.baseUrl+"/api/webpages/"+this.$auth.$storage.getUniversal('user').client_id, {
+          .get((process.env.baseUrl && this.$auth.$storage.getUniversal('user'))
+            ? process.env.baseUrl+"/api/webpages/"+this.$auth.$storage.getUniversal('user').client_id
+            : null, {
           })
           .then((res) => {
             //console.log(res.data);
