@@ -5,7 +5,7 @@
             <nuxt-content :document="page" />
 
             <!-- <pre>{{page}}</pre> -->
-            <pre>{{strategies}}</pre>
+            <!-- <pre>{{strategies}}</pre> -->
             
             <table cellpadding="0" cellspacing="0" border="0">
                 <thead>
