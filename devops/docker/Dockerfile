@@ -6,5 +6,10 @@ EXPOSE 3000
 ENV HOST 0.0.0.0
 ENV NUXT_PORT=3000
 
+RUN npm install
 RUN npx browserslist@latest --update-db
 CMD [ "npm", "run", "dev" ]
+
+#RUN npm run build
+#RUN npm run generate
+#CMD [ "npm", "run", "build" ]

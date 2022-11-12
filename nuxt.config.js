@@ -66,6 +66,7 @@ export default {
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {
+    // publicPath  : '/dist/','/'
   },
   env: {
     baseUrl: process.env.BASE_URL || 'https://my.workstation.co.uk'
