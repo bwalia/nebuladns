@@ -71,10 +71,10 @@ export default {
         }
     },
     created() {
-        let testUrl = (process.env.baseUrl && this.$auth.$storage.getUniversal('user'))
-            ? process.env.baseUrl+"/api/webpages/"+this.$auth.$storage.getUniversal('user').client_id
+        let testUrl = (this.$config.baseAPIURL && this.$auth.$storage.getUniversal('user'))
+            ? this.$config.baseAPIURL+"webpages/"+this.$auth.$storage.getUniversal('user').client_id
             : 'null';
-        console.log(testUrl);
+        console.log("API URL: " + testUrl);
 
 
         if(!this.$auth.$storage.getUniversal('loggedIn'))
@@ -84,8 +84,8 @@ export default {
         let token=this.$auth.$storage.getUniversal('token')
         this.$axios.setToken(token, 'Bearer')
         this.$axios
-          .get((process.env.baseUrl && this.$auth.$storage.getUniversal('user'))
-            ? process.env.baseUrl+"/api/webpages/"+this.$auth.$storage.getUniversal('user').client_id
+          .get((this.$config.baseAPIURL && this.$auth.$storage.getUniversal('user'))
+            ? this.$config.baseAPIURL+"webpages/"+this.$auth.$storage.getUniversal('user').client_id
             : null, {
           })
           .then((res) => {

@@ -11,6 +11,7 @@
 
 
       <h1 class="u-font4">Client Log-in</h1>
+      <h2></h2>
       <div class="">
         <div class="form-group" >
           <label for="inputEmail" class="sr-only">Email address</label>
@@ -65,6 +66,9 @@
 export default {
   layout: 'blank',
   mounted(){
+    //console.log({"baseAPIURL public runtime config": this.$config.baseAPIURL});
+    console.log({"apiSecretTestPub private runtime config": this.$config.apiSecretTestPub});
+
       if(this.$auth.$storage.getUniversal('loggedIn'))
       {
         this.$router.push('/clients')
@@ -86,7 +90,7 @@ export default {
       {
          this.$axios
              .post(
-               process.env.baseUrl+'/auth/login',
+               this.$config.baseAPIURL+'/auth/login',
                {
                  email: this.email,
                  password: this.password

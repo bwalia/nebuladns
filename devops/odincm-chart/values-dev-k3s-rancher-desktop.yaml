@@ -1,6 +1,9 @@
 # Default values for odincm.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+targetCluster: k3s-rancher-desktop
+targetEnv: dev
+targetNS: dev
 
 replicaCount: 1
 
@@ -9,6 +12,9 @@ image:
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: "latest"
+
+targetImage: "registry.workstation.co.uk/odincm-node"
+targetImageTag: "latest"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -35,6 +41,7 @@ securityContext: {}
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
   # runAsUser: 1000
+svcAccessPort: 31109
 
 service:
   type: ClusterIP
@@ -47,7 +54,7 @@ ingress:
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   hosts:
-    - host: www.odincm.com
+    - host: dev.odincm.com
       paths:
         - path: /
           pathType: ImplementationSpecific

@@ -1,6 +1,7 @@
 export default {
+  
   // Target: https://go.nuxtjs.dev/config-target
-  target: 'static',
+  target: 'server',
 
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
@@ -36,6 +37,7 @@ export default {
 
   // Modules for dev and build (recommended): https://go.nuxtjs.dev/config-modules
   buildModules: [
+    '@nuxtjs/dotenv',
   ],
 
   // Modules: https://go.nuxtjs.dev/config-modules
@@ -69,7 +71,7 @@ export default {
     // publicPath  : '/dist/','/'
   },
   env: {
-    baseUrl: process.env.BASE_URL || 'https://my.workstation.co.uk'
+    baseURL: process.env.NODE_ENV === "development" ? 'http://localhost:31178' : 'https://my.workstation.co.uk',
   },
 
   generate: {
@@ -78,6 +80,15 @@ export default {
       '/', 
       '/cookie-policy'
     ]
+  },
+
+  publicRuntimeConfig: {
+    baseAPIURL: process.env.NODE_ENV === "development" ? 'http://localhost:31178/api' : 'https://my.workstation.co.uk/api',
+    apiSecretTestPub: process.env.API_SECRET
+  },
+
+  privateRuntimeConfig: {
+    apiSecret: process.env.API_SECRET
   }
 
 }
