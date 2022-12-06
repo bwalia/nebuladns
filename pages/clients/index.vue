@@ -82,6 +82,7 @@ export default {
             this.$router.push('/login')
         }
         let token=this.$auth.$storage.getUniversal('token')
+        console.log("Token: " + token);
         this.$axios.setToken(token, 'Bearer')
         this.$axios
           .get((this.$config.baseAPIURL && this.$auth.$storage.getUniversal('user'))
