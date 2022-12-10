@@ -27,7 +27,7 @@
                             </nuxt-link>
                             <!-- <pre>{{strategy}}</pre> -->
                         </td>
-                        <td class="u-dt"><small>[mmm yyyy]</small></td>
+                        <td class="u-dt"><small>{{convertData(parseInt(strategy.publish_date))}}</small></td>
                         <td><ticker :performance="9" /></td>
                         <td><ticker :performance="9" /></td>
                     </tr>
@@ -101,6 +101,10 @@ export default {
         inc(){
             this.sl=this.sl + 1;
             return this.sl;
+        },
+        convertData: function(timestamp) {
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleDateString()
         }
     }
 }
