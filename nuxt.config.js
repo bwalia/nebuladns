@@ -71,7 +71,7 @@ export default {
     // publicPath  : '/dist/','/'
   },
   env: {
-    baseURL: process.env.NODE_ENV === "development" ? 'http://localhost:31178' : 'https://my.workstation.co.uk',
+    basePubURL: process.env.NODE_ENV === "development" ? 'https://test-my.workstation.co.uk' : 'https://test-my.workstation.co.uk',
   },
 
   generate: {
@@ -81,14 +81,14 @@ export default {
       '/cookie-policy'
     ]
   },
-
+//this.$config.apiSecretPub
   publicRuntimeConfig: {
-    baseAPIURL: process.env.NODE_ENV === "development" ? 'http://localhost:31178/api' : 'https://my.workstation.co.uk/api',
-    apiSecretTestPub: process.env.API_SECRET
+    baseAPIURL: process.env.NODE_ENV === "development" ? 'https://test-my.workstation.co.uk/api' : 'https://test-my.workstation.co.uk/api',
+    apiSecretPub: process.env.API_SECRET
   },
 
   privateRuntimeConfig: {
-    apiSecret: process.env.API_SECRET
+    apiSecretPrivate: process.env.API_SECRET
   }
 
 }

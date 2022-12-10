@@ -2,6 +2,7 @@
 
 NODE_VERSION="12.22.12-alpine3.15"
 TARGET_CLUSTER="k3s-rancher-desktop"
+TARGET_CLUSTER="k3s2"
 TARGET_STACK="node"
 DATE_GEN_VERSION=$(date +"%Y%m%d%I%M%S")
 DATE_GEN_VERSION="dev"

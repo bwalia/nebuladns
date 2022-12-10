@@ -62,7 +62,7 @@ export default {
   layout: 'blank',
   mounted(){
     //console.log({"baseAPIURL public runtime config": this.$config.baseAPIURL});
-    console.log({"apiSecretTestPub private runtime config": this.$config.apiSecretTestPub});
+    console.log({"apiSecretPub private runtime config": this.$config.apiSecretPub});
 
       if(this.$auth.$storage.getUniversal('loggedIn'))
       {
@@ -85,7 +85,7 @@ export default {
       {
          this.$axios
              .post(
-               this.$config.baseAPIURL+'/auth/login',
+              process.env.basePubURL+'/auth/login',
                {
                  email: this.email,
                  password: this.password

@@ -1,7 +1,7 @@
 # Default values for odincm.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-targetCluster: awsk3s
+targetCluster: k3s2
 targetEnv: test
 targetNS: test
 
