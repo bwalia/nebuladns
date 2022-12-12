@@ -12,19 +12,23 @@
             <template v-if="!ischart">
                 <div class="report-layout" v-html="content" />
             </template>
-
+            
             <template v-if="ischart">
-                <line-chart 
-                    class="line-chart" 
-                    :series="(this.chartDataObject && this.chartDataObject.chartData)
-                        ? this.chartDataObject.chartData
-                        : []" 
-                    :benchmark="(chartDataObject && chartDataObject.benchmarkData)
-                        ? chartDataObject.benchmarkData
-                        : []"
-                    :labels="(chartDataObject && chartDataObject.chartLabels)
-                        ? chartDataObject.chartLabels
-                        : []" />
+                <VueSlickCarousel :arrows="true" :dots="true">
+                    <div v-for="(chart, index) in this.chartDataObject.chartData">
+                    <line-chart
+                        class="line-chart" 
+                        :series="(chartDataObject && chartDataObject.chartData[index])
+                            ? chartDataObject.chartData[index]
+                            : []" 
+                        :benchmark="(chartDataObject && chartDataObject.benchmarkData[index])
+                            ? chartDataObject.benchmarkData[index]
+                            : []"
+                        :labels="(chartDataObject && chartDataObject.chartLabels[index])
+                            ? chartDataObject.chartLabels[index]
+                            : []" />
+                    </div>
+                </VueSlickCarousel>
             </template>
 
         </div>
@@ -32,6 +36,9 @@
 </template>
 
 <script>
+  import VueSlickCarousel from 'vue-slick-carousel'
+  import 'vue-slick-carousel/dist/vue-slick-carousel.css'
+  import 'vue-slick-carousel/dist/vue-slick-carousel-theme.css'
 export default {
     props: ['subhead', 'content', 'ischart', 'documents'],
     data () {
@@ -43,6 +50,7 @@ export default {
             }
         }
     },
+    components: { VueSlickCarousel },
     methods: {
         toggle: function(){
             this.isOpen = !this.isOpen
@@ -58,13 +66,19 @@ export default {
         },
         chartDataObject: function() {
             let dataObject = {};
+            var size = 61;
             if(this.splitChartData) {
                 this.splitChartData.forEach((item, index) => {
                     let splitRecord = item.split(':');
-                    
                     if(splitRecord && splitRecord.length > 1) {
                         let dataArray = splitRecord[1].split(',');
-                        dataObject[splitRecord[0]] = dataArray;
+                        const res = dataArray.reduce((acc, curr, i) => {
+                        if ( !(i % size)  ) { 
+                            acc.push(dataArray.slice(i, i + size)); 
+                        }
+                        return acc;
+                        }, []);
+                        dataObject[splitRecord[0]] = res;
                     }
                 });
                 return dataObject;
@@ -141,6 +155,18 @@ export default {
 .line-chart {
     width: auto;
     margin: 30px;
+}
+
+.slick-arrow.slick-prev {
+    left: 0px
+}
+
+.slick-arrow.slick-next {
+    right: 0;
+}
+
+.slick-prev:before, .slick-next:before {
+    color: #397BAA;
 }
 
 </style>
