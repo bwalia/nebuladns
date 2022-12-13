@@ -1,7 +1,7 @@
 # Default values for odincm.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-targetCluster: namecheap
+targetCluster: k3s3
 targetEnv: prod
 targetNS: prod
 

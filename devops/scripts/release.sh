@@ -1,4 +1,5 @@
-# #!/bin/bash
+#!/bin/bash
+
 # ############ This bash script deploys odincm.com into the kubernetes.
 # set -x
 # if [[ -z "$1" ]]; then
@@ -25,4 +26,11 @@
 
 # # kubectl set image deployment/odincm odincm=registry.workstation.co.uk/odincm:$targetEnv
 # helm uninstall odincm-${targetEnv} -n ${targetEnv}
-# helm upgrade --install -f devops/odincm/values-${targetEnv}.yaml odincm-${targetEnv} ./devops/odincm --set-string targetImage="registry.workstation.co.uk/odincm" --set-string targetImageTag="${targetEnv}" --namespace ${targetEnv}
+# helm upgrade --install -f devops/odincm/values-${targetEnv}.yaml odincm-${targetEnv} ./devops/odincm-chart --set-string targetImage="registry.workstation.co.uk/odincm" --set-string targetImageTag="${targetEnv}" --namespace ${targetEnv}
+
+targetEnv=test
+IMAGE_TAG=dev
+
+
+helm uninstall odincm-${targetEnv} -n ${targetEnv}
+helm upgrade --install -f devops/odincm-chart/values-${targetEnv}-k3s2.yaml odincm-${targetEnv} devops/odincm-chart --set-string targetImage="registry.workstation.co.uk/odincm-node" --set-string targetImageTag="${IMAGE_TAG}" --namespace ${targetEnv}
