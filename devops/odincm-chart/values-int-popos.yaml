@@ -8,12 +8,12 @@ targetNS: int
 replicaCount: 1
 
 image:
-  repository: registry.workstation.co.uk/odincm-node
+  repository: registry.workstation.co.uk/odincm
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: "latest"
 
-targetImage: "registry.workstation.co.uk/odincm-node"
+targetImage: "registry.workstation.co.uk/odincm"
 targetImageTag: "latest"
 
 imagePullSecrets: []

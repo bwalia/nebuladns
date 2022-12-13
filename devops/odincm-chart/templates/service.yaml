@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: odincm-nodeport-{{ .Values.targetEnv }}
+  name: odincmport-{{ .Values.targetEnv }}
 spec:
   selector:
       {{- include "odincm.selectorLabels" . | nindent 6 }}

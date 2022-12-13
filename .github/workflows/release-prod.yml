@@ -1,6 +1,6 @@
 on:
   push:
-    branches: [ main ]
+    branches: [ dummy ]
   pull_request:
     branches: [ zzz ]
   workflow_dispatch:

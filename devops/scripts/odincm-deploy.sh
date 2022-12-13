@@ -61,7 +61,7 @@ fi
 
 if [[ -z "$7" ]]; then  # docker_base_image not in use yet
    echo "docker base image is empty, so setting docker base image to dev-odincm-webserver (default)"
-   docker_base_image="${targetEnv}-odincm-node"
+   docker_base_image="${targetEnv}-odincm"
 else
    echo "docker base image type is provided, docker base image is set to $7"
    docker_base_image=$7

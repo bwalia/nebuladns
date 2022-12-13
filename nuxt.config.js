@@ -72,9 +72,9 @@ export default {
   },
   env: {
     basePubURL: process.env.NODE_ENV == "development" ? "http://dev-my.workstation.co.uk"
-    : env == "test" ? "https://test-my.workstation.co.uk"
-    : env == "development" ? "https://acc-my.workstation.co.uk"
-    : env == "integration" ? "https://int-my.workstation.co.uk"
+    : process.env.NODE_ENV == "test" ? "https://test-my.workstation.co.uk"
+    : process.env.NODE_ENV == "development" ? "https://acc-my.workstation.co.uk"
+    : process.env.NODE_ENV == "integration" ? "https://int-my.workstation.co.uk"
     : "https://my.workstation.co.uk"
   },
 
@@ -89,9 +89,9 @@ export default {
 //this.$config.apiSecretPub
   publicRuntimeConfig: {
     baseAPIURL: process.env.NODE_ENV == "development" ? "http://dev-my.workstation.co.uk/api"
-    : env == "test" ? "https://test-my.workstation.co.uk/api"
-    : env == "development" ? "https://acc-my.workstation.co.uk/api"
-    : env == "integration" ? "https://int-my.workstation.co.uk"
+    : process.env.NODE_ENV == "test" ? "https://test-my.workstation.co.uk/api"
+    : process.env.NODE_ENV == "development" ? "https://acc-my.workstation.co.uk/api"
+    : process.env.NODE_ENV == "integration" ? "https://int-my.workstation.co.uk"
     : "https://my.workstation.co.uk/api"
     ,
     apiSecretPub: process.env.API_SECRET
