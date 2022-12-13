@@ -1,15 +1,27 @@
+---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "odincm-chart.fullname" . }}
+  name: odincm-nodeport-{{ .Values.targetEnv }}
+spec:
+  selector:
+      {{- include "odincm.selectorLabels" . | nindent 6 }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.port }}
+      nodePort: {{ .Values.svcAccessPort }}
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "odincm.fullname" . }}
   labels:
-    {{- include "odincm-chart.labels" . | nindent 4 }}
+    {{- include "odincm.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: http
-      protocol: TCP
-      name: http
+      targetPort: {{ .Values.service.port }}
   selector:
-    {{- include "odincm-chart.selectorLabels" . | nindent 4 }}
+    {{- include "odincm.selectorLabels" . | nindent 4 }}

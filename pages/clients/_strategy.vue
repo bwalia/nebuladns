@@ -100,7 +100,7 @@ export default {
             this.$auth.$storage.setUniversal('loggedIn', true)
             this.$auth.$storage.setUniversal('user', this.$auth.$storage.getUniversal('user'))
         }
-        let url=process.env.baseUrl+"/api/webpagesEdit/"+this.$route.params.strategy;
+        let url=this.$config.baseAPIURL+"/webpagesEdit/"+this.$route.params.strategy;
         let token=this.$auth.$storage.getUniversal('token')
         this.$axios.setToken(token, 'Bearer')
         this.$axios
@@ -118,7 +118,7 @@ export default {
             console.log(error);
           });
 
-        url="https://my.workstation.co.uk/api/getDocument";
+        url=this.$config.baseAPIURL+"/getDocument";
         this.$axios.setToken(token, 'Bearer')
         this.$axios
           .get(url, {

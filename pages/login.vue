@@ -1,16 +1,12 @@
 <template>
   <div class="form">
 
-
-
-
     <form class="form-signin" @submit.prevent="handleLogin" @onkeydown="clearError">
 
       <logo style="max-width: 180px;" />
       <br/>
-
-
-      <h1 class="u-font4">Client Log-in</h1>
+      <h1 class="u-font4">Customer Login</h1>
+      <h2></h2>
       <div class="">
         <div class="form-group" >
           <label for="inputEmail" class="sr-only">Email address</label>
@@ -65,6 +61,9 @@
 export default {
   layout: 'blank',
   mounted(){
+    //console.log({"baseAPIURL public runtime config": this.$config.baseAPIURL});
+    console.log({"apiSecretPub private runtime config": this.$config.apiSecretPub});
+
       if(this.$auth.$storage.getUniversal('loggedIn'))
       {
         this.$router.push('/clients')
@@ -86,7 +85,7 @@ export default {
       {
          this.$axios
              .post(
-               process.env.baseUrl+'/auth/login',
+              process.env.basePubURL+'/auth/login',
                {
                  email: this.email,
                  password: this.password
@@ -99,7 +98,7 @@ export default {
                }
              )
              .then((res) => {
-               // console.log(res.data.access_token);
+               console.log(res.data.access_token);
                if(res.data.access_token)
                {
                 // nthis.$cookies.set('token', res.data.access_token)
