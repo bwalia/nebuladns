@@ -4,6 +4,7 @@
 targetCluster: k3s-popos
 targetEnv: int
 targetNS: int
+targetEnvironment: integration
 
 replicaCount: 1
 
