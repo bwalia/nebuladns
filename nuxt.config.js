@@ -71,19 +71,29 @@ export default {
     // publicPath  : '/dist/','/'
   },
   env: {
-    basePubURL: process.env.NODE_ENV === "development" ? 'https://test-my.workstation.co.uk' : 'https://test-my.workstation.co.uk',
+    basePubURL: process.env.NODE_ENV == "development" ? "http://dev-my.workstation.co.uk"
+    : env == "test" ? "https://test-my.workstation.co.uk"
+    : env == "development" ? "https://acc-my.workstation.co.uk"
+    : env == "integration" ? "https://int-my.workstation.co.uk"
+    : "https://my.workstation.co.uk"
   },
 
   generate: {
     fallback: true,
     routes: [
       '/', 
+
       '/cookie-policy'
     ]
   },
 //this.$config.apiSecretPub
   publicRuntimeConfig: {
-    baseAPIURL: process.env.NODE_ENV === "development" ? 'https://test-my.workstation.co.uk/api' : 'https://test-my.workstation.co.uk/api',
+    baseAPIURL: process.env.NODE_ENV == "development" ? "http://dev-my.workstation.co.uk/api"
+    : env == "test" ? "https://test-my.workstation.co.uk/api"
+    : env == "development" ? "https://acc-my.workstation.co.uk/api"
+    : env == "integration" ? "https://int-my.workstation.co.uk"
+    : "https://my.workstation.co.uk/api"
+    ,
     apiSecretPub: process.env.API_SECRET
   },
 
