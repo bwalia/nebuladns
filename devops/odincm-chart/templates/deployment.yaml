@@ -37,6 +37,9 @@ spec:
             - name: http
               containerPort: 3000
               protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: "production"
           livenessProbe:
             httpGet:
               path: /
