@@ -1,4 +1,16 @@
-# odin
+# odin deployment process to the test, acc and prod environments
+
+# Non Dev environments
+
+##
+
+```helm upgrade --install -f devops/odincm-chart/values-prod-k3s-aws.yaml odincm-prod ./devops/odincm-chart --set-string targetImage="registry.workstation.co.uk/odincm-node" --set-string targetImageTag="dev" --namespace prod --create-namespace```
+
+##
+
+```helm upgrade --install -f devops/odincm-chart/values-prod-k3s-aws.yaml odincm-prod ./devops/odincm-chart --set-string targetImage="registry.workstation.co.uk/odincm-node" --set-string targetImageTag="dev" --namespace prod --create-namespace```
+
+# Dev environment
 
 ## Build Setup
 

@@ -1,0 +1,125 @@
+name: Docker Image matrix - Creates a new Docker images and tags them
+run-name: Creates a new Docker image, pushes it, and tags it - ${{ github.event.inputs.IMAGE_NAME }} tag ${{ github.event.inputs.IMAGE_TAG }} from ${{ github.event.inputs.BRANCH_REF }} branch
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: "0 0 * * *"
+
+  workflow_dispatch:
+    inputs:
+      BRANCH_REF:
+        type: choice
+        description: 'Please choose the Target Environment'
+        default: 'main'
+        required: true
+        options:
+        - main
+        - test
+        - dev
+
+      IMAGE_REGISTRY:
+        type: choice
+        description: 'Please choose docker image registry to push'
+        default: 'registry.workstation.co.uk'
+        required: true
+        options:
+        - docker.io
+        - ghcr.io
+        - registry.workstation.co.uk
+
+      IMAGE_NAME:
+        type: choice
+        description: 'Please choose docker image name to push'
+        default: 'ocdincm'
+        required: true
+        options:
+        - ocdincm
+        - workstation
+
+      IMAGE_TAG:
+        type: choice
+        description: 'Please choose docker image tag to push'
+        default: 'latest'
+        required: true
+        options:
+        - latest
+        - stable
+        - prod
+        - acc
+        - test
+        - dev
+
+env:
+  IMAGE_REGISTRY: ${{ github.event.inputs.IMAGE_REGISTRY }}
+  IMAGE_NAME: ${{ github.event.inputs.IMAGE_NAME }}
+  IMAGE_TAG: ${{ github.event.inputs.IMAGE_TAG }}
+  BRANCH_REF: ${{ github.event.inputs.BRANCH_REF }}
+
+jobs:
+  deployment:
+    runs-on: 'ubuntu-latest'
+    steps:
+
+    - name: Checkout OdinCM Repository
+      uses: actions/checkout@v3
+      with:
+        ref: main
+
+    - name: Generate a short-sha based on the git commit
+      uses: benjlevesque/short-sha@v1.2
+      with:
+        length: 6
+
+    - run: echo $SHA
+      env:
+       SHA: ${{ steps.short-sha.outputs.sha }}
+
+    - run: echo $SHA
+      env:
+       SHA: ${{ env.SHA }}
+        
+    - name: Build, tag, and push OdinCM Docker image to the Docker Registry Provided
+      run: |
+        if [ -z "${{ env.IMAGE_REGISTRY }}" ]; then
+          IMAGE_REGISTRY=registry.workstation.co.uk
+        fi
+        if [ -z "${{ env.IMAGE_NAME }}" ]; then
+          IMAGE_NAME=odincm
+        fi
+        if [ -z "${{ env.IMAGE_TAG }}" ]; then
+          IMAGE_TAG=latest
+        fi
+        if [ -z "${{ env.BRANCH_REF }}" ]; then
+          echo "BRANCH_REF=main" >> $GITHUB_ENV
+        fi
+        docker build -f $(pwd)/devops/docker/Dockerfile-nuxt-server -t $IMAGE_NAME . --no-cache
+        docker tag $IMAGE_NAME $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+        docker push $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+
+  # tag_update:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: actions/checkout@v3
+  #     with:
+  #       fetch-depth: 0
+  #   - name: Git config
+  #     run: |
+  #       git config user.name github-actions
+  #       git config user.email github-actions@github.com
+  #   - name: Tag new target
+  #     run: git tag -f ${{ env.SHA }} ${{ github.event.inputs.target }}
+  #   - name: Push new tag
+  #     run: git push origin ${{ github.event.inputs.main_version }} --force
+
+    - name: Slack Notification for OdinCM - Docker Images Matrix Manager 
+      uses: rtCamp/action-slack-notify@v2
+      env:
+        SLACK_CHANNEL: general
+        SLACK_COLOR: ${{ job.status }}
+        SLACK_ICON: https://github.com/rtCamp.png?size=48
+        SLACK_MESSAGE: 'Post Content :rocket:'
+        SLACK_TITLE: Post Title
+        SLACK_USERNAME: rtCamp
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}

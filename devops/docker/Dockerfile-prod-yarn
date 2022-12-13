@@ -1,0 +1,43 @@
+ARG NODE_IMAGE="16.18.1-alpine3.16"
+FROM node:${NODE_IMAGE}  as build-stage
+
+ENV APP_HOME=/app
+
+WORKDIR ${APP_HOME}
+
+COPY ./ ${APP_HOME}
+
+RUN cd $APP_HOME && npm install \
+  --prefer-offline \
+  --pure-lockfile \
+  --non-interactive \
+  --production=true
+
+RUN npm run build
+RUN npm run generate
+RUN npx browserslist@latest --update-db
+
+#Production Stage
+FROM nginx:stable-alpine as production-stage
+
+RUN apk add bash curl
+
+ENV APP_HOME=/app
+RUN mkdir -p ${APP_HOME}
+WORKDIR ${APP_HOME}
+
+COPY --from=build-stage ${APP_HOME}/dist /usr/share/nginx/html
+COPY --from=build-stage ${APP_HOME} /app
+COPY --from=build-stage /usr/local/bin/ /usr/local/bin/
+
+RUN npm run start
+
+RUN chown nginx:nginx /usr/share/nginx/html
+
+EXPOSE 80
+EXPOSE 3000
+
+# CMD ["npm";"run";$NODE_ENV_RUN_CMD]
+# ENTRYPOINT ["nginx", "-g", "daemon off"]
+# CMD ["/bin/bash", "-c", "nginx -g daemon off; npm run $NODE_ENV_RUN_CMD"]
+CMD ["nginx", "-g", "daemon off;"]

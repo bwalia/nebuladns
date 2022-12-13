@@ -124,7 +124,7 @@ export default {
     },
     methods: {
         processAndSend: function() {
-            let formString = process.env.baseUrl+'/api/sendEmail';
+            let formString = this.$config.baseAPIURL+'/api/sendEmail';
             formString += '?location=' + 'contact';
             this.fields.forEach(function(item, index) {
                 if (item.data && item.name && item.data.length > 0) {

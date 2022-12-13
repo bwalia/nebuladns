@@ -1,6 +1,9 @@
 # Default values for odincm.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+targetCluster: k3s3
+targetEnv: prod
+targetNS: prod
 
 replicaCount: 1
 
@@ -9,7 +12,10 @@ image:
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: "latest"
-  
+
+targetImage: "registry.workstation.co.uk/odincm-node"
+targetImageTag: "latest"
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -35,6 +41,7 @@ securityContext: {}
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
   # runAsUser: 1000
+svcAccessPort: 31110
 
 service:
   type: ClusterIP
@@ -47,7 +54,7 @@ ingress:
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   hosts:
-    - host: acc.odincm.com
+    - host: www.odincm.com
       paths:
         - path: /
           pathType: ImplementationSpecific
