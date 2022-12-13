@@ -33,4 +33,4 @@ IMAGE_TAG=dev
 
 
 helm uninstall odincm-${targetEnv} -n ${targetEnv}
-helm upgrade --install -f devops/odincm-chart/values-${targetEnv}-k3s2.yaml odincm-${targetEnv} devops/odincm-chart --set-string targetImage="registry.workstation.co.uk/odincm-node" --set-string targetImageTag="${IMAGE_TAG}" --namespace ${targetEnv}
+helm upgrade --install -f devops/odincm-chart/values-${targetEnv}-k3s2.yaml odincm-${targetEnv} devops/odincm-chart --set-string targetImage="registry.workstation.co.uk/odincm" --set-string targetImageTag="${IMAGE_TAG}" --namespace ${targetEnv}
