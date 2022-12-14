@@ -1,6 +1,10 @@
 # Default values for odincm.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+targetCluster: k3s0
+targetEnv: acc
+targetNS: acc
+targetEnvironment: acceptance
 
 replicaCount: 1
 

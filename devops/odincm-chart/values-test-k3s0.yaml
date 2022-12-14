@@ -4,6 +4,7 @@
 targetCluster: k3s0
 targetEnv: test
 targetNS: test
+targetEnvironment: test
 
 replicaCount: 1
 
