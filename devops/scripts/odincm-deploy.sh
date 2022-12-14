@@ -4,7 +4,6 @@ NODE_VERSION="12.22.12-alpine3.15"
 TARGET_CLUSTER="k3s0"
 TARGET_STACK="node"
 IMAGE_TAG=$(date +"%Y%m%d%I%M%S")
-IMAGE_TAG="dev"
 IMAGE_NAME="odincm"
 
 echo "The node version base image: $NODE_VERSION"
@@ -72,7 +71,9 @@ fi
 
 if [[ "$targetEnv" == "dev" ]]; then
 echo "No need to move env files in case local dev env"
+IMAGE_TAG="dev"
 else
+IMAGE_TAG="latest"
 cp ${WORKSPACE_DIR}/${targetEnv}.env ${WORKSPACE_DIR}/.env
 fi
 
