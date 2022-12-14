@@ -18,4 +18,4 @@ RUN npm run build
 
 # For Dev run this command CMD [ "npm", "run", "dev" ]
 # For Prod run this command
-ENTRYPOINT [ "executable" ] [ "npm", "run", "start" ]
+ENTRYPOINT [ "npm", "run", "start" ]
