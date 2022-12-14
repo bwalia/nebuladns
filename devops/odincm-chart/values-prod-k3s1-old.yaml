@@ -4,6 +4,7 @@
 targetCluster: k3s3
 targetEnv: prod
 targetNS: prod
+targetEnvironment: acceptance
 
 replicaCount: 1
 

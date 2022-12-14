@@ -4,6 +4,7 @@
 targetCluster: k3s3
 targetEnv: acc
 targetNS: acc
+targetEnvironment: acceptance
 
 replicaCount: 1
 

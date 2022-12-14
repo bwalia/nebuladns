@@ -4,6 +4,7 @@
 targetCluster: k3s0
 targetEnv: dev
 targetNS: dev
+targetEnvironment: development
 
 replicaCount: 1
 
