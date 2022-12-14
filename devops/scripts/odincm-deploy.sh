@@ -2,10 +2,10 @@
 
 NODE_VERSION="12.22.12-alpine3.15"
 TARGET_CLUSTER="k3s0"
-TARGET_CLUSTER="k3s2"
 TARGET_STACK="node"
-DATE_GEN_VERSION=$(date +"%Y%m%d%I%M%S")
-DATE_GEN_VERSION="dev"
+IMAGE_TAG=$(date +"%Y%m%d%I%M%S")
+IMAGE_NAME="odincm"
+
 echo "The node version base image: $NODE_VERSION"
 
 if [[ -z "$1" ]]; then
@@ -24,12 +24,15 @@ else
    targetNs=$2
 fi
 
-if [[ -z "$3" ]]; then
-   echo "action is empty, so setting action to install (default)"
-   cicd_action="install"
+if [[ "$targetEnv" == "dev" ]]; then
+echo "No need to load kubeconfig use default var KUBE_CONFIG"
 else
-   echo "action is provided, action is set to $3"
-   cicd_action=$3
+if [[ -z "$3" ]]; then
+echo "KUBECONFIG is empty, so leaving default set KUBECONFIG to whatever it may be (default)"
+else
+echo "KUBECONFIG is provided, so setting KUBECONFIG $3"
+export KUBECONFIG=$3
+fi
 fi
 
 if [[ -z "$4" ]]; then
@@ -40,16 +43,14 @@ else
    k3s_deployment_tool=$4
 fi
 
-if [[ "$targetEnv" == "dev" ]]; then
-echo "No need to load kubeconfig use default var KUBE_CONFIG"
-else
 if [[ -z "$5" ]]; then
-echo "KUBECONFIG is empty, so leaving default set KUBECONFIG to whatever it may be (default)"
+   echo "action is empty, so setting action to install (default)"
+   cicd_action="install"
 else
-echo "KUBECONFIG is provided, so setting KUBECONFIG $5"
-export KUBECONFIG=$5
+   echo "action is provided, action is set to $5"
+   cicd_action=$5
 fi
-fi
+
 
 if [[ -z "$6" ]]; then
 echo "VIRTUAL_HOST is empty, so leaving default set VIRTUAL_HOST to whatever it may be (default ${SVC_HOST})"
@@ -59,17 +60,20 @@ echo "VIRTUAL_HOST is provided, so setting VIRTUAL_HOST $6"
 export VIRTUAL_HOST=$6
 fi
 
+
 if [[ -z "$7" ]]; then  # docker_base_image not in use yet
    echo "docker base image is empty, so setting docker base image to dev-odincm-webserver (default)"
-   docker_base_image="${targetEnv}-odincm"
+   IMAGE_NAME="odincm"
 else
    echo "docker base image type is provided, docker base image is set to $7"
-   docker_base_image=$7
+   IMAGE_NAME=$7
 fi
 
 if [[ "$targetEnv" == "dev" ]]; then
 echo "No need to move env files in case local dev env"
+IMAGE_TAG="dev"
 else
+IMAGE_TAG="latest"
 cp ${WORKSPACE_DIR}/${targetEnv}.env ${WORKSPACE_DIR}/.env
 fi
 
@@ -82,8 +86,9 @@ export TARGET_CLUSTER=$8
 fi
 
 if [[ -z "$9" ]]; then
-echo "Docker build cmd is default, so leaving default set BUILD_IMAGE_APP to whatever it may be (nerdctl)"
-export BUILD_IMAGE_APP="nerdctl"
+echo "Docker build cmd is default, so leaving default set BUILD_IMAGE_APP to whatever it may be (docker)"
+export BUILD_IMAGE_APP="docker"
+# nerdctl
 else
 echo "BUILD_IMAGE_APP is provided, so setting BUILD_IMAGE_APP $9"
 export BUILD_IMAGE_APP=$9
@@ -99,12 +104,23 @@ fi
 
 VALUES_FILE_PATH=values-${targetNs}-${TARGET_CLUSTER}.yaml
 
-#${BUILD_IMAGE_APP} build -f $(pwd)/devops/docker/Dockerfile-prod-yarn --build-arg NODE_VERSION=$NODE_VERSION -t odincm-${TARGET_STACK} . --no-cache
-${BUILD_IMAGE_APP} build -f $(pwd)/devops/docker/Dockerfile-nuxt-server -t odincm-${TARGET_STACK} . --no-cache
-${BUILD_IMAGE_APP} tag odincm-${TARGET_STACK} registry.workstation.co.uk/odincm-${TARGET_STACK}:${DATE_GEN_VERSION}
-${BUILD_IMAGE_APP} push registry.workstation.co.uk/odincm-${TARGET_STACK}:${DATE_GEN_VERSION}
+if [[ "$cicd_action" == "install" ]]; then
+echo "If install is required docker run: ${cicd_action}"
+fi
 
-helm upgrade --install -f devops/odincm-chart/${VALUES_FILE_PATH} odincm-${targetNs} ./devops/odincm-chart --set-string targetImage="registry.workstation.co.uk/odincm-${TARGET_STACK}" --set-string targetImageTag="${DATE_GEN_VERSION}" --namespace ${targetNs} --create-namespace
+if [[ "$cicd_action" == "build" ]]; then
+echo "If build is required build docker image: ${cicd_action}"
+${BUILD_IMAGE_APP} build -f $(pwd)/devops/docker/Dockerfile-nuxt-server -t bwalia/odincm . --no-cache
+${BUILD_IMAGE_APP} tag bwalia/odincm-${TARGET_STACK} registry.workstation.co.uk/odincm:${IMAGE_TAG}
+${BUILD_IMAGE_APP} push registry.workstation.co.uk/odincm:${IMAGE_TAG}
+fi
+
+#${BUILD_IMAGE_APP} build -f $(pwd)/devops/docker/Dockerfile-prod-yarn --build-arg NODE_VERSION=$NODE_VERSION -t odincm-${TARGET_STACK} . --no-cache
+# ${BUILD_IMAGE_APP} build -f $(pwd)/devops/docker/Dockerfile-nuxt-server -t odincm-${TARGET_STACK} . --no-cache
+# ${BUILD_IMAGE_APP} tag odincm-${TARGET_STACK} registry.workstation.co.uk/odincm-${TARGET_STACK}:${IMAGE_TAG}
+# ${BUILD_IMAGE_APP} push registry.workstation.co.uk/odincm-${TARGET_STACK}:${IMAGE_TAG}
+
+helm upgrade --install -f devops/odincm-chart/${VALUES_FILE_PATH} odincm-${targetNs} ./devops/odincm-chart --set-string targetImage="registry.workstation.co.uk/odincm" --set-string targetImageTag="${IMAGE_TAG}" --namespace ${targetNs} --create-namespace
 
 # ${BUILD_IMAGE_APP} container stop odincm
 # ${BUILD_IMAGE_APP} container rm odincm
