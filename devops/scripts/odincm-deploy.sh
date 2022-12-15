@@ -115,6 +115,9 @@ ${BUILD_IMAGE_APP} tag bwalia/odincm registry.workstation.co.uk/odincm:${IMAGE_T
 ${BUILD_IMAGE_APP} push registry.workstation.co.uk/odincm:${IMAGE_TAG}
 fi
 
+# give chance for docker image to be built and docker registry to be updated
+sleep 60
+
 if [[ "$cicd_action" == "install" ]] || [[ "$cicd_action" == "build_install" ]]; then
 echo "If helm install is required build docker image: ${cicd_action}"
 helm upgrade --install -f devops/odincm-chart/${VALUES_FILE_PATH} odincm-${targetNs} ./devops/odincm-chart --set-string targetImage="registry.workstation.co.uk/odincm" --set-string targetImageTag="${IMAGE_TAG}" --namespace ${targetNs} --create-namespace
