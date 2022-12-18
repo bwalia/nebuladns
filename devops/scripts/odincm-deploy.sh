@@ -1,7 +1,7 @@
 # Run docker compose
 
 NODE_VERSION="12.22.12-alpine3.15"
-TARGET_CLUSTER="k3s0"
+TARGET_CLUSTER="k3s8"
 TARGET_STACK="node"
 IMAGE_TAG=$(date +"%Y%m%d%I%M%S")
 IMAGE_NAME="odincm"
