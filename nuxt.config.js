@@ -48,7 +48,8 @@ export default {
     '@nuxtjs/pwa',
     // https://go.nuxtjs.dev/content
     '@nuxt/content',
-    '@nuxtjs/auth-next'
+    '@nuxtjs/auth-next',
+    '@nuxtjs/recaptcha',
   ],
   
 
@@ -94,7 +95,14 @@ export default {
     : process.env.NODE_ENV == "integration" ? "http://int-my.workstation.co.uk/api"
     : "https://my.workstation.co.uk/api"
     ,
-    apiSecretPub: process.env.API_SECRET
+    apiSecretPub: process.env.API_SECRET,
+    recaptcha: {
+      mode: 'base',
+      siteKey: process.env.CAPTCHA_SITE_KEY,
+      size: 'normal',
+      hideBadge: true ,
+      version: 2
+    }
   },
 
   privateRuntimeConfig: {
