@@ -1,7 +1,7 @@
 # Run docker compose
 
 NODE_VERSION="12.22.12-alpine3.15"
-TARGET_CLUSTER="k3s0"
+TARGET_CLUSTER="k3s8"
 TARGET_STACK="node"
 IMAGE_TAG=$(date +"%Y%m%d%I%M%S")
 IMAGE_NAME="odincm"
@@ -108,19 +108,44 @@ if [[ "$cicd_action" == "install" ]]; then
 echo "If install is required docker run: ${cicd_action}"
 fi
 
-if [[ "$cicd_action" == "build" ]]; then
+if [[ "$cicd_action" == "build" ]] || [[ "$cicd_action" == "build_install" ]]; then
 echo "If build is required build docker image: ${cicd_action}"
 ${BUILD_IMAGE_APP} build -f $(pwd)/devops/docker/Dockerfile-nuxt-server -t bwalia/odincm . --no-cache
-${BUILD_IMAGE_APP} tag bwalia/odincm-${TARGET_STACK} registry.workstation.co.uk/odincm:${IMAGE_TAG}
+${BUILD_IMAGE_APP} tag bwalia/odincm registry.workstation.co.uk/odincm:${IMAGE_TAG}
 ${BUILD_IMAGE_APP} push registry.workstation.co.uk/odincm:${IMAGE_TAG}
 fi
+
+# give chance for docker image to be built and docker registry to be updated
+sleep 60
+
+if [[ "$cicd_action" == "install" ]] || [[ "$cicd_action" == "build_install" ]]; then
+echo "If helm install is required build docker image: ${cicd_action}"
+helm upgrade --install -f devops/odincm-chart/${VALUES_FILE_PATH} odincm-${targetNs} ./devops/odincm-chart --set-string targetImage="registry.workstation.co.uk/odincm" --set-string targetImageTag="${IMAGE_TAG}" --namespace ${targetNs} --create-namespace
+fi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #${BUILD_IMAGE_APP} build -f $(pwd)/devops/docker/Dockerfile-prod-yarn --build-arg NODE_VERSION=$NODE_VERSION -t odincm-${TARGET_STACK} . --no-cache
 # ${BUILD_IMAGE_APP} build -f $(pwd)/devops/docker/Dockerfile-nuxt-server -t odincm-${TARGET_STACK} . --no-cache
 # ${BUILD_IMAGE_APP} tag odincm-${TARGET_STACK} registry.workstation.co.uk/odincm-${TARGET_STACK}:${IMAGE_TAG}
 # ${BUILD_IMAGE_APP} push registry.workstation.co.uk/odincm-${TARGET_STACK}:${IMAGE_TAG}
 
-helm upgrade --install -f devops/odincm-chart/${VALUES_FILE_PATH} odincm-${targetNs} ./devops/odincm-chart --set-string targetImage="registry.workstation.co.uk/odincm" --set-string targetImageTag="${IMAGE_TAG}" --namespace ${targetNs} --create-namespace
 
 # ${BUILD_IMAGE_APP} container stop odincm
 # ${BUILD_IMAGE_APP} container rm odincm

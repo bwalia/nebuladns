@@ -11,7 +11,7 @@ on:
     inputs:
       BRANCH_REF:
         type: choice
-        description: 'Please choose the Target Environment'
+        description: 'Please choose the Target Branch'
         default: 'main'
         required: true
         options:
