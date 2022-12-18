@@ -1,7 +1,7 @@
 # Default values for odincm.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-targetCluster: k3s-popos
+targetCluster: k3s8
 targetEnv: int
 targetNS: int
 targetEnvironment: integration
