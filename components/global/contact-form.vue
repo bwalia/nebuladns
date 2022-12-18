@@ -46,8 +46,9 @@
                 <br/>
                 <b class="error-message u-error" v-if="field.errors">{{ field.errors }}</b>
             </p>
-
+            
         </template>
+        <recaptcha />
 
         <input type="submit" :value="(cta) ? cta : 'Send'" />
         
@@ -123,15 +124,18 @@ export default {
         }
     },
     methods: {
-        processAndSend: function() {
+        processAndSend: function(token) {
             let formString = this.$config.baseAPIURL+'/sendEmail';
             formString += '?location=' + 'contact';
-            this.fields.forEach(function(item, index) {
+            this.fields.forEach(function(item, index, array) {
                 if (item.data && item.name && item.data.length > 0) {
                     formString += '&';
                     formString += item.name;
                     formString += '=';
                     formString += encodeURIComponent(item.data);
+                }
+                if (array.length === index + 1) {
+                    formString += `&token=${token}`;
                 }
             });
             console.log(formString);
@@ -154,29 +158,36 @@ export default {
                 return error;
             }
         },
-        validateForm: function(e) {
+        validateForm: async function(e) {
             this.errors = 0;
             var vm = this;
             var emailRegex = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
-            this.fields.forEach(function(item, index) {
-                item.errors = '';
-                if ( !item.data && item.validation === 'required') {
-                    item.errors = JSON.parse(JSON.stringify(item.errorMessage));
-                    vm.errors += 1;                    
+            try {
+                const token = await this.$recaptcha.getResponse();
+                console.log({token});
+                this.fields.forEach(function(item, index) {
+                    item.errors = '';
+                    if ( !item.data && item.validation === 'required') {
+                        item.errors = JSON.parse(JSON.stringify(item.errorMessage));
+                        vm.errors += 1;                    
+                    }
+                    if ( item.validation === 'email' && !emailRegex.test(item.data)) {
+                        item.errors = JSON.parse(JSON.stringify(item.errorMessage));
+                        vm.errors += 1;
+                    }
+                });
+                console.log(this.errors);
+    
+                if (this.errors === 0) {
+                    console.log('send data');
                 }
-                if ( item.validation === 'email' && !emailRegex.test(item.data)) {
-                    item.errors = JSON.parse(JSON.stringify(item.errorMessage));
-                    vm.errors += 1;
-                }
-            });
-            console.log(this.errors);
-
-            if (this.errors === 0) {
-                console.log('send data');
+                e.preventDefault();
+                this.processAndSend(token);
+            } catch (error) {
+                console.log('Login error:', error)
             }
-            e.preventDefault();
-            this.processAndSend();
+
         }
     }
 }
