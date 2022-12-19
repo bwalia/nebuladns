@@ -40,6 +40,8 @@ spec:
           env:
             - name: NODE_ENV
               value: "{{ .Values.targetEnvironment }}"
+            - name: CAPTCHA_SITE_KEY
+              value: "{{ .Values.runtimeEnvVars.CAPTCHA_SITE_KEY }}"  
           livenessProbe:
             httpGet:
               path: /

@@ -88,3 +88,6 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+runtimeEnvVars:
+  CAPTCHA_SITE_KEY: "EMPTY-OVER-RIDE-AT-RUNTIME-FROM-SECRETS-FROM-VAULT"
