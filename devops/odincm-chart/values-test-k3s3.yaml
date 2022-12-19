@@ -42,7 +42,7 @@ securityContext: {}
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
   # runAsUser: 1000
-svcAccessPort: 31111
+svcAccessPort: 31122
 
 service:
   type: ClusterIP
