@@ -2,9 +2,9 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 targetCluster: k3s0
-targetEnv: dev
-targetNS: dev
-targetEnvironment: development
+targetEnv: test
+targetNS: test
+targetEnvironment: test
 
 replicaCount: 1
 
@@ -15,7 +15,7 @@ image:
   tag: "latest"
 
 targetImage: "registry.workstation.co.uk/odincm"
-targetImageTag: "latest"
+odincm: "latest"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -55,7 +55,7 @@ ingress:
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   hosts:
-    - host: dev.odincm.com
+    - host: test.odincm.com
       paths:
         - path: /
           pathType: ImplementationSpecific
@@ -89,4 +89,4 @@ tolerations: []
 
 affinity: {}
 
-capthaSiteKey: "EMPTY-OVER-RIDE-AT-RUNTIME-FROM-SECRETS-FROM-VAULT"
+CAPTCHA_SITE_KEY: "EMPTY-OVER-RIDE-AT-RUNTIME-FROM-SECRETS-FROM-VAULT"

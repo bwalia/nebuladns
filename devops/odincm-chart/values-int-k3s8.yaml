@@ -88,3 +88,5 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+capthaSiteKey: "EMPTY-OVER-RIDE-AT-RUNTIME-FROM-SECRETS-FROM-VAULT"
