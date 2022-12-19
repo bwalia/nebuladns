@@ -1,10 +1,10 @@
 # Default values for odincm.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-targetCluster: k3s8
-targetEnv: int
-targetNS: int
-targetEnvironment: integration
+targetCluster: k3s3
+targetEnv: test
+targetNS: test
+targetEnvironment: test
 
 replicaCount: 1
 
@@ -42,7 +42,7 @@ securityContext: {}
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
   # runAsUser: 1000
-svcAccessPort: 31109
+svcAccessPort: 31111
 
 service:
   type: ClusterIP
@@ -55,7 +55,7 @@ ingress:
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   hosts:
-    - host: int.odincm.com
+    - host: test.odincm.com
       paths:
         - path: /
           pathType: ImplementationSpecific
