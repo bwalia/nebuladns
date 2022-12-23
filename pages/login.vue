@@ -1,73 +1,62 @@
 <template>
-  <div class="form">
-
-    <form class="form-signin" @submit.prevent="handleLogin" @onkeydown="clearError">
-
-      <logo style="max-width: 180px;" />
-      <br/>
-      <h1 class="u-font4">Customer Login</h1>
-      <h2></h2>
-      <div class="">
-        <div class="form-group" >
-          <label for="inputEmail" class="sr-only">Email address</label>
-          <input
-            id="inputEmail"
-            v-model="email"
-            name="email"
-            type="email"
-            class="form-control"
-            placeholder="Email address"
-            autofocus
-            :class="{ 'is-invalid': emailError }"
-            @keydown="emailError = ''"
-          />
-         <div v-if="emailError" class="invalid-feedback" :state="emailError">{{ emailError }}</div>
+  <main class="main">
+    <div class="container">
+      <logo class="odin-logo" />
+      <section class="wrapper">
+        <div class="heading">
+          <h1 class="text text-large">Customer Login</h1>
         </div>
-      </div>
-      
-      
-      <div class="u-shim-t">
-        <div class="form-group" >
-        <label for="inputPassword" class="sr-only">Password</label><br/>
-        <input
-          id="inputPassword"
-          v-model="password"
-          type="password"
-          name="password"
-          class="form-control"
-          placeholder="Password"
-          :class="{ 'is-invalid': passwordError }"
-          @keydown="passwordError = ''"
-        />
-        <div v-if="passwordError" class="invalid-feedback" :state="passwordError">{{ passwordError }}</div>
-        </div>
-      </div>
-      
-      <!-- <div class="checkbox mb-3">
+        <div class="form">
+          <form class="form-signin" @submit.prevent="handleLogin" @onkeydown="clearError">
+            <div class="form-group input-control">
+              <label for="inputEmail" class="sr-only input-label" hidden>Email address</label>
+              <input id="inputEmail" v-model="email" name="email" type="email" class="form-control input-field"
+                placeholder="Email address" autofocus :class="{ 'is-invalid': emailError }"
+                @keydown="emailError = ''" />
+              <div v-if="emailError" class="invalid-feedback" :state="emailError">{{ emailError }}</div>
+            </div>
+
+
+            <!-- <div class="u-shim-t"> -->
+            <div class="form-group input-control">
+              <label for="inputPassword" class="sr-only input-label" hidden>Password</label><br />
+              <input id="inputPassword" v-model="password" type="password" name="password"
+                class="form-control input-field" placeholder="Password" :class="{ 'is-invalid': passwordError }"
+                @keydown="passwordError = ''" />
+              <div v-if="passwordError" class="invalid-feedback" :state="passwordError">{{ passwordError }}</div>
+            </div>
+            <!-- </div> -->
+
+            <!-- <div class="checkbox mb-3">
         <label>
           <nuxt-link to="/signup"> Get Register </nuxt-link>
         </label>
       </div> -->
-      <button class="u-button u-shim-t" type="submit">
-        Log-in
-      </button>
+          <div class="button-wrapper">
+            <a href="/" class="u-shim-t btn btn-back">Go Back</a>
+            <button class="u-button u-shim-t btn input-submit" type="submit">
+              Log-in
+            </button>
+          </div>
 
-    </form>
+          </form>
 
-  </div>
+        </div>
+      </section>
+    </div>
+  </main>
 </template>
 
 <script>
 export default {
   layout: 'blank',
-  mounted(){
+  mounted() {
     //console.log({"baseAPIURL public runtime config": this.$config.baseAPIURL});
-    console.log({"apiSecretPub private runtime config": this.$config.apiSecretPub});
+    console.log({ "apiSecretPub private runtime config": this.$config.apiSecretPub });
 
-      if(this.$auth.$storage.getUniversal('loggedIn'))
-      {
-        this.$router.push('/clients')
-      }
+    if (this.$auth.$storage.getUniversal('loggedIn')) {
+      this.$router.push('/clients')
+    }
   },
   data() {
     return {
@@ -77,95 +66,85 @@ export default {
       passwordError: "",
     }
   },
-  
+
   methods: {
     handleLogin() {
       // if ANY fail validation
-      if(this.checkErro()===false)
-      {
-         this.$axios
-             .post(
-              process.env.basePubURL+'/auth/login',
-               {
-                 email: this.email,
-                 password: this.password
-               },
-               {
-                headers: {
-                  'Access-Control-Allow-Origin': '*',
-                  'Content-Type': 'application/Json'
-                }
-               }
-             )
-             .then((res) => {
-               console.log(res.data.access_token);
-               if(res.data.access_token)
-               {
-                // nthis.$cookies.set('token', res.data.access_token)
-                this.$auth.$storage.setUniversal('token', res.data.access_token)
-                this.$auth.$storage.setUniversal('name', res.data.user.name)
-                this.$auth.$storage.setUniversal('id', res.data.user.id)
-                this.$auth.$storage.setUniversal('loggedIn', true)
-                this.$auth.$storage.setUniversal('user', res.data.user)
-                this.$router.push('/clients')
-               }
-               else{
-                alert(res.data.error);
-                //this.$toast.error(res.data.message, {timeout:2000}); 
-               }
-               
-             })
-             .catch((e) => {
-               console.log(e.response);
-             })
-      } 
+      if (this.checkErro() === false) {
+        this.$axios
+          .post(
+            process.env.basePubURL + '/auth/login',
+            {
+              email: this.email,
+              password: this.password
+            },
+            {
+              headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/Json'
+              }
+            }
+          )
+          .then((res) => {
+            console.log(res.data.access_token);
+            if (res.data.access_token) {
+              // nthis.$cookies.set('token', res.data.access_token)
+              this.$auth.$storage.setUniversal('token', res.data.access_token)
+              this.$auth.$storage.setUniversal('name', res.data.user.name)
+              this.$auth.$storage.setUniversal('id', res.data.user.id)
+              this.$auth.$storage.setUniversal('loggedIn', true)
+              this.$auth.$storage.setUniversal('user', res.data.user)
+              this.$router.push('/clients')
+            }
+            else {
+              alert(res.data.error);
+              //this.$toast.error(res.data.message, {timeout:2000}); 
+            }
+
+          })
+          .catch((e) => {
+            console.log(e.response);
+          })
+      }
     },
-    validateEmail(email) 
-    {
-      const data=email.split("@");
-      if(data.length<2) return false;
-      const dot=data[1].split(".");
-      if(dot.length<2) return false;
-      if(email.indexOf('@')>0 && email.indexOf('.')>0) return true;
+    validateEmail(email) {
+      const data = email.split("@");
+      if (data.length < 2) return false;
+      const dot = data[1].split(".");
+      if (dot.length < 2) return false;
+      if (email.indexOf('@') > 0 && email.indexOf('.') > 0) return true;
       return false;
     }
     ,
-    checkErro()
-    {
-      if(this.emailError.length===0 && this.passwordError.length===0 && this.validateEmail(this.email)===true && this.password.length>5 && this.email.length>0)
-      {
+    checkErro() {
+      if (this.emailError.length === 0 && this.passwordError.length === 0 && this.validateEmail(this.email) === true && this.password.length > 5 && this.email.length > 0) {
         return false;
       }
-      else
-      {
-        if(this.email.length===0)
-        {
-          this.emailError ="Email is Required";
+      else {
+        if (this.email.length === 0) {
+          this.emailError = "Email is Required";
         }
-        else if(this.validateEmail(this.email)===false)
-        {
-          this.emailError ="Email is not valid";
+        else if (this.validateEmail(this.email) === false) {
+          this.emailError = "Email is not valid";
         }
-        if(this.password.length===0)
-        {
-          this.passwordError ="Password is Required";
+        if (this.password.length === 0) {
+          this.passwordError = "Password is Required";
         }
-        else if(this.password.length<6)
-        {
-          this.passwordError ="Password Must be at least 6 character";
+        else if (this.password.length < 6) {
+          this.passwordError = "Password Must be at least 6 character";
         }
         return true;
       }
     },
-    clearError(){
-      this.emailError="";
-      this.passwordError="";
+    clearError() {
+      this.emailError = "";
+      this.passwordError = "";
     }
   }
 }
 </script>
 
-<style scoped>
+<!-- <style scoped>
 .form {
   height: 100vh;
   display: -ms-flexbox;
@@ -223,4 +202,4 @@ div:focus {
 }
 
 
-</style>
+</style> -->

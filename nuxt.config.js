@@ -25,6 +25,7 @@ export default {
     "@/assets/css/variables.css",
     "@/assets/css/global.css",
     "@/assets/css/scale.scss",
+    "@/assets/css/login.scss",
     "@/assets/css/utilities.css"
   ],
 
