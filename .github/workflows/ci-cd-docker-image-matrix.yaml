@@ -56,6 +56,8 @@ env:
   IMAGE_NAME: ${{ github.event.inputs.IMAGE_NAME }}
   IMAGE_TAG: ${{ github.event.inputs.IMAGE_TAG }}
   BRANCH_REF: ${{ github.event.inputs.BRANCH_REF }}
+  TARGET_CLUSTER: "k3s3"
+  TARGET_ENV: "test"
 
 jobs:
   deployment:
@@ -97,6 +99,28 @@ jobs:
         docker build -f $(pwd)/devops/docker/Dockerfile-nuxt-server -t $IMAGE_NAME . --no-cache
         docker tag $IMAGE_NAME $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
         docker push $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+
+    - name: Helm Deploy - Release
+      uses: koslib/helm-eks-action@master
+      env:
+        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA_K3S3 }}
+      with:
+        command: |
+          if [ -z "${{ env.IMAGE_REGISTRY }}" ]; then
+            IMAGE_REGISTRY=registry.workstation.co.uk
+          fi
+          if [ -z "${{ env.IMAGE_NAME }}" ]; then
+            IMAGE_NAME=odincm
+          fi
+          if [ -z "${{ env.IMAGE_TAG }}" ]; then
+            IMAGE_TAG=latest
+          fi
+          if [ -z "${{ env.BRANCH_REF }}" ]; then
+            echo "BRANCH_REF=main" >> $GITHUB_ENV
+          fi
+          command: helm upgrade -i odincm-${{ env.TARGET_ENV }} ./devops/odincm-chart -f devops/odincm-chart/values-${{ env.TARGET_ENV }}-${{ env.TARGET_CLUSTER }}.yaml --set-string targetImage="$IMAGE_REGISTRY/$IMAGE_NAME" --set-string targetImageTag="$IMAGE_TAG" --set-string capthaSiteKey="${{ secrets.CAPTCHA_SITE_KEY }}" --namespace ${{ env.TARGET_ENV }} --create-namespace
+          kubectl rollout restart deployment/odincm-${{ env.TARGET_ENV }} -n ${{ env.TARGET_ENV }}
+          kubectl rollout history deployment/odincm-${{ env.TARGET_ENV }} -n ${{ env.TARGET_ENV }}
 
   # tag_update:
   #   runs-on: ubuntu-latest
