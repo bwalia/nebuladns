@@ -82,23 +82,23 @@ jobs:
       env:
        SHA: ${{ env.SHA }}
 
-    - name: Build, tag, and push OdinCM Docker image to the Docker Registry Provided
-      run: |
-        if [ -z "${{ env.IMAGE_REGISTRY }}" ]; then
-          IMAGE_REGISTRY=123154119074.dkr.ecr.eu-west-2.amazonaws.com
-        fi
-        if [ -z "${{ env.IMAGE_NAME }}" ]; then
-          IMAGE_NAME=odincm
-        fi
-        if [ -z "${{ env.IMAGE_TAG }}" ]; then
-          IMAGE_TAG=latest
-        fi
-        if [ -z "${{ env.BRANCH_REF }}" ]; then
-          echo "BRANCH_REF=main" >> $GITHUB_ENV
-        fi
-        docker build -f $(pwd)/devops/docker/Dockerfile-nuxt-server -t $IMAGE_NAME . --no-cache
-        docker tag $IMAGE_NAME $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
-        docker push $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+    # - name: Build, tag, and push OdinCM Docker image to the Docker Registry Provided
+    #   run: |
+    #     if [ -z "${{ env.IMAGE_REGISTRY }}" ]; then
+    #       IMAGE_REGISTRY=123154119074.dkr.ecr.eu-west-2.amazonaws.com
+    #     fi
+    #     if [ -z "${{ env.IMAGE_NAME }}" ]; then
+    #       IMAGE_NAME=odincm
+    #     fi
+    #     if [ -z "${{ env.IMAGE_TAG }}" ]; then
+    #       IMAGE_TAG=latest
+    #     fi
+    #     if [ -z "${{ env.BRANCH_REF }}" ]; then
+    #       echo "BRANCH_REF=main" >> $GITHUB_ENV
+    #     fi
+    #     docker build -f $(pwd)/devops/docker/Dockerfile-nuxt-server -t $IMAGE_NAME . --no-cache
+    #     docker tag $IMAGE_NAME $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+    #     docker push $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
