@@ -22,21 +22,21 @@ on:
       IMAGE_REGISTRY:
         type: choice
         description: 'Please choose docker image registry to push'
-        default: 'registry.workstation.co.uk'
+        default: '123154119074.dkr.ecr.eu-west-2.amazonaws.com'
         required: true
         options:
         - docker.io
         - ghcr.io
         - registry.workstation.co.uk
+        - 123154119074.dkr.ecr.eu-west-2.amazonaws.com
 
       IMAGE_NAME:
         type: choice
         description: 'Please choose docker image name to push'
-        default: 'ocdincm'
+        default: 'odincm'
         required: true
         options:
-        - ocdincm
-        - workstation
+        - odincm
 
       IMAGE_TAG:
         type: choice
@@ -81,11 +81,11 @@ jobs:
     - run: echo $SHA
       env:
        SHA: ${{ env.SHA }}
-        
+
     - name: Build, tag, and push OdinCM Docker image to the Docker Registry Provided
       run: |
         if [ -z "${{ env.IMAGE_REGISTRY }}" ]; then
-          IMAGE_REGISTRY=registry.workstation.co.uk
+          IMAGE_REGISTRY=123154119074.dkr.ecr.eu-west-2.amazonaws.com
         fi
         if [ -z "${{ env.IMAGE_NAME }}" ]; then
           IMAGE_NAME=odincm
@@ -100,14 +100,37 @@ jobs:
         docker tag $IMAGE_NAME $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
         docker push $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
 
-    - name: Helm Deploy - Release
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push OdinCM Docker image to the AWS ECR mentioned 
+      run: |
+        IMAGE_REGISTRY=123154119074.dkr.ecr.eu-west-2.amazonaws.com
+        IMAGE_NAME=odincm
+        IMAGE_TAG=latest
+        if [ -z "${{ env.BRANCH_REF }}" ]; then
+          echo "BRANCH_REF=main" >> $GITHUB_ENV
+        fi
+        docker build -f $(pwd)/devops/docker/Dockerfile --build-arg BASE_TAG=latest -t $IMAGE_NAME . --no-cache
+        docker tag $IMAGE_NAME $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+        docker push $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+
+    - name: Helm Deploy - Release to k3s2
       uses: koslib/helm-eks-action@master
       env:
-        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA_K3S3 }}
+        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA_K3S2 }}
       with:
         command: |
           if [ -z "${{ env.IMAGE_REGISTRY }}" ]; then
-            IMAGE_REGISTRY=registry.workstation.co.uk
+            IMAGE_REGISTRY=123154119074.dkr.ecr.eu-west-2.amazonaws.com
           fi
           if [ -z "${{ env.IMAGE_NAME }}" ]; then
             IMAGE_NAME=odincm
