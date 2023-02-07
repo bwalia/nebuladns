@@ -119,7 +119,7 @@ jobs:
         if [ -z "${{ env.BRANCH_REF }}" ]; then
           echo "BRANCH_REF=main" >> $GITHUB_ENV
         fi
-        docker build -f $(pwd)/devops/docker/Dockerfile --build-arg BASE_TAG=latest -t $IMAGE_NAME . --no-cache
+        docker build -f $(pwd)/devops/docker/Dockerfile-nuxt-server -t $IMAGE_NAME . --no-cache
         docker tag $IMAGE_NAME $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
         docker push $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
 
