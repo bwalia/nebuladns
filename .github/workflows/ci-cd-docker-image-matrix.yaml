@@ -59,8 +59,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install or Uninstall Odincm frontend
-        run: chmod +x ./workflow_runner.sh && ./workflow_runner.sh "${{ env.cmd_action }}" "${{ env.REPLICA_COUNT }}" "${{ env.AWS_REGION_NAME }}" "${{ env.KUBE_CONFIG_DATA_K3S2 }}"
+      - name: Docker Build and Upload to AWS ECR
+        uses: vitr/actions-build-and-upload-to-ecs@v1.0.0
+        with:
+          access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+          repo: odincm
+          region: eu-west-2
+          tags: latest,${{ github.sha }}
+          create_repo: true
+
+      # - name: Install or Uninstall Odincm frontend
+      #   run: chmod +x ./workflow_runner.sh && ./workflow_runner.sh "${{ env.cmd_action }}" "${{ env.REPLICA_COUNT }}" "${{ env.AWS_REGION_NAME }}" "${{ env.KUBE_CONFIG_DATA_K3S2 }}"
 
       - name: Slack Notification for Odincm Frontend release 
         uses: rtCamp/action-slack-notify@v2
