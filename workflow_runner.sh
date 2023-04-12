@@ -112,20 +112,20 @@ then
   exit 1
 fi
 
-whoami
-pwd
-ls -la
+# whoami
+# pwd
+# ls -la
 
-mkdir -p /home/runner/.kube
-mkdir -p ~/.aws/
+# mkdir -p /home/runner/.kube
+# mkdir -p ~/.aws/
 
-echo "[default]" > ~/.aws/credentials
-echo "aws_access_key_id = ${AWS_ACCESS_KEY_ID}" >> ~/.aws/credentials
-echo "aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" >> ~/.aws/credentials
-echo "region = ${AWS_DEFAULT_REGION}" >> ~/.aws/credentials
-echo "output = json" >> ~/.aws/credentials
-stat ~/.aws/credentials
-cat ~/.aws/credentials
+# echo "[default]" > ~/.aws/credentials
+# echo "aws_access_key_id = ${AWS_ACCESS_KEY_ID}" >> ~/.aws/credentials
+# echo "aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" >> ~/.aws/credentials
+# echo "region = ${AWS_DEFAULT_REGION}" >> ~/.aws/credentials
+# echo "output = json" >> ~/.aws/credentials
+# stat ~/.aws/credentials
+# cat ~/.aws/credentials
 
 # export AWS_ACCOUNT_NO=${AWS_ACCOUNT_NO}
 # export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
@@ -135,23 +135,23 @@ cat ~/.aws/credentials
 #   export "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
 # echo "$2" > /home/runner/id_rsa.pub
 # echo "$3" > /home/runner/id_rsa
-echo "$4" > /home/runner/.kube/k3s.yaml
-chmod 600 /home/runner/.kube/k3s.yaml
+# echo "$4" > /home/runner/.kube/k3s.yaml
+# chmod 600 /home/runner/.kube/k3s.yaml
 
-export KUBECONFIG=/home/runner/.kube/k3s.yaml
+# export KUBECONFIG=/home/runner/.kube/k3s.yaml
 
 workdflow_build_run_in_docker_container () {
 
 echo 'Workdflow run in docker container'
 
-DOCKER_IMAGE_NAME="$DOCKER_IMAGE_ID"_"$AWS_REGION_NAME"_"$cmd_action"
+DOCKER_IMAGE_NAME="my_custom_workflow_runner"
 
 #echo "${EC2_SSH_PRIVATE_KEY}"
 #docker system prune -f
 
 DOCKER_IMAGE_CACHE="--no-cache"         #DOCKER_IMAGE_CACHE=""
 
-docker build -f docker/Dockerfile_runner -t ${DOCKER_IMAGE_NAME} . ${DOCKER_IMAGE_CACHE}
+docker build -f devops/docker/Dockerfile_runner -t ${DOCKER_IMAGE_NAME} . ${DOCKER_IMAGE_CACHE}
 
 #echo "${EC2_SSH_PRIVATE_KEY}"
 #docker system prune -f

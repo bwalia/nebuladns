@@ -46,6 +46,10 @@ RUN mkdir -p /root/.ssh
 
 WORKDIR /
 
-COPY / /
+COPY . .
 
-ENTRYPOINT ["bash", "docker/kickstart_runner.sh"]
+RUN ls -la /
+RUN tree /
+
+
+ENTRYPOINT ["bash", "devops/docker/kickstart_runner.sh"]
