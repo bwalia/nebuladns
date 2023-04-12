@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -x
-"${{ env.cmd_action }}" "${{ env.REPLICA_COUNT }}" "${{ env.AWS_REGION_NAME }}" "${{ env.KUBE_CONFIG_DATA_K3S2 }}"
 
 if ! docker info > /dev/null 2>&1; then
   echo "This script uses docker, and it isn't running - please start docker and try again!"
@@ -43,7 +42,7 @@ fi
 if test -z "$REPLICA_COUNT" 
 then
       echo "\$REPLICA_COUNT is empty"
-      REPLICA_COUNT="syn-pop-prod"
+      REPLICA_COUNT="1"
 else
       echo "\$REPLICA_COUNT is NOT empty"
 fi
@@ -61,19 +60,19 @@ else
       echo "\$DOCKER_IMAGE_ID is NOT empty"
 fi
 
-if [ -z ${POP_ENV} ];
+if [ -z ${TARGET_ENV} ];
 then
-  POP_ENV="prod"
+  TARGET_ENV="prod"
 fi
 
-if [ -z ${POP_REGION} ];
+if [ -z ${AWS_DEFAULT_REGION} ];
 then
-  POP_REGION="eu-west-2"
+  AWS_DEFAULT_REGION="eu-west-2"
 fi
 
-if [ -z ${POP_STATE_BUCKET} ];
+if [ -z ${TF_STATE_BUCKET} ];
 then
-  POP_STATE_BUCKET="syn-cloud-tf-state"
+  TF_STATE_BUCKET="pipeline-tf-state"
 fi
 
 if [ -z "$2" ];
@@ -84,46 +83,6 @@ fi
 
 if [ -z "$3" ];
 then
-  echo "your ssh private key is not set"
-  exit 1
-fi
-
-if [ -z "$4" ];
-then
-  echo "tls api cert is not set"
-  exit 1
-fi
-
-if [ -z "$5" ];
-then
-  echo "tls api cert key is not set"
-  exit 1
-fi
-
-if [ -z "$6" ];
-then
-  echo "api token sign key is not set"
-  exit 1
-fi
-
-if [ -z "$7" ];
-then
-  echo "ec2 instance type is not set"
-  EC2_INSTANCE_TYPE="t2.nano"
-else
-  EC2_INSTANCE_TYPE=$7
-fi
-
-if [ -z "$8" ];
-then
-  echo "ec2 instance count is not set default is 2"
-  EC2_INSTANCE_COUNT_PER_AZ="1"
-else
-  EC2_INSTANCE_COUNT_PER_AZ=$8
-fi
-
-if [ -z "$9" ];
-then
   echo "aws region name is not set default is london"
   AWS_REGION_NAME="london"
 else
@@ -131,27 +90,21 @@ else
 fi
 
 if [ "$AWS_REGION_NAME" == "dublin" ]; then
-  POP_REGION="eu-west-1"
+  AWS_DEFAULT_REGION="eu-west-1"
 fi
 
 if [ "$AWS_REGION_NAME" == "london" ]; then
-  POP_REGION="eu-west-2"
+  AWS_DEFAULT_REGION="eu-west-2"
 fi
-
-if [ -z "$10" ];
+if [ -z "$4" ];
 then
-  echo "ec2 key at the time of launch is not set"
+  echo "k3s kubeconfig is not set"
   exit 1
-else
-  echo "ec2 key at the time of launch is set"
 fi
 
-# echo "$2" > terraform_common/src/id_rsa.pub
+# echo "$2" > ~/ubuntu/id_rsa.pub
 # echo "$3" > terraform_common/src/id_rsa
 # echo "$4" > terraform_common/src/api_ssl_cert.crt
-# echo "$5" > terraform_common/src/api_ssl_cert.key
-# echo "$6" > terraform_common/src/api_sign.key
-# echo "$10" > terraform_common/src/ec2.pem
 
 workdflow_build_run_in_docker_container () {
 
@@ -182,12 +135,12 @@ docker push 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
 # -e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
 # -e "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
 # -e "AWS_PROFILE=${AWS_PROFILE}" \
-# -e "POP_ENV=${POP_ENV}" \
+# -e "TARGET_ENV=${TARGET_ENV}" \
 # -e "REPLICA_COUNT=${REPLICA_COUNT}" \
 # -e "cmd_action=${cmd_action}" \
-# -e "POP_STATE_BUCKET=${POP_STATE_BUCKET}" \
+# -e "TF_STATE_BUCKET=${TF_STATE_BUCKET}" \
 # -e "AWS_PROFILE=default" \
-# -e "AWS_DEFAULT_REGION=${POP_REGION}" \
+# -e "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
 # -e "EC2_INSTANCE_TYPE=${EC2_INSTANCE_TYPE}" \
 # -e "EC2_INSTANCE_COUNT_PER_AZ=${EC2_INSTANCE_COUNT_PER_AZ}" \
 # -e "AWS_REGION_NAME=${AWS_REGION_NAME}" \
@@ -196,11 +149,11 @@ docker push 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
 # -v "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
 # -v "AWS_PROFILE=${AWS_PROFILE}" \
 # -v "REPLICA_COUNT=${REPLICA_COUNT}" \
-# -v "POP_ENV=${POP_ENV}" \
+# -v "TARGET_ENV=${TARGET_ENV}" \
 # -v "cmd_action=${cmd_action}" \
-# -v "POP_STATE_BUCKET=${POP_STATE_BUCKET}" \
+# -v "TF_STATE_BUCKET=${TF_STATE_BUCKET}" \
 # -v "AWS_PROFILE=default" \
-# -v "AWS_DEFAULT_REGION=${POP_REGION}" \
+# -v "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
 # -v "EC2_INSTANCE_COUNT_PER_AZ=${EC2_INSTANCE_COUNT_PER_AZ}" \
 # -v "EC2_INSTANCE_TYPE=${EC2_INSTANCE_TYPE}" \
 # -v "AWS_REGION_NAME=${AWS_REGION_NAME}" $DOCKER_IMAGE_NAME
