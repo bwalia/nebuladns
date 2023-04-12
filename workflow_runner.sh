@@ -117,11 +117,19 @@ pwd
 ls -la
 
 mkdir -p /home/runner/.kube
+mkdir -p ~/.aws/
 
-export AWS_ACCOUNT_NO=${AWS_ACCOUNT_NO}
-export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+echo "[default]" > ~/.aws/credentials
+echo "aws_access_key_id = ${AWS_ACCESS_KEY_ID}" >> ~/.aws/credentials
+echo "aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" >> ~/.aws/credentials
+echo "region = ${AWS_DEFAULT_REGION}" >> ~/.aws/credentials
+stat ~/.aws/credentials
+cat ~/.aws/credentials
+
+# export AWS_ACCOUNT_NO=${AWS_ACCOUNT_NO}
+# export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+# export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+# export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
 
 #   export "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
 # echo "$2" > /home/runner/id_rsa.pub
