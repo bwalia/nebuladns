@@ -20,5 +20,9 @@ jobs:
         
       - name: Test run bash
         run: ls -al && tree
+
+      - name: Test if docker is available
+        run: docker -v
+        
         
       
