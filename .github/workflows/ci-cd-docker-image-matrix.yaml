@@ -35,10 +35,8 @@ jobs:
         run: docker tag odincm 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
 
       - name: Authenticate to AWS ecr
-        run: 
+        run: |
           AWS_PASSWORD=$(aws ecr get-login-password --region eu-west-2)
-          echo "AWS_PASSWORD=${AWS_PASSWORD}" >> $GITHUB_ENV
-          docker login --username AWS --password ${AWS_PASSWORD} 123154119074.dkr.ecr.eu-west-2.amazonaws.com
       
       - name: Push the image to AWS ecr
         run: docker push 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest    
