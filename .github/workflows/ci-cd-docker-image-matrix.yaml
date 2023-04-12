@@ -68,11 +68,9 @@ jobs:
   deployment:
     runs-on: 'ubuntu-latest'
     steps:
-
     - name: Checkout OdinCM Repository
       uses: actions/checkout@v3
       with:
         ref: main
-
       - name: Test run bash
         run: ls -al && tree
