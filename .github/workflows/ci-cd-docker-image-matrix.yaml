@@ -1,4 +1,5 @@
-name: 'Link Checker: All English'
+name: 'Docker Image matrix - Creates a new Docker images and tags them'
+run-name: 'Docker Image matrix - Creates a new Docker images and tags them'
 
 # **What it does**: Renders the content of every page and check all internal links.
 # **Why we have it**: To make sure all links connect correctly.
@@ -16,5 +17,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: main
+          - name: Test run bash
+          run: ls -al && tree
 
       
