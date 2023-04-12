@@ -4,53 +4,7 @@ run-name: "Docker Image matrix - Creates a new Docker images and tags them"
 on:
   push:
     branches: 
-      - 'main'
-  schedule:
-    - cron: "0 0 * * 0"
-
-  workflow_dispatch:
-    inputs:
-      BRANCH_REF:
-        type: choice
-        description: 'Please choose the Target Branch'
-        default: 'main'
-        required: true
-        options:
-        - main
-        - test
-        - dev
-
-      IMAGE_REGISTRY:
-        type: choice
-        description: 'Please choose docker image registry to push'
-        default: '123154119074.dkr.ecr.eu-west-2.amazonaws.com'
-        required: true
-        options:
-        - docker.io
-        - ghcr.io
-        - registry.workstation.co.uk
-        - 123154119074.dkr.ecr.eu-west-2.amazonaws.com
-
-      IMAGE_NAME:
-        type: choice
-        description: 'Please choose docker image name to push'
-        default: 'odincm'
-        required: true
-        options:
-        - odincm
-
-      IMAGE_TAG:
-        type: choice
-        description: 'Please choose docker image tag to push'
-        default: 'latest'
-        required: true
-        options:
-        - latest
-        - stable
-        - prod
-        - acc
-        - test
-        - dev
+      - main
 
 jobs:
   deployment:
