@@ -1,52 +1,57 @@
-name: 'Docker Image matrix - Creates a new Docker images and tags them'
-run-name: 'Docker Image matrix - Creates a new Docker images and tags them'
-
-# **What it does**: Renders the content of every page and check all internal links.
-# **Why we have it**: To make sure all links connect correctly.
-# **Who does it impact**: Docs content.
-
+# 2023 12 April Build and Deploy odincm Code Igniter 4 Docker Image
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - main
-
-env:
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
   
+name: Docker Build Image and deploy Odincm to Kubernetes
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  deployment:
-    runs-on: 'ubuntu-latest'
+  # This workflow contains a single job called "build"
+  build:
+    runs-on: ubuntu-latest
+#ubuntu-latest
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    environment: 
     steps:
+    - name: Check out this repo code
+      uses: actions/checkout@v2
 
-    - name: Checkout OdinCM Repository
-      uses: actions/checkout@v3
+    - name: short-sha
+      uses: benjlevesque/short-sha@v1.2
       with:
-        ref: main
+        length: 6
 
-    - name: Test run bash
-      run: ls -al && tree
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-2
 
-    - name: Test if docker is available
-      run: docker -v
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+      
+    - run: echo $SHA
+      env:
+       SHA: ${{ steps.short-sha.outputs.sha }}
 
-    - name: Build the docker image
-      run: docker build -f devops/docker/Dockerfile-nuxt-server -t odincm . --no-cache
+    - run: echo $SHA
+      env:
+       SHA: ${{ env.SHA }}
 
-    - name: Tag the image for AWS ecr
-      run: docker tag odincm 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
-
-    - name: Authenticate to AWS ecr and Push the image to AWS ecr
+    - name: Build, tag, and push image to Amazon ECR
       run: |
-        # echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-        # echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-        # echo "AWS_DEFAULT_REGION=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
-        export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-        export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        export AWS_DEFAULT_REGION=${{ secrets.AWS_REGION }}
-        AWS_PASSWORD=$(aws ecr get-login-password --region eu-west-2)
-        docker login --username AWS --password ${AWS_PASSWORD}  123154119074.dkr.ecr.eu-west-2.amazonaws.com
-        docker push 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
-      shell: bash
+        docker build -f devops/docker/Dockerfile-nuxt-server -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-2.amazonaws.com/odincm:${{ env.SHA }} .
+        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-2.amazonaws.com/odincm:${{ env.SHA }}
+
+    - name: helm deploy
+      uses: koslib/helm-eks-action@master
+      env:
+        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA_K3S2 }}
+      with:
+        #command: helm delete tizohub
+        # command: helm upgrade -i kisaan ./odincm-devops/kisaanComChart --set=image.tag=${{ env.SHA }} --set DEFAULT_DOMAIN="${{ secrets.DEFAULT_DOMAIN }}" --set DB_HOSTNAME="${{ secrets.DB_HOSTNAME }}" --set DB_NAME="${{ secrets.DB_NAME }}" --set DB_USERNAME="${{ secrets.DB_USERNAME }}" --set DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
