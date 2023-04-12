@@ -1,29 +1,23 @@
-# 2023 12 April Build and Deploy odincm Code Igniter 4 Docker Image
+name: Deploy to ECR
+
 on:
+ 
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
-  
-name: Docker Build Image and deploy Odincm to Kubernetes
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+
 jobs:
-  # This workflow contains a single job called "build"
+  
   build:
+    
+    name: Build Image
     runs-on: ubuntu-latest
-#ubuntu-latest
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    environment: 
+
+   
     steps:
-    - name: Check out this repo code
+
+    - name: Check out code
       uses: actions/checkout@v2
-
-    - name: short-sha
-      uses: benjlevesque/short-sha@v1.2
-      with:
-        length: 6
-
+    
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -34,17 +28,12 @@ jobs:
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
-      
-    - run: echo $SHA
-      env:
-       SHA: ${{ steps.short-sha.outputs.sha }}
-
-    - run: echo $SHA
-      env:
-       SHA: ${{ env.SHA }}
 
     - name: Build, tag, and push image to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: odincm
+        IMAGE_TAG: latest
       run: |
-        docker build -f devops/docker/Dockerfile-nuxt-server -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-2.amazonaws.com/odincm:${{ env.SHA }} .
-        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-2.amazonaws.com/odincm:${{ env.SHA }}
-
+        docker build -f devops/docker/Dockerfile-nuxt-server -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
