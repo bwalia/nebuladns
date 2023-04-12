@@ -149,6 +149,7 @@ curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip
 unzip awscliv2.zip
 sudo ./aws/install
 which aws
+aws sts get-caller-identity
 
 # docker build -f devops/docker/Dockerfile-nuxt-server -t ${DOCKER_IMAGE_NAME} . ${DOCKER_IMAGE_CACHE}
 # docker tag ${DOCKER_IMAGE_NAME} 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
