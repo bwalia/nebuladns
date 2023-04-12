@@ -1,5 +1,4 @@
 name: "Docker Image matrix - Creates a new Docker images and tags them"
-run-name: "Docker Image matrix - Creates a new Docker images and tags them"
 
 on:
   push:
