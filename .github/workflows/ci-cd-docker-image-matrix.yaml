@@ -1,18 +1,20 @@
-name: "Docker Image matrix - Creates a new Docker images and tags them"
-run-name: "Docker Image matrix - Creates a new Docker images and tags them"
+name: 'Link Checker: All English'
+
+# **What it does**: Renders the content of every page and check all internal links.
+# **Why we have it**: To make sure all links connect correctly.
+# **Who does it impact**: Docs content.
 
 on:
+  workflow_dispatch:
   push:
-    branches: 
+    branches:
       - main
 
 jobs:
-  deployment:
-    runs-on: 'ubuntu-latest'
+  check-links:
+    runs-on: "ubuntu-latest"
     steps:
-      - name: Checkout OdinCM Repository
-      uses: actions/checkout@v3
-      with:
-        ref: main
-      - name: Test run bash
-        run: ls -al && tree
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      
