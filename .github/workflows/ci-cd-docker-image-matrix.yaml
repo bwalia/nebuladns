@@ -12,8 +12,8 @@ on:
       - main
 
 env:
-  AWS_ACCESS_KEY_ID: ${{ secret.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secret.AWS_SECRET_ACCESS_KEY }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
   
 jobs:
@@ -40,7 +40,7 @@ jobs:
 
     - name: Authenticate to AWS ecr and Push the image to AWS ecr
       run: |
-        export AWS_PASSWORD=${{ env.AWS_ACCESS_KEY_ID }}
+        echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
         AWS_PASSWORD=$(aws ecr get-login-password --region eu-west-2)
         docker login --username AWS --password ${AWS_PASSWORD}  123154119074.dkr.ecr.eu-west-2.amazonaws.com
         docker push 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
