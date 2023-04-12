@@ -12,9 +12,9 @@ ls -latr ~/.aws/
     #   cat ~/.aws/credentials
 #tree ~/.aws/
 
-echo "Inside Docker - devops/docker/kickstart_runner.sh"
+#echo "Inside Docker - devops/docker/kickstart_runner.sh"
 
-aws sts get-caller-identity
+#aws sts get-caller-identity security risk
 
 # # mv /src/id_rsa ~/.ssh/id_rsa
 # # mv /src/id_rsa.pub ~/.ssh/id_rsa.pub

@@ -160,7 +160,7 @@ docker build -f devops/docker/Dockerfile_runner -t ${DOCKER_IMAGE_NAME} . ${DOCK
 # unzip awscliv2.zip
 # sudo ./aws/install
 # which aws
-# aws sts get-caller-identity
+# aws sts get-caller-identity security risk
 
 # docker build -f devops/docker/Dockerfile-nuxt-server -t ${DOCKER_IMAGE_ID} . ${DOCKER_IMAGE_CACHE}
 # docker tag ${DOCKER_IMAGE_ID} 123154119074.dkr.ecr.eu-west-2.amazonaws.com/${DOCKER_IMAGE_ID}:latest
