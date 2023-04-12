@@ -104,6 +104,7 @@ then
   exit 1
 fi
 
+whoami
 pwd
 ls -la
 
