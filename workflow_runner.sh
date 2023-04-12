@@ -144,26 +144,38 @@ workdflow_build_run_in_docker_container () {
 
 echo 'Workdflow run in docker container'
 
-#DOCKER_IMAGE_NAME="$DOCKER_IMAGE_ID"_"$AWS_REGION_NAME"_"$cmd_action"
+DOCKER_IMAGE_NAME="$DOCKER_IMAGE_ID"_"$AWS_REGION_NAME"_"$cmd_action"
 
 #echo "${EC2_SSH_PRIVATE_KEY}"
 #docker system prune -f
 
 DOCKER_IMAGE_CACHE="--no-cache"         #DOCKER_IMAGE_CACHE=""
 
+docker build -f docker/Dockerfile_runner -t ${DOCKER_IMAGE_NAME} . ${DOCKER_IMAGE_CACHE}
+
 #echo "${EC2_SSH_PRIVATE_KEY}"
 #docker system prune -f
 
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-which aws
-aws sts get-caller-identity
+# curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+# unzip awscliv2.zip
+# sudo ./aws/install
+# which aws
+# aws sts get-caller-identity
 
 # docker build -f devops/docker/Dockerfile-nuxt-server -t ${DOCKER_IMAGE_ID} . ${DOCKER_IMAGE_CACHE}
 # docker tag ${DOCKER_IMAGE_ID} 123154119074.dkr.ecr.eu-west-2.amazonaws.com/${DOCKER_IMAGE_ID}:latest
 # aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin  123154119074.dkr.ecr.eu-west-2.amazonaws.com
 # docker push 123154119074.dkr.ecr.eu-west-2.amazonaws.com/${DOCKER_IMAGE_ID}:latest
+docker run \
+-e "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" \
+-e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
+-e "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
+-e "AWS_PROFILE=default" \
+-e "AWS_REGION_NAME=${AWS_REGION_NAME}" \
+-v "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" \
+-v "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
+-v "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
+-v "AWS_PROFILE=default" $DOCKER_IMAGE_NAME
 
 }
 

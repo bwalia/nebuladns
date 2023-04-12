@@ -1,0 +1,51 @@
+FROM alpine:3.14
+
+ENV AWS_ACCESS_KEY_ID=""
+ENV AWS_SECRET_ACCESS_KEY=""
+ENV AWS_DEFAULT_REGION=""
+ENV AWS_PROFILE=""
+ENV PROJECT_ID=""
+ENV AWS_REGION_NAME=""
+
+ARG PROJECT_ID=""
+ARG EC2_SSH_PUBLIC_KEY=""
+
+ARG AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+ARG AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+ARG AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+ARG AWS_PROFILE=$AWS_PROFILE
+ARG EC2_INSTANCE_TYPE="t2.nano"
+ARG EC2_INSTANCE_COUNT_PER_AZ="1"
+ARG AWS_REGION_NAME=""
+
+ENV POP_NAME="syn-pop"
+ENV POP_CLOUD_PROVIDER="aws"
+ENV restapi_method="create"
+ENV EC2_INSTANCE_TYPE="t2.nano"
+ENV EC2_INSTANCE_COUNT_PER_AZ="1"
+
+RUN apk add bash
+RUN apk add aws-cli
+RUN apk add git
+RUN apk add terraform
+RUN apk add ansible
+
+# RUN apk add openssh-client
+RUN apk add openssh-keygen
+RUN apk add tree
+
+RUN mkdir ~/.aws
+RUN echo "[default]" >> ~/.aws/credentials
+RUN echo "aws_access_key_id=$AWS_ACCESS_KEY_ID" >> ~/.aws/credentials
+RUN echo "aws_secret_access_key=$AWS_SECRET_ACCESS_KEY" >> ~/.aws/credentials
+RUN echo "region=us-west-2" >> ~/.aws/credentials
+RUN echo "output=json" >> ~/.aws/credentials
+
+RUN mkdir -p ~/.ssh
+RUN mkdir -p /root/.ssh
+
+WORKDIR /
+
+COPY / /
+
+ENTRYPOINT ["bash", "docker/kickstart_runner.sh"]
