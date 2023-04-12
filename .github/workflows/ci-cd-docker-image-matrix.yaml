@@ -52,18 +52,6 @@ on:
         - test
         - dev
 
-env:
-  AWS_ACCOUNT_ID: "${{ secrets.AWS_ACCOUNT_ID }}"
-  AWS_ACCESS_KEY_ID: "${{ secrets.AWS_ACCESS_KEY_ID }}"
-  AWS_ACCOUNT_ID: "${{ secrets.AWS_ACCOUNT_ID }}"
-  AWS_ACCOUNT_ID: "${{ secrets.AWS_ACCOUNT_ID }}"
-  IMAGE_REGISTRY: ${{ github.event.inputs.IMAGE_REGISTRY }}
-  IMAGE_NAME: ${{ github.event.inputs.IMAGE_NAME }}
-  IMAGE_TAG: ${{ github.event.inputs.IMAGE_TAG }}
-  BRANCH_REF: ${{ github.event.inputs.BRANCH_REF }}
-  TARGET_CLUSTER: "k3s2"
-  TARGET_ENV: "test"
-
 jobs:
   deployment:
     runs-on: 'ubuntu-latest'
