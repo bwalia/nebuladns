@@ -59,10 +59,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Create, Update or Destroy Rest API
+      - name: Install or Uninstall Odincm frontend
         run: chmod +x ./workflow_runner.sh && ./workflow_runner.sh "${{ env.cmd_action }}" "${{ env.REPLICA_COUNT }}" "${{ env.AWS_REGION_NAME }}" "${{ env.KUBE_CONFIG_DATA_K3S2 }}"
 
-      - name: Slack Notification for Workstation CRM release 
+      - name: Slack Notification for Odincm Frontend release 
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_CHANNEL: general

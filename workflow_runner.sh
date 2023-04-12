@@ -16,6 +16,22 @@ fi
 
 cmd_action=$1
 
+if [ -z "$2" ];
+then
+  echo "replica count is not set default is 1"
+  REPLICA_COUNT="1"
+else
+  REPLICA_COUNT=$2
+fi
+
+if [ -z "$3" ];
+then
+  echo "aws region name is not set default is london"
+  AWS_REGION_NAME="london"
+else
+  AWS_REGION_NAME=$3
+fi
+
 if [ -z ${cmd_action} ];
 then
   cmd_action="update"
@@ -75,20 +91,6 @@ then
   TF_STATE_BUCKET="pipeline-tf-state"
 fi
 
-if [ -z "$2" ];
-then
-  echo "your ssh public key is not set"
-  exit 1
-fi
-
-if [ -z "$3" ];
-then
-  echo "aws region name is not set default is london"
-  AWS_REGION_NAME="london"
-else
-  AWS_REGION_NAME=$9
-fi
-
 if [ "$AWS_REGION_NAME" == "dublin" ]; then
   AWS_DEFAULT_REGION="eu-west-1"
 fi
@@ -101,6 +103,9 @@ then
   echo "k3s kubeconfig is not set"
   exit 1
 fi
+
+pwd
+ls -la
 
 # echo "$2" > ~/ubuntu/id_rsa.pub
 # echo "$3" > terraform_common/src/id_rsa
