@@ -1,86 +1,40 @@
-name: Build odincm docker image and Deploy to Kubernetes
-
 on:
   push:
-    branches: [ dummy ]
+    branches: [ main ]
   pull_request:
-    branches: [ dummy/* ]
-  workflow_dispatch:
-    inputs:
-      cmd_action:
-        type: choice
-        description: 'Please choose the GH Action'
-        default: 'update'
-        required: true
-        options:
-        - install
-        - uninstall
-        - Choose
+    branches: [ main ]
 
-      AWS_REGION_NAME:
-        type: choice
-        description: 'Please choose the AWS Region name, only pplication while create'
-        default: 'london'
-        required: true
-        options:
-        - london
-        - dublin
-        - Choose
+name: AWS ECR push
 
-      k3s_cluster_name:
-        type: choice
-        description: 'Please choose the k3s cluster name'
-        default: 'k3s2'
-        required: true
-        options:
-        - k3s1
-        - k3s2
-        - Choose
-
-env:
-  AWS_ACCOUNT_NO: ${{ secrets.AWS_ACCOUNT_NO }}
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
-  AWS_REGION_NAME: ${{ github.event.inputs.AWS_REGION_NAME }}
-
-  cmd_action: ${{ github.event.inputs.cmd_action }}
-  REPLICA_COUNT: "1"
-  POP_UPDATE_TYPE: ${{ github.event.inputs.pop_update_type }}
-  KUBE_CONFIG_DATA_K3S2: ${{ secrets.KUBE_CONFIG_DATA_K3S2 }}
-  
 jobs:
-  # *** This workflow contains a single job called "build" ***
-  build:
-    # The type of runner that the job will run on
+  deploy:
+    name: Deploy
     runs-on: ubuntu-latest
-    # Steps represent a sequence of tasks that will be executed as part of the job
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v2
 
-      - name: Docker Build and Upload to AWS ECR
-        uses: vitr/actions-build-and-upload-to-ecs@v1.0.0
-        with:
-          access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          account_id: ${{ secrets.AWS_ACCOUNT_ID }}
-          repo: odincm
-          region: eu-west-2
-          tags: latest,${{ github.sha }}
-          create_repo: true
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-2
 
-      # - name: Install or Uninstall Odincm frontend
-      #   run: chmod +x ./workflow_runner.sh && ./workflow_runner.sh "${{ env.cmd_action }}" "${{ env.REPLICA_COUNT }}" "${{ env.AWS_REGION_NAME }}" "${{ env.KUBE_CONFIG_DATA_K3S2 }}"
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Slack Notification for Odincm Frontend release 
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_CHANNEL: general
-          SLACK_COLOR: ${{ job.status }}
-          SLACK_ICON: https://github.com/rtCamp.png?size=48
-          SLACK_MESSAGE: 'Post Content :rocket:'
-          SLACK_TITLE: Post Title
-          SLACK_USERNAME: rtCamp
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-
+    - name: Build, tag, and push the image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ${{ secrets.REPO_NAME }}
+        IMAGE_TAG: latest
+      run: |
+        # Build a docker container and push it to ECR 
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        echo "Pushing image to ECR..."
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
