@@ -37,7 +37,8 @@ jobs:
       - name: Authenticate to AWS ecr
         run: |
           AWS_PASSWORD=$(aws ecr get-login-password --region eu-west-2)
-      
+        shell: bash
+
       - name: Push the image to AWS ecr
         run: docker push 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest    
 
