@@ -51,5 +51,4 @@ COPY . .
 RUN ls -la /
 RUN tree /
 
-
 ENTRYPOINT ["bash", "devops/docker/kickstart_runner.sh"]
