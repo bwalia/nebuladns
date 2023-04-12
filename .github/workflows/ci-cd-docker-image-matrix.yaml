@@ -9,7 +9,7 @@ on:
     inputs:
       cmd_action:
         type: choice
-        description: 'Please choose the Rest API Method'
+        description: 'Please choose the GH Action'
         default: 'update'
         required: true
         options:
