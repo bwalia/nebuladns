@@ -4,7 +4,7 @@ on:
   push:
     branches: [ dummy ]
   pull_request:
-    branches: [ main/* ]
+    branches: [ dummy/* ]
   workflow_dispatch:
     inputs:
       cmd_action:
