@@ -48,10 +48,3 @@ jobs:
         docker build -f devops/docker/Dockerfile-nuxt-server -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-2.amazonaws.com/odincm:${{ env.SHA }} .
         docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-2.amazonaws.com/odincm:${{ env.SHA }}
 
-    - name: helm deploy
-      uses: koslib/helm-eks-action@master
-      env:
-        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA_K3S2 }}
-      with:
-        #command: helm delete tizohub
-        # command: helm upgrade -i kisaan ./odincm-devops/kisaanComChart --set=image.tag=${{ env.SHA }} --set DEFAULT_DOMAIN="${{ secrets.DEFAULT_DOMAIN }}" --set DB_HOSTNAME="${{ secrets.DB_HOSTNAME }}" --set DB_NAME="${{ secrets.DB_NAME }}" --set DB_USERNAME="${{ secrets.DB_USERNAME }}" --set DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
