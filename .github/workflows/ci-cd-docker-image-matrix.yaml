@@ -11,37 +11,35 @@ on:
     branches:
       - main
 
-env:
-  AWS_ACCESS_KEY_ID: ${{ secret.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secret.AWS_SECRET_ACCESS_KEY }}
-  AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
-
 jobs:
-  check-links:
-    runs-on: "ubuntu-latest"
+  deployment:
+    runs-on: 'ubuntu-latest'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        
-      - name: Test run bash
-        run: ls -al && tree
 
-      - name: Test if docker is available
-        run: docker -v
+    - name: Checkout OdinCM Repository
+      uses: actions/checkout@v3
+      with:
+        ref: main
 
-      - name: Build the docker image
-        run: docker build -f devops/docker/Dockerfile-nuxt-server -t odincm . --no-cache
+    - name: Test run bash
+      run: ls -al && tree
 
-      - name: Tag the image for AWS ecr
-        run: docker tag odincm 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
+    - name: Test if docker is available
+      run: docker -v
 
-      - name: Authenticate to AWS ecr
-        run: |
-          AWS_PASSWORD=$(aws ecr get-login-password --region eu-west-2)
-        shell: bash
+    - name: Build the docker image
+      run: docker build -f devops/docker/Dockerfile-nuxt-server -t odincm . --no-cache
 
-      - name: Push the image to AWS ecr
-        run: docker push 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest    
+    - name: Tag the image for AWS ecr
+      run: docker tag odincm 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
+
+    - name: Authenticate to AWS ecr
+      run: |
+        AWS_PASSWORD=$(aws ecr get-login-password --region eu-west-2)
+      shell: bash
+
+    - name: Push the image to AWS ecr
+      run: docker push 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest    
 
         
       
