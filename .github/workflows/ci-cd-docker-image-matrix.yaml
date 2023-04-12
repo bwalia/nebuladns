@@ -33,13 +33,9 @@ jobs:
     - name: Tag the image for AWS ecr
       run: docker tag odincm 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
 
-    - name: Authenticate to AWS ecr
+    - name: Authenticate to AWS ecr and Push the image to AWS ecr
       run: |
         AWS_PASSWORD=$(aws ecr get-login-password --region eu-west-2)
+        docker login --username AWS --password ${AWS_PASSWORD}  123154119074.dkr.ecr.eu-west-2.amazonaws.com
+        docker push 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
       shell: bash
-
-    - name: Push the image to AWS ecr
-      run: docker push 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest    
-
-        
-      
