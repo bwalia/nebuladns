@@ -32,6 +32,14 @@ else
   AWS_REGION_NAME=$3
 fi
 
+if [ -z "$4" ];
+then
+  echo "kubeconfig is not set kubectl or helm commands will not work"
+  KUBECONFIG=""
+else
+  KUBECONFIG=$4
+fi
+
 if [ -z ${cmd_action} ];
 then
   cmd_action="update"
@@ -98,9 +106,9 @@ fi
 if [ "$AWS_REGION_NAME" == "london" ]; then
   AWS_DEFAULT_REGION="eu-west-2"
 fi
-if [ -z "$4" ];
+if [ -z "$3" ];
 then
-  echo "k3s kubeconfig is not set"
+  echo "region cannot be set"
   exit 1
 fi
 
@@ -108,9 +116,19 @@ whoami
 pwd
 ls -la
 
-# echo "$2" > ~/ubuntu/id_rsa.pub
-# echo "$3" > terraform_common/src/id_rsa
-# echo "$4" > terraform_common/src/api_ssl_cert.crt
+mkdir -p /home/runner/.kube
+chmod 600 /home/runner/.kube
+
+export AWS_ACCOUNT_NO=${AWS_ACCOUNT_NO}"
+export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
+export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"
+export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}"
+
+#   export "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
+# echo "$2" > /home/runner/id_rsa.pub
+# echo "$3" > /home/runner/id_rsa
+echo "$4" > /home/runner/.kube/k3s.yaml
+export KUBECONFIG=/home/runner/.kube/k3s.yaml
 
 workdflow_build_run_in_docker_container () {
 
@@ -135,34 +153,6 @@ which aws
 # docker tag ${DOCKER_IMAGE_NAME} 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
 # aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin  123154119074.dkr.ecr.eu-west-2.amazonaws.com
 # docker push 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
-
-# docker run \
-# -e "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" \
-# -e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
-# -e "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
-# -e "AWS_PROFILE=${AWS_PROFILE}" \
-# -e "TARGET_ENV=${TARGET_ENV}" \
-# -e "REPLICA_COUNT=${REPLICA_COUNT}" \
-# -e "cmd_action=${cmd_action}" \
-# -e "TF_STATE_BUCKET=${TF_STATE_BUCKET}" \
-# -e "AWS_PROFILE=default" \
-# -e "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
-# -e "EC2_INSTANCE_TYPE=${EC2_INSTANCE_TYPE}" \
-# -e "EC2_INSTANCE_COUNT_PER_AZ=${EC2_INSTANCE_COUNT_PER_AZ}" \
-# -e "AWS_REGION_NAME=${AWS_REGION_NAME}" \
-# -v "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" \
-# -v "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
-# -v "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
-# -v "AWS_PROFILE=${AWS_PROFILE}" \
-# -v "REPLICA_COUNT=${REPLICA_COUNT}" \
-# -v "TARGET_ENV=${TARGET_ENV}" \
-# -v "cmd_action=${cmd_action}" \
-# -v "TF_STATE_BUCKET=${TF_STATE_BUCKET}" \
-# -v "AWS_PROFILE=default" \
-# -v "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
-# -v "EC2_INSTANCE_COUNT_PER_AZ=${EC2_INSTANCE_COUNT_PER_AZ}" \
-# -v "EC2_INSTANCE_TYPE=${EC2_INSTANCE_TYPE}" \
-# -v "AWS_REGION_NAME=${AWS_REGION_NAME}" $DOCKER_IMAGE_NAME
 
 }
 
