@@ -53,6 +53,9 @@ on:
 
 env:
   AWS_ACCOUNT_ID: "${{ secrets.AWS_ACCOUNT_ID }}"
+  AWS_ACCESS_KEY_ID: "${{ secrets.AWS_ACCESS_KEY_ID }}"
+  AWS_ACCOUNT_ID: "${{ secrets.AWS_ACCOUNT_ID }}"
+  AWS_ACCOUNT_ID: "${{ secrets.AWS_ACCOUNT_ID }}"
   IMAGE_REGISTRY: ${{ github.event.inputs.IMAGE_REGISTRY }}
   IMAGE_NAME: ${{ github.event.inputs.IMAGE_NAME }}
   IMAGE_TAG: ${{ github.event.inputs.IMAGE_TAG }}
@@ -86,15 +89,22 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
+        aws-access-key-id: 
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Build, tag, and push OdinCM Docker image to the AWS ECR mentioned 
+      with:
+        AWS_ACCESS_KEY_ID: ${{ secret.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secret.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
       run: |
         IMAGE_REGISTRY=.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
         IMAGE_NAME=odincm
