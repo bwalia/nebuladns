@@ -117,7 +117,6 @@ pwd
 ls -la
 
 mkdir -p /home/runner/.kube
-chmod 600 /home/runner/.kube
 
 export AWS_ACCOUNT_NO=${AWS_ACCOUNT_NO}"
 export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
@@ -128,6 +127,8 @@ export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}"
 # echo "$2" > /home/runner/id_rsa.pub
 # echo "$3" > /home/runner/id_rsa
 echo "$4" > /home/runner/.kube/k3s.yaml
+chmod 600 /home/runner/.kube/k3s.yaml
+
 export KUBECONFIG=/home/runner/.kube/k3s.yaml
 
 workdflow_build_run_in_docker_container () {
