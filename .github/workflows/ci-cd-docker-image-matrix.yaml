@@ -1,5 +1,5 @@
-name: Docker Image matrix - Creates a new Docker images and tags them
-run-name: Creates a new Docker image, pushes it, and tags it - ${{ github.event.inputs.IMAGE_NAME }} tag ${{ github.event.inputs.IMAGE_TAG }} from ${{ github.event.inputs.BRANCH_REF }} branch
+name: "Docker Image matrix - Creates a new Docker images and tags them"
+run-name: "Docker Image matrix - Creates a new Docker images and tags them"
 
 on:
   push:
