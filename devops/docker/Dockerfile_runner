@@ -48,7 +48,7 @@ WORKDIR /
 
 COPY . .
 
-RUN ls -la /
-RUN tree /
+RUN ls -la ~/.aws
+RUN tree ~/.aws
 
 ENTRYPOINT ["bash", "devops/docker/kickstart_runner.sh"]
