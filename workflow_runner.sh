@@ -118,10 +118,10 @@ ls -la
 
 mkdir -p /home/runner/.kube
 
-export AWS_ACCOUNT_NO=${AWS_ACCOUNT_NO}"
-export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
-export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"
-export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}"
+export AWS_ACCOUNT_NO=${AWS_ACCOUNT_NO}
+export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
 
 #   export "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
 # echo "$2" > /home/runner/id_rsa.pub
@@ -135,7 +135,7 @@ workdflow_build_run_in_docker_container () {
 
 echo 'Workdflow run in docker container'
 
-DOCKER_IMAGE_NAME="$DOCKER_IMAGE_ID"_"$AWS_REGION_NAME"_"$cmd_action"
+#DOCKER_IMAGE_NAME="$DOCKER_IMAGE_ID"_"$AWS_REGION_NAME"_"$cmd_action"
 
 #echo "${EC2_SSH_PRIVATE_KEY}"
 #docker system prune -f
@@ -151,10 +151,10 @@ sudo ./aws/install
 which aws
 aws sts get-caller-identity
 
-# docker build -f devops/docker/Dockerfile-nuxt-server -t ${DOCKER_IMAGE_NAME} . ${DOCKER_IMAGE_CACHE}
-# docker tag ${DOCKER_IMAGE_NAME} 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
+# docker build -f devops/docker/Dockerfile-nuxt-server -t ${DOCKER_IMAGE_ID} . ${DOCKER_IMAGE_CACHE}
+# docker tag ${DOCKER_IMAGE_ID} 123154119074.dkr.ecr.eu-west-2.amazonaws.com/${DOCKER_IMAGE_ID}:latest
 # aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin  123154119074.dkr.ecr.eu-west-2.amazonaws.com
-# docker push 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
+# docker push 123154119074.dkr.ecr.eu-west-2.amazonaws.com/${DOCKER_IMAGE_ID}:latest
 
 }
 
