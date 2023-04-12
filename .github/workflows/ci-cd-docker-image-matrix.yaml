@@ -31,10 +31,10 @@ jobs:
         run: docker tag odincm 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm:latest
 
       - name: Authenticate to AWS ecr
-        with: 
-          AWS_ACCESS_KEY_ID: ${{ secret.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secret.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+      with: 
+        AWS_ACCESS_KEY_ID: ${{ secret.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secret.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin  123154119074.dkr.ecr.eu-west-2.amazonaws.com
 
       - name: Push the image to AWS ecr
