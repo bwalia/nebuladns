@@ -60,7 +60,8 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install or Uninstall Odincm frontend
-        run: chmod +x ./workflow_runner.sh && ./workflow_runner.sh "${{ env.cmd_action }}" "${{ env.REPLICA_COUNT }}" "${{ env.AWS_REGION_NAME }}" "${{ env.KUBE_CONFIG_DATA_K3S2 }}"
+        run: chmod +x ./workflow_runner.sh && ./workflow_runner.sh "${{ env.cmd_action }}" "${{ env.REPLICA_COUNT }}" "${{ env.AWS_REGION_NAME }}" "${{ env.KUBE_CONFIG_DATA_K3S2 }}" "${{ env.AWS_ACCOUNT_NO }}" "${{ env.AWS_ACCOUNT_NO }}" "${{ secrets.AWS_ACCESS_KEY_ID }}" "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+
 
       - name: Slack Notification for Odincm Frontend release 
         uses: rtCamp/action-slack-notify@v2

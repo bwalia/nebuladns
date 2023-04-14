@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+#set -x
 
 if ! docker info > /dev/null 2>&1; then
   echo "This script uses docker, and it isn't running - please start docker and try again!"
@@ -106,10 +106,35 @@ fi
 if [ "$AWS_REGION_NAME" == "london" ]; then
   AWS_DEFAULT_REGION="eu-west-2"
 fi
+
 if [ -z "$3" ];
 then
   echo "region cannot be set"
   exit 1
+fi
+
+if [ -z "$5" ];
+then
+  echo "aws account id is not set"
+  exit 1
+else
+  AWS_ACCOUNT_NO=$5
+fi
+
+if [ -z "$6" ];
+then
+  echo "aws access key is not set"
+  exit 1
+else
+  AWS_ACCESS_KEY_ID=$6
+fi
+
+if [ -z "$7" ];
+then
+  echo "aws access key is not set"
+  exit 1
+else
+  AWS_SECRET_ACCESS_KEY=$7
 fi
 
 # whoami
