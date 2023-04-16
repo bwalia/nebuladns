@@ -91,13 +91,13 @@ jobs:
           # "update" "1" "eu-west-2" "KUBECONFIGPATH" "" "" ""
         shell: bash
 
-    - name: Helm Deploy - Release to selected K3S cluster
-      uses: koslib/helm-eks-action@master
-      with:
-        command: |
-          helm upgrade -i wsl-${{ env.TARGET_ENV }} ./devops/odincm-chart -f devops/odincm-chart/values-${{ env.TARGET_ENV }}-${{ env.TARGET_CLUSTER}}.yaml --set-string targetImage="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}" --set-string targetImageTag="${{ env.IMAGE_TAG }}" --namespace ${{ env.TARGET_ENV }} --create-namespace
-          kubectl rollout restart deployment/wsl-${{ env.TARGET_ENV }} -n ${{ env.TARGET_ENV }}
-          kubectl rollout history deployment/wsl-${{ env.TARGET_ENV }} -n ${{ env.TARGET_ENV }}
+      - name: Helm Deploy - Release to selected K3S cluster
+        uses: koslib/helm-eks-action@master
+        with:
+          command: |
+            helm upgrade -i wsl-${{ env.TARGET_ENV }} ./devops/odincm-chart -f devops/odincm-chart/values-${{ env.TARGET_ENV }}-${{ env.TARGET_CLUSTER}}.yaml --set-string targetImage="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}" --set-string targetImageTag="${{ env.IMAGE_TAG }}" --namespace ${{ env.TARGET_ENV }} --create-namespace
+            kubectl rollout restart deployment/wsl-${{ env.TARGET_ENV }} -n ${{ env.TARGET_ENV }}
+            kubectl rollout history deployment/wsl-${{ env.TARGET_ENV }} -n ${{ env.TARGET_ENV }}
 
       - name: Slack Notification for Odincm Frontend release 
         uses: rtCamp/action-slack-notify@v2
