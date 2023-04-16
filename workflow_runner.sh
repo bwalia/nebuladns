@@ -32,12 +32,10 @@ else
   AWS_REGION_NAME=$3
 fi
 
-if [ -z "$4" ];
+if [ -z ${KUBECONFIG} ];
 then
   echo "kubeconfig is not set kubectl or helm commands will not work"
   KUBECONFIG=""
-else
-  KUBECONFIG=$4
 fi
 
 if [ -z ${cmd_action} ];
@@ -113,12 +111,20 @@ then
   exit 1
 fi
 
-if [ -z "$5" ];
+if [ -z "$4" ];
 then
   echo "aws account id is not set"
   exit 1
 else
-  AWS_ACCOUNT_NO=$5
+  AWS_ACCOUNT_NO=$4
+fi
+
+if [ -z "$5" ];
+then
+  echo "aws access key is not set"
+  exit 1
+else
+  AWS_ACCESS_KEY_ID=$5
 fi
 
 if [ -z "$6" ];
@@ -126,16 +132,49 @@ then
   echo "aws access key is not set"
   exit 1
 else
-  AWS_ACCESS_KEY_ID=$6
+  AWS_SECRET_ACCESS_KEY=$6
 fi
 
-if [ -z "$7" ];
-then
-  echo "aws access key is not set"
-  exit 1
-else
-  AWS_SECRET_ACCESS_KEY=$7
-fi
+workdflow_build_run_in_docker_container () {
+
+echo 'Workdflow run in docker container'
+
+DOCKER_IMAGE_NAME="my_custom_workflow_runner"
+
+#echo "${EC2_SSH_PRIVATE_KEY}"
+#docker system prune -f
+
+DOCKER_IMAGE_CACHE="--no-cache"         #DOCKER_IMAGE_CACHE=""
+
+docker build -f devops/docker/Dockerfile_runner -t my_custom_workflow_runner .
+# docker tag my_custom_workflow_runner my_custom_workflow_runner:latest
+# ${DOCKER_IMAGE_CACHE}
+docker run \
+-e "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" \
+-e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
+-e "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
+-e "AWS_PROFILE=default" my_custom_workflow_runner
+
+}
+
+workdflow_build_run_in_docker_container
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # whoami
 # pwd
@@ -164,20 +203,6 @@ fi
 # chmod 600 /home/runner/.kube/k3s.yaml
 
 # export KUBECONFIG=/home/runner/.kube/k3s.yaml
-
-workdflow_build_run_in_docker_container () {
-
-echo 'Workdflow run in docker container'
-
-DOCKER_IMAGE_NAME="my_custom_workflow_runner"
-
-#echo "${EC2_SSH_PRIVATE_KEY}"
-#docker system prune -f
-
-DOCKER_IMAGE_CACHE="--no-cache"         #DOCKER_IMAGE_CACHE=""
-
-docker build -f devops/docker/Dockerfile_runner -t ${DOCKER_IMAGE_NAME} . ${DOCKER_IMAGE_CACHE}
-
 #echo "${EC2_SSH_PRIVATE_KEY}"
 #docker system prune -f
 
@@ -201,8 +226,3 @@ docker build -f devops/docker/Dockerfile_runner -t ${DOCKER_IMAGE_NAME} . ${DOCK
 # -v "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
 # -v "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
 # -v "AWS_PROFILE=default" $DOCKER_IMAGE_NAME
-docker run -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} -e AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION} -e AWS_PROFILE=default $DOCKER_IMAGE_NAME
-}
-
-workdflow_build_run_in_docker_container
-

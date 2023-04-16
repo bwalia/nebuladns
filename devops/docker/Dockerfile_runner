@@ -1,4 +1,4 @@
-FROM alpine:3.14
+FROM alpine:3.17
 
 ENV AWS_ACCESS_KEY_ID=""
 ENV AWS_SECRET_ACCESS_KEY=""
@@ -17,22 +17,29 @@ ARG AWS_PROFILE=$AWS_PROFILE
 ARG EC2_INSTANCE_TYPE="t2.nano"
 ARG EC2_INSTANCE_COUNT_PER_AZ="1"
 ARG AWS_REGION_NAME=""
+ARG KUBECONFIG=""
+ARG KUBE_CONFIG_DATA=""
 
 ENV POP_NAME="syn-pop"
 ENV CLOUD_PROVIDER="aws"
 ENV restapi_method="create"
 ENV EC2_INSTANCE_TYPE="t2.nano"
 ENV EC2_INSTANCE_COUNT_PER_AZ="1"
+ENV KUBECONFIG=""
+ENV KUBE_CONFIG_DATA=""
 
-RUN apk add bash
-RUN apk add aws-cli
-RUN apk add git
-RUN apk add terraform
-RUN apk add ansible
-
+RUN apk add --no-cache openssl openssh-keygen bash curl wget aws-cli git terraform ansible tree
 # RUN apk add openssh-client
-RUN apk add openssh-keygen
-RUN apk add tree
+
+# Install kubectl
+# RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+# RUN chmod +x ./kubectl
+# RUN mv ./kubectl /usr/local/bin
+
+# ENV BASE_URL="https://storage.googleapis.com/kubernetes-helm"
+
+#RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && chmod 700 get_helm.sh && ./get_helm.sh
+# RUN echo $KUBE_CONFIG_DATA | base64 -d > ~/.kube/k3s.yaml
 
 RUN mkdir ~/.aws
 RUN echo "[default]" >> ~/.aws/credentials

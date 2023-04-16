@@ -47,7 +47,7 @@ env:
   cmd_action: ${{ github.event.inputs.cmd_action }}
   REPLICA_COUNT: "1"
   POP_UPDATE_TYPE: ${{ github.event.inputs.pop_update_type }}
-  KUBE_CONFIG_DATA_K3S2: ${{ secrets.KUBE_CONFIG_DATA_K3S2 }}
+#  KUBE_CONFIG_DATA_K3S2: ${{ secrets.KUBE_CONFIG_DATA_K3S2 }}
   
 jobs:
   # *** This workflow contains a single job called "build" ***
@@ -60,8 +60,10 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install or Uninstall Odincm frontend
-        run: chmod +x ./workflow_runner.sh && ./workflow_runner.sh "${{ env.cmd_action }}" "${{ env.REPLICA_COUNT }}" "${{ env.AWS_REGION_NAME }}" "${{ env.KUBE_CONFIG_DATA_K3S2 }}" "${{ env.AWS_ACCOUNT_NO }}" "${{ secrets.AWS_ACCESS_KEY_ID }}" "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-        #"update" "1" "eu-west-2" "KUBECONFIGPATH" "" "" ""
+        run: |
+          echo "KUBE_CONFIG_DATA=
+          chmod +x ./workflow_runner.sh && ./workflow_runner.sh "${{ env.cmd_action }}" "${{ env.REPLICA_COUNT }}" "${{ env.AWS_REGION_NAME }}" "${{ env.AWS_ACCOUNT_NO }}" "${{ secrets.AWS_ACCESS_KEY_ID }}" "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+          #"update" "1" "eu-west-2" "KUBECONFIGPATH" "" "" ""
 
       - name: Slack Notification for Odincm Frontend release 
         uses: rtCamp/action-slack-notify@v2
