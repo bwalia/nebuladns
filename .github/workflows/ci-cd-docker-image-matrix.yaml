@@ -61,9 +61,8 @@ jobs:
 
       - name: Install or Uninstall Odincm frontend
         run: |
-          echo "KUBE_CONFIG_DATA=
           chmod +x ./workflow_runner.sh && ./workflow_runner.sh "${{ env.cmd_action }}" "${{ env.REPLICA_COUNT }}" "${{ env.AWS_REGION_NAME }}" "${{ env.AWS_ACCOUNT_NO }}" "${{ secrets.AWS_ACCESS_KEY_ID }}" "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-          #"update" "1" "eu-west-2" "KUBECONFIGPATH" "" "" ""
+          # "update" "1" "eu-west-2" "KUBECONFIGPATH" "" "" ""
 
       - name: Slack Notification for Odincm Frontend release 
         uses: rtCamp/action-slack-notify@v2
