@@ -29,7 +29,7 @@ ENV KUBECONFIG=""
 ENV KUBE_CONFIG_DATA=""
 
 RUN apk update
-RUN apk add --no-cache openrc openssl openssh-keygen bash curl wget aws-cli git terraform ansible tree
+RUN apk add --no-cache openrc openssl openssh-keygen bash curl wget aws-cli git terraform ansible tree docker
 #RUN aok add docker
 # RUN apk add openssh-client
 # RUN rc-update add docker boot
