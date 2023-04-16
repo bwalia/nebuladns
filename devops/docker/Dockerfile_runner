@@ -29,12 +29,13 @@ ENV KUBECONFIG=""
 ENV KUBE_CONFIG_DATA=""
 
 RUN apk update
-RUN apk add --no-cache openrc openssl openssh-keygen bash curl wget aws-cli git terraform ansible tree docker
+RUN apk add --no-cache openrc openssl openssh-keygen bash curl wget aws-cli git terraform ansible tree
+#RUN aok add docker
 # RUN apk add openssh-client
-RUN rc-update add docker boot && sleep 60
-RUN service docker start && sleep 60
-RUN addgroup username docker
-
+# RUN rc-update add docker boot
+# RUN addgroup username docker
+# RUN service docker start
+# RUN sleep 120
 
 # Install kubectl
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
