@@ -11,7 +11,8 @@ IMAGE_REGISTRY=123154119074.dkr.ecr.eu-west-2.amazonaws.com
 IMAGE_NAME=odincm
 IMAGE_TAG=latest
 
-docker build -f devops/docker/Dockerfile-nuxt-server --build-arg -t $IMAGE_NAME . --no-cache
+#docker build -f devops/docker/Dockerfile-nuxt-server --build-arg -t $IMAGE_NAME . --no-cache
+docker build -f devops/docker/Dockerfile-nuxt-server -t $IMAGE_NAME . --no-cache
 docker tag $IMAGE_NAME $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
 docker push $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
 
