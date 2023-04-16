@@ -148,8 +148,9 @@ DOCKER_IMAGE_CACHE="--no-cache"         #DOCKER_IMAGE_CACHE=""
 
 docker build -f devops/docker/Dockerfile_runner -t my_custom_workflow_runner .
 # docker tag my_custom_workflow_runner my_custom_workflow_runner:latest
-# ${DOCKER_IMAGE_CACHE}
+# ${DOCKER_IMAGE_CACHE} use host socket of the docker daemon to build images
 docker run \
+-v /var/run/docker.sock:/var/run/docker.sock \
 -e "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" \
 -e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
 -e "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \

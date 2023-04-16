@@ -9,15 +9,15 @@ targetEnvironment: test
 replicaCount: 1
 
 image:
-  repository: registry.workstation.co.uk/odincm
+  repository: 123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: "latest"
 
-targetImage: "registry.workstation.co.uk/odincm"
+targetImage: "123154119074.dkr.ecr.eu-west-2.amazonaws.com/odincm"
 targetImageTag: "latest"
 
-imagePullSecrets: []
+imagePullSecrets: eu-west-2-ecr-registry
 nameOverride: ""
 fullnameOverride: ""
 

@@ -7,6 +7,27 @@ on:
     branches: [ dummy/* ]
   workflow_dispatch:
     inputs:
+      ENV_REF:
+        type: choice
+        description: 'Please choose the Target Environment'
+        default: 'test'
+        required: true
+        options:
+        - test
+        - acc
+        - prod
+
+      TARGET_CLUSTER:      
+        type: choice
+        description: 'Please choose the Target K3S Cluster(s)'
+        default: 'k3s2'
+        required: true
+        options:
+        - k3s1
+        - k3s2
+        - k3s3
+        - All
+
       cmd_action:
         type: choice
         description: 'Please choose the GH Action'
@@ -38,6 +59,8 @@ on:
         - Choose
 
 env:
+  TARGET_ENV: ${{ github.event.inputs.ENV_REF }}
+  TARGET_CLUSTER: ${{ github.event.inputs.TARGET_CLUSTER }}
   AWS_ACCOUNT_NO: ${{ secrets.AWS_ACCOUNT_NO }}
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -61,8 +84,18 @@ jobs:
 
       - name: Install or Uninstall Odincm frontend
         run: |
+          echo "KUBE_CONFIG_DATA=${{ secrets.KUBE_CONFIG_DATA_K3S2 }}" >> $GITHUB_ENV
           chmod +x ./workflow_runner.sh && ./workflow_runner.sh "${{ env.cmd_action }}" "${{ env.REPLICA_COUNT }}" "${{ env.AWS_REGION_NAME }}" "${{ env.AWS_ACCOUNT_NO }}" "${{ secrets.AWS_ACCESS_KEY_ID }}" "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
           # "update" "1" "eu-west-2" "KUBECONFIGPATH" "" "" ""
+        shell: bash
+
+    - name: Helm Deploy - Release to selected K3S cluster
+      uses: koslib/helm-eks-action@master
+      with:
+        command: |
+          helm upgrade -i wsl-${{ env.TARGET_ENV }} ./devops/odincm-chart -f devops/odincm-chart/values-${{ env.TARGET_ENV }}-${{ env.TARGET_CLUSTER}}.yaml --set-string targetImage="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}" --set-string targetImageTag="${{ env.IMAGE_TAG }}" --namespace ${{ env.TARGET_ENV }} --create-namespace
+          kubectl rollout restart deployment/wsl-${{ env.TARGET_ENV }} -n ${{ env.TARGET_ENV }}
+          kubectl rollout history deployment/wsl-${{ env.TARGET_ENV }} -n ${{ env.TARGET_ENV }}
 
       - name: Slack Notification for Odincm Frontend release 
         uses: rtCamp/action-slack-notify@v2

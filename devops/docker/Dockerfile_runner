@@ -28,18 +28,22 @@ ENV EC2_INSTANCE_COUNT_PER_AZ="1"
 ENV KUBECONFIG=""
 ENV KUBE_CONFIG_DATA=""
 
-RUN apk add --no-cache openssl openssh-keygen bash curl wget aws-cli git terraform ansible tree
+RUN apk update
+RUN apk add --no-cache openrc openssl openssh-keygen bash curl wget aws-cli git terraform ansible tree docker
 # RUN apk add openssh-client
+RUN rc-update add docker boot && sleep 60
+RUN service docker start && sleep 60
+RUN addgroup username docker
+
 
 # Install kubectl
-# RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-# RUN chmod +x ./kubectl
-# RUN mv ./kubectl /usr/local/bin
+RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+RUN chmod +x ./kubectl
+RUN mv ./kubectl /usr/local/bin
 
-# ENV BASE_URL="https://storage.googleapis.com/kubernetes-helm"
+ENV BASE_URL="https://storage.googleapis.com/kubernetes-helm"
 
-#RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && chmod 700 get_helm.sh && ./get_helm.sh
-# RUN echo $KUBE_CONFIG_DATA | base64 -d > ~/.kube/k3s.yaml
+RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && chmod 700 get_helm.sh && ./get_helm.sh
 
 RUN mkdir ~/.aws
 RUN echo "[default]" >> ~/.aws/credentials
