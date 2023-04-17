@@ -1,4 +1,4 @@
-name: CD - Helm 1-Click Deploy OdinCM to an ENV - to Kubernetes
+name: Build and Push OdinCM Docker image to ECR and Deploy to Kubernetes
 
 on:
   push:
@@ -99,8 +99,20 @@ jobs:
       - run: |
           aws --version
           echo "Run bash script to build the docker image and push to aws ecr"
-          chmod +x build_and_push_odincm.sh
-          ./build_and_push_odincm.sh
+          echo "TARGET_ENV=${{ env.TARGET_ENV }}" >> $GITHUB_ENV
+          echo "IMAGE_NAME=${{ env.IMAGE_NAME }}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${{ env.IMAGE_TAG }}" >> $GITHUB_ENV
+          echo "TARGET_CLUSTER=${{ env.TARGET_CLUSTER }}" >> $GITHUB_ENV
+          echo "AWS_ACCOUNT_NO=${{ env.AWS_ACCOUNT_NO }}" >> $GITHUB_ENV
+          echo "AWS_ACCESS_KEY_ID=${{ env.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ env.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "AWS_DEFAULT_REGION=${{ env.AWS_DEFAULT_REGION }}" >> $GITHUB_ENV
+          echo "AWS_REGION_NAME=${{ env.AWS_REGION_NAME }}" >> $GITHUB_ENV
+          echo "cmd_action=${{ env.cmd_action }}" >> $GITHUB_ENV
+          echo "REPLICA_COUNT=${{ env.REPLICA_COUNT }}" >> $GITHUB_ENV
+          echo "POP_UPDATE_TYPE=${{ env.POP_UPDATE_TYPE }}" >> $GITHUB_ENV
+          chmod +x build_and_push_app_image.sh
+          ./build_and_push_app_image.sh
         shell: bash
 
       - name: Helm Deploy - Release
