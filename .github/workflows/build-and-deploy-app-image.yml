@@ -5,6 +5,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ dummy/* ]
+  schedule:
+    - cron: "0 0 * * *"
   workflow_dispatch:
     inputs:
       ENV_REF:
@@ -107,6 +109,16 @@ jobs:
           else
             echo "TARGET_CLUSTER=${{ env.TARGET_CLUSTER }}" >> $GITHUB_ENV
           fi
+          if [ "${{ env.TARGET_CLUSTER }}" == "k3s1" ]; then
+            echo "KUBE_CONFIG_DATA=${{ secrets.KUBE_CONFIG_DATA_K3S1 }}" >> $GITHUB_ENV
+          else
+            echo "KUBE_CONFIG_DATA is NOT k3s1"
+          fi
+          if [ "${{ env.TARGET_CLUSTER }}" == "k3s2" ]; then
+            echo "KUBE_CONFIG_DATA=${{ secrets.KUBE_CONFIG_DATA_K3S2 }}" >> $GITHUB_ENV
+          else
+            echo "KUBE_CONFIG_DATA is NOT k3s2"
+          fi
           echo "AWS_ACCOUNT_NO=${{ env.AWS_ACCOUNT_NO }}" >> $GITHUB_ENV
           echo "AWS_ACCESS_KEY_ID=${{ env.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=${{ env.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
@@ -121,6 +133,8 @@ jobs:
 
       - name: Helm Deploy - Release
         uses: koslib/helm-eks-action@master
+        # env:
+        #   KUBE_CONFIG_DATA: ${{ env.KUBE_CONFIG_DATA }}
         with:
           command: |
             helm upgrade -i odincm-${{ env.TARGET_ENV }} ./devops/odincm-chart -f devops/odincm-chart/values-${{ env.TARGET_ENV }}-${{ env.TARGET_CLUSTER }}.yaml --set-string targetImage="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}" --set-string targetImageTag="${{ env.IMAGE_TAG }}" --set-string capthaSiteKey="${{ secrets.CAPTCHA_SITE_KEY }}" --namespace ${{ env.TARGET_ENV }} --create-namespace
