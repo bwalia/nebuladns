@@ -102,7 +102,11 @@ jobs:
           echo "TARGET_ENV=${{ env.TARGET_ENV }}" >> $GITHUB_ENV
           echo "IMAGE_NAME=${{ env.IMAGE_NAME }}" >> $GITHUB_ENV
           echo "IMAGE_TAG=${{ env.IMAGE_TAG }}" >> $GITHUB_ENV
-          echo "TARGET_CLUSTER=${{ env.TARGET_CLUSTER }}" >> $GITHUB_ENV
+          if [ -z "${{ env.TARGET_CLUSTER }}" ]; then
+            echo "TARGET_CLUSTER=k3s2" >> $GITHUB_ENV
+          else
+            echo "TARGET_CLUSTER=${{ env.TARGET_CLUSTER }}" >> $GITHUB_ENV
+          fi
           echo "AWS_ACCOUNT_NO=${{ env.AWS_ACCOUNT_NO }}" >> $GITHUB_ENV
           echo "AWS_ACCESS_KEY_ID=${{ env.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=${{ env.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
@@ -119,7 +123,7 @@ jobs:
         uses: koslib/helm-eks-action@master
         with:
           command: |
-            helm upgrade -i odincm-${{ env.TARGET_ENV }} ./devops/odincm-chart -f devops/odincm-chart/values-${{ env.TARGET_ENV }}-${{ env.TARGET_CLUSTER}}.yaml --set-string targetImage="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}" --set-string targetImageTag="${{ env.IMAGE_TAG }}" --set-string capthaSiteKey="${{ secrets.CAPTCHA_SITE_KEY }}" --namespace ${{ env.TARGET_ENV }} --create-namespace
+            helm upgrade -i odincm-${{ env.TARGET_ENV }} ./devops/odincm-chart -f devops/odincm-chart/values-${{ env.TARGET_ENV }}-${{ env.TARGET_CLUSTER }}.yaml --set-string targetImage="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}" --set-string targetImageTag="${{ env.IMAGE_TAG }}" --set-string capthaSiteKey="${{ secrets.CAPTCHA_SITE_KEY }}" --namespace ${{ env.TARGET_ENV }} --create-namespace
             kubectl rollout restart deployment/odincm-${{ env.TARGET_ENV }} -n ${{ env.TARGET_ENV }}
             kubectl rollout history deployment/odincm-${{ env.TARGET_ENV }} -n ${{ env.TARGET_ENV }}
 
