@@ -60,6 +60,8 @@ on:
 
 env:
   TARGET_ENV: ${{ github.event.inputs.ENV_REF }}
+  IMAGE_NAME: "odincm"
+  IMAGE_TAG: "latest"
   TARGET_CLUSTER: ${{ github.event.inputs.TARGET_CLUSTER }}
   AWS_ACCOUNT_NO: ${{ secrets.AWS_ACCOUNT_NO }}
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -101,14 +103,8 @@ jobs:
           # pwd
           # ls -al
           IMAGE_REGISTRY=${{ env.AWS_ACCOUNT_NO }}.dkr.ecr.eu-west-2.amazonaws.com
-          if [ -z "${{ env.IMAGE_NAME }}" ]; then
-            IMAGE_NAME=odincm
-          fi
-          if [ -z "${{ env.IMAGE_TAG }}" ]; then
-            IMAGE_TAG=latest
-          fi
           echo "BRANCH_REF=main" >> $GITHUB_ENV
-          echo "IMAGE_REGISTRY=${{ env.AWS_ACCOUNT_NO }}.dkr.ecr.eu-west-2.amazonaws.com" >> $GITHUB_ENV
+          echo "IMAGE_REGISTRY=${IMAGE_REGISTRY} >> $GITHUB_ENV
           echo "TARGET_ENV=${{ env.TARGET_ENV }}" >> $GITHUB_ENV
           echo "IMAGE_NAME=${{ env.IMAGE_NAME }}" >> $GITHUB_ENV
           echo "IMAGE_TAG=${{ env.IMAGE_TAG }}" >> $GITHUB_ENV
