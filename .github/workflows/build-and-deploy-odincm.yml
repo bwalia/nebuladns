@@ -4,7 +4,8 @@ name: CD - Helm 1-Click Deploy OdinCM to an ENV - to Kubernetes
 on:
   push:
     branches: [ dummy ]
-
+  pull_request:
+    branches: [ dummy/* ]
   workflow_dispatch:
     inputs:
       ENV_REF:
@@ -20,7 +21,7 @@ on:
       TARGET_CLUSTER:      
         type: choice
         description: 'Please choose the Target K3S Cluster(s)'
-        default: 'k3s3'
+        default: 'k3s2'
         required: true
         options:
         - k3s1
@@ -28,103 +29,67 @@ on:
         - k3s3
         - All
 
-      IMAGE_REGISTRY:
+      cmd_action:
         type: choice
-        description: 'Please choose docker image registry to push'
-        default: 'registry.workstation.co.uk'
+        description: 'Please choose the GH Action'
+        default: 'update'
         required: true
         options:
-        - docker.io
-        - ghcr.io
-        - registry.workstation.co.uk
+        - install
+        - uninstall
+        - Choose
 
-      IMAGE_NAME:
+      AWS_REGION_NAME:
         type: choice
-        description: 'Please choose docker image name to push'
-        default: 'odincm'
+        description: 'Please choose the AWS Region name, only pplication while create'
+        default: 'london'
         required: true
         options:
-        - odincm
+        - london
+        - dublin
+        - Choose
 
-      IMAGE_TAG:
+      k3s_cluster_name:
         type: choice
-        description: 'Please choose docker image tag to push'
-        default: 'latest'
+        description: 'Please choose the k3s cluster name'
+        default: 'k3s2'
         required: true
         options:
-        - latest
-        - stable
-        - prod
-        - acc
-        - test
-        - dev
-        - int
+        - k3s1
+        - k3s2
+        - Choose
 
 env:
   TARGET_ENV: ${{ github.event.inputs.ENV_REF }}
   TARGET_CLUSTER: ${{ github.event.inputs.TARGET_CLUSTER }}
-
-  IMAGE_REGISTRY: ${{ github.event.inputs.IMAGE_REGISTRY }}
-  IMAGE_NAME: ${{ github.event.inputs.IMAGE_NAME }}
-  IMAGE_TAG: ${{ github.event.inputs.IMAGE_TAG }}
-  TARGET_STACK: openresty_php
-
-  # KUBE_CONFIG_DATA_K3S1: ${{ secrets.KUBE_CONFIG_DATA_K3S1 }}
-  # KUBE_CONFIG_DATA_K3S2: ${{ secrets.KUBE_CONFIG_DATA_K3S2 }}
-  # KUBE_CONFIG_DATA_K3S3: ${{ secrets.KUBE_CONFIG_DATA_K3S3 }}
+  AWS_ACCOUNT_NO: ${{ secrets.AWS_ACCOUNT_NO }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+  AWS_REGION_NAME: ${{ github.event.inputs.AWS_REGION_NAME }}
+  cmd_action: ${{ github.event.inputs.cmd_action }}
+  REPLICA_COUNT: "1"
+  POP_UPDATE_TYPE: ${{ github.event.inputs.pop_update_type }}
 
 jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    strategy:
+      matrix:
+        include:
+          - TEST_NAME: "Specific v2"
+            AWS_CLI_VERSION: "2.11.6"
+          - TEST_NAME: "No Input"
+
+    name: Test ${{ matrix.TEST_NAME }} ${{ matrix.AWS_CLI_VERSION }}
     steps:
-    - name: Check out this repo code
-      uses: actions/checkout@v2
-      with:
-        ref: "main"
+      - name: Test ${{ matrix.TEST_NAME }}
+        id: install-aws-cli
+        uses: unfor19/install-aws-cli-action@master
+        with:
+          version: ${{ matrix.AWS_CLI_VERSION }}
+      - run: aws --version
+        shell: bash
 
-    - name: Run bash script to perform Cluster kubeconfig mapping
-      run: |
-        if [ "${{ env.TARGET_CLUSTER }}" == "k3s1" ]; then
-          echo "KUBE_CONFIG_DATA=${{ secrets.KUBE_CONFIG_DATA_K3S1 }}" >> $GITHUB_ENV
-        else
-          echo "KUBE_CONFIG_DATA is NOT k3s1"
-        fi
-        if [ "${{ env.TARGET_CLUSTER }}" == "k3s2" ]; then
-          echo "KUBE_CONFIG_DATA=${{ secrets.KUBE_CONFIG_DATA_K3S2 }}" >> $GITHUB_ENV
-        else
-          echo "KUBE_CONFIG_DATA is NOT k3s2"
-        fi
-        if [ "${{ env.TARGET_CLUSTER }}" == "k3s3" ]; then
-          echo "KUBE_CONFIG_DATA=${{ secrets.KUBE_CONFIG_DATA_K3S3 }}" >> $GITHUB_ENV
-        else
-          echo "KUBE_CONFIG_DATA is NOT k3s3"
-        fi
-        echo "Cluster kubeconfig mapping - done!"
-      shell: bash
-
-    # - name: Helm Delete - Release
-    #   uses: koslib/helm-eks-action@master
-    #   with:
-    #     command: helm delete odincm-$TARGET_ENV -n $TARGET_ENV
-
-    - name: Helm Deploy - Release
-      uses: koslib/helm-eks-action@master
-      with:
-        command: |
-          command: helm upgrade -i odincm-${{ env.TARGET_ENV }} ./devops/odincm-chart -f devops/odincm-chart/values-${{ env.TARGET_ENV }}-${{ env.TARGET_CLUSTER}}.yaml --set-string targetImage="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}" --set-string targetImageTag="${{ env.IMAGE_TAG }}" --set-string capthaSiteKey="${{ secrets.CAPTCHA_SITE_KEY }}" --namespace ${{ env.TARGET_ENV }} --create-namespace
-          kubectl rollout restart deployment/odincm-${{ env.TARGET_ENV }} -n ${{ env.TARGET_ENV }}
-          kubectl rollout history deployment/odincm-${{ env.TARGET_ENV }} -n ${{ env.TARGET_ENV }}
-
-    - name: Slack Notification for OdinCM release 
-      uses: rtCamp/action-slack-notify@v2
-      env:
-        SLACK_CHANNEL: general
-        SLACK_COLOR: ${{ job.status }}
-        SLACK_ICON: https://github.com/rtCamp.png?size=48
-        SLACK_MESSAGE: 'Post Content :rocket:'
-        SLACK_TITLE: Post Title
-        SLACK_USERNAME: rtCamp
-        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
