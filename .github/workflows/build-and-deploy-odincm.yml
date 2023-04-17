@@ -90,6 +90,8 @@ jobs:
         uses: unfor19/install-aws-cli-action@master
         with:
           version: ${{ matrix.AWS_CLI_VERSION }}
-      - run: aws --version
+      - run: |
+          aws --version
+          aws sts get-caller-identity 
         shell: bash
 
