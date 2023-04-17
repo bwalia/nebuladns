@@ -1,4 +1,4 @@
-name: Build and Push OdinCM Docker image to ECR and Deploy to Kubernetes
+name: Build odincm docker image and Deploy to Kubernetes
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
     branches: [ dummy/* ]
   schedule:
     - cron: "0 0 * * *"
+    
   workflow_dispatch:
     inputs:
       ENV_REF:
