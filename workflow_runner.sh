@@ -145,9 +145,7 @@ DOCKER_IMAGE_NAME="my_custom_workflow_runner"
 #docker system prune -f
 
 docker info
-
 DOCKER_IMAGE_CACHE="--no-cache"         #DOCKER_IMAGE_CACHE=""
-
 /usr/bin/docker build -f devops/docker/Dockerfile_runner -t my_custom_workflow_runner .
 # docker tag my_custom_workflow_runner my_custom_workflow_runner:latest
 # ${DOCKER_IMAGE_CACHE} use host socket of the docker daemon to build images
