@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 IMAGE_REGISTRY=$AWS_ACCOUNT_NO.dkr.ecr.eu-west-2.amazonaws.com
 if [ -z "${TARGET_ENV}" ]; then
