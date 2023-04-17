@@ -50,16 +50,6 @@ on:
         - dublin
         - Choose
 
-      k3s_cluster_name:
-        type: choice
-        description: 'Please choose the k3s cluster name'
-        default: 'k3s2'
-        required: true
-        options:
-        - k3s1
-        - k3s2
-        - Choose
-
 env:
   TARGET_ENV: ${{ github.event.inputs.ENV_REF }}
   IMAGE_REGISTRY: "123154119074.dkr.ecr.eu-west-2.amazonaws.com"
