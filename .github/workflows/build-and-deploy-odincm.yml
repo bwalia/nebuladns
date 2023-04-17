@@ -100,7 +100,7 @@ jobs:
           # whoami
           # pwd
           # ls -al
-          IMAGE_REGISTRY=123154119074.dkr.ecr.eu-west-2.amazonaws.com
+          IMAGE_REGISTRY=${{ env.AWS_ACCOUNT_NO }}.dkr.ecr.eu-west-2.amazonaws.com
           if [ -z "${{ env.IMAGE_NAME }}" ]; then
             IMAGE_NAME=odincm
           fi
@@ -108,10 +108,12 @@ jobs:
             IMAGE_TAG=latest
           fi
           echo "BRANCH_REF=main" >> $GITHUB_ENV
+          echo "IMAGE_REGISTRY=${{ env.AWS_ACCOUNT_NO }}.dkr.ecr.eu-west-2.amazonaws.com" >> $GITHUB_ENV
+          echo "TARGET_ENV=${{ env.TARGET_ENV }}" >> $GITHUB_ENV
+          echo "IMAGE_NAME=${{ env.IMAGE_NAME }}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${{ env.IMAGE_TAG }}" >> $GITHUB_ENV
+          echo "TARGET_CLUSTER=${{ env.TARGET_CLUSTER }}" >> $GITHUB_ENV
           aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin ${{ env.AWS_ACCOUNT_NO }}.dkr.ecr.eu-west-2.amazonaws.com
-          IMAGE_REGISTRY=${{ env.AWS_ACCOUNT_NO }}.dkr.ecr.eu-west-2.amazonaws.com
-          IMAGE_NAME=odincm
-          IMAGE_TAG=latest
           docker build -f devops/docker/Dockerfile-nuxt-server -t $IMAGE_NAME . --no-cache
           docker tag $IMAGE_NAME $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
           docker push $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
