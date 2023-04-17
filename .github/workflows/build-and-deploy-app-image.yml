@@ -86,14 +86,14 @@ jobs:
             AWS_CLI_VERSION: "2.11.6"
           - TEST_NAME: "No Input"
 
-    name: Test ${{ matrix.TEST_NAME }} ${{ matrix.AWS_CLI_VERSION }}
+    name: Checkout Github ${{ matrix.TEST_NAME }} ${{ matrix.AWS_CLI_VERSION }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           ref: main
 
-      - name: Test ${{ matrix.TEST_NAME }}
+      - name: Build Docker Image and Push to ECR ${{ matrix.TEST_NAME }}
         id: install-aws-cli
         uses: unfor19/install-aws-cli-action@master
         with:
