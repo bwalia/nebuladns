@@ -58,7 +58,7 @@ on:
         - k3s1
         - k3s2
         - Choose
-
+AWS_REGION
 env:
   TARGET_ENV: ${{ github.event.inputs.ENV_REF }}
   IMAGE_REGISTRY: "123154119074.dkr.ecr.eu-west-2.amazonaws.com"
@@ -125,7 +125,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION_NAME }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
