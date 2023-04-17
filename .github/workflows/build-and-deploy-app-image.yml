@@ -129,9 +129,9 @@ jobs:
         with:
           command: |
             SECRET_NAME=${{ env.AWS_DEFAULT_REGION }}-ecr-registry
-            kubectl delete secret --ignore-not-found $SECRET_NAME
+            kubectl delete secret --ignore-not-found $SECRET_NAME -n ${{ env.TARGET_ENV }} 
             TOKEN=$(aws ecr get-login-password --region ${{ env.AWS_DEFAULT_REGION }})
-            kubectl create secret docker-registry $SECRET_NAME \
+            kubectl create secret docker-registry $SECRET_NAME -n ${{ env.TARGET_ENV }} \
             --docker-server=https://${{ env.AWS_ACCOUNT_NO }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com \
             --docker-username=AWS \
             --docker-password="${TOKEN}" \
