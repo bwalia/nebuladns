@@ -124,7 +124,7 @@ jobs:
 
       - name: Helm Deploy - Release
         uses: koslib/helm-eks-action@master
-        if: ${{ env.TARGET_ENV }} == 'test' || ${{ env.TARGET_ENV }} == 'acc'
+        if: ${{ env.TARGET_ENV == 'test' }} || ${{ env.TARGET_ENV == 'acc' }}
         env:
           KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA_K3S2 }}
         with:
@@ -143,7 +143,7 @@ jobs:
 
       - name: Helm Deploy - Release
         uses: koslib/helm-eks-action@master
-        if: ${{ env.TARGET_ENV }} == 'prod'
+        if: ${{ env.TARGET_ENV == 'prod' }}
         env:
           KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA_K3S1 }}
         with:
