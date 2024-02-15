@@ -86,24 +86,24 @@ export default {
             }
           )
           .then((res) => {
-            console.log(res.data.access_token);
             if (res.data.access_token) {
-              // nthis.$cookies.set('token', res.data.access_token)
-              this.$auth.$storage.setUniversal('token', res.data.access_token)
-              this.$auth.$storage.setUniversal('name', res.data.user.name)
-              this.$auth.$storage.setUniversal('id', res.data.user.id)
-              this.$auth.$storage.setUniversal('loggedIn', true)
-              this.$auth.$storage.setUniversal('user', res.data.user)
-              this.$router.push('/clients')
+              this.$auth.$storage.setUniversal('token', res.data.access_token);
+              this.$auth.$storage.setUniversal('name', res.data.user.name);
+              this.$auth.$storage.setUniversal('id', res.data.user.id);
+              this.$auth.$storage.setUniversal('loggedIn', true);
+              this.$auth.$storage.setUniversal('user', res.data.user);
+              this.$toast.success('Successfully authenticated', { position: 'bottom-center', duration:2000 });
+              this.$router.push('/clients');
             }
             else {
-              alert(res.data.error);
-              //this.$toast.error(res.data.message, {timeout:2000}); 
+              this.$toast.error(res.data.error, { position: 'bottom-center', duration:2000 });
             }
 
           })
           .catch((e) => {
-            console.log(e.response);
+            this.$toast.error(e.response.data.error, { position: 'bottom-center', duration:2000 });
+            // this.$toast.show('Logging in...')
+            console.log(e.response, "106");
           })
       }
     },
