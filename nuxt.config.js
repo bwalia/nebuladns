@@ -51,6 +51,7 @@ export default {
     '@nuxt/content',
     '@nuxtjs/auth-next',
     '@nuxtjs/recaptcha',
+    '@nuxtjs/toast',
   ],
   
 

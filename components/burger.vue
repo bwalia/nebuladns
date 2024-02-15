@@ -35,7 +35,7 @@
                                 Strategies
                             </a>
                         </div>
-                         <a  v-on:click="logout()"  v-if="this.$store.state.auth.loggedIn">
+                         <a class="logout-link" v-on:click="logout()"  v-if="this.$store.state.auth.loggedIn">
                             Log-out
                         </a>
                     </nav>
@@ -165,7 +165,9 @@ nav {
     }
 }
 
-
+.logout-link {
+    cursor: pointer;
+}
 
 nav a {
     display: block;
