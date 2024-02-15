@@ -27,7 +27,7 @@
                             </nuxt-link>
                             <!-- <pre>{{strategy}}</pre> -->
                         </td>
-                        <td class="u-dt"><small>{{ strategy?.publish_date ? convertData(parseInt(strategy.publish_date)) : ""}}</small></td>
+                        <td class="u-dt"><small>{{ convertData(parseInt(strategy.publish_date)) }}</small></td>
                         <td><ticker :performance="9" /></td>
                         <td><ticker :performance="9" /></td>
                     </tr>
