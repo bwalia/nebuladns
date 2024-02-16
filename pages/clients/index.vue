@@ -12,10 +12,7 @@
                     <tr>
                         <th>Strategy</th>
                         <th class="u-dt">Inception</th>
-                        <!-- <th class="u-dt">Target</th>
-                        <th class="u-dt">Drawdown</th> -->
-                        <th>Return YTD</th>
-                        <th>Return PA</th>
+                        <th v-for="(customfield, index) in customfields" :key="index">{{ customfield.field_name }}</th>    
                     </tr>
                 </thead>
                 <tbody>
@@ -28,11 +25,9 @@
                             <!-- <pre>{{strategy}}</pre> -->
                         </td>
                         <td class="u-dt"><small>{{ convertData(parseInt(strategy.publish_date)) }}</small></td>
-                        <td>
-                            <ticker :performance="9" />
-                        </td>
-                        <td>
-                            <ticker :performance="9" />
+
+                        <td v-for="(customfield, index) in customfields" :key="index">
+                            <ticker :performance="renderFieldValue(strategy.customFields[index]?.field_value)" />
                         </td>
                     </tr>
                 </tbody>
@@ -55,7 +50,8 @@ export default {
         return {
             strategies: [],
             token: '',
-            sl: 1
+            sl: 1,
+            customfields: [],
         }
     },
     head() {
@@ -90,10 +86,16 @@ export default {
                 : null, {
             })
             .then((res) => {
-                // console.log(res.data);
+                const response = res.data.data;
                 this.strategies = res.data.data;
+                response.forEach((responseData, index) => {
+                    if (responseData?.customFields?.length) {
+                        this.customfields = responseData?.customFields;
+                    }
+                })
             })
             .catch((error) => {
+                console.log({error});
                 this.$auth.$storage.setUniversal('token', null);
                 this.$auth.$storage.setUniversal('loggedIn', false);
                 this.$auth.$storage.setUniversal('user', null);
@@ -109,6 +111,12 @@ export default {
         convertData: function (timestamp) {
             const date = new Date(timestamp * 1000);
             return date.toLocaleDateString()
+        },
+        renderFieldValue: function (value) {
+            if (!value) {
+                return 0
+            }
+            return value
         }
     }
 }
