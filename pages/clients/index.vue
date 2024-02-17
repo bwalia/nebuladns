@@ -12,7 +12,7 @@
                     <tr>
                         <th>Strategy</th>
                         <th class="u-dt">Inception</th>
-                        <th v-for="(customfield, index) in customfields" :key="index">{{ customfield.field_name }}</th>    
+                        <th v-for="(customfield, index) in customfields" :key="index">{{ customfield.field_name }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -27,7 +27,8 @@
                         <td class="u-dt"><small>{{ convertData(parseInt(strategy.publish_date)) }}</small></td>
 
                         <td v-for="(customfield, index) in customfields" :key="index">
-                            <ticker :performance="renderFieldValue(strategy.customFields[index] && strategy.customFields[index].field_value)" />
+                            <ticker
+                                :performance="renderFieldValue(strategy.customFields[index] && strategy.customFields[index].field_value)" />
                         </td>
                     </tr>
                 </tbody>
@@ -40,6 +41,13 @@
 <script>
 export default {
     // middleware: 'auth',
+    beforeRouteEnter(to, from, next) {
+        if (!to.query.random) {
+            next({ path: to.path, query: { random: Date.now() } });
+        } else {
+            next();
+        }
+    },
     async asyncData({ $content, params }) {
         const page = await $content('/clients', params.report || "index").fetch()
         return {
@@ -95,7 +103,7 @@ export default {
                 })
             })
             .catch((error) => {
-                console.log({error});
+                console.log({ error });
                 this.$auth.$storage.setUniversal('token', null);
                 this.$auth.$storage.setUniversal('loggedIn', false);
                 this.$auth.$storage.setUniversal('user', null);
@@ -159,4 +167,5 @@ td {
     .u-dt {
         display: table-cell;
     }
-}</style>
+}
+</style>
