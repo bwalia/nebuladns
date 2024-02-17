@@ -51,7 +51,7 @@ on:
         - Choose
 
 env:
-  TARGET_ENV: ${{ github.event.inputs.ENV_REF }}
+  TARGET_ENV: ${{ github.event.inputs.ENV_REF || 'test' }}
   IMAGE_REGISTRY: "123154119074.dkr.ecr.eu-west-2.amazonaws.com"
   IMAGE_NAME: "odincm"
   IMAGE_TAG: "latest"
