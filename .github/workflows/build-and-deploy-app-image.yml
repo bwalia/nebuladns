@@ -51,7 +51,7 @@ on:
         - Choose
 
 env:
-  TARGET_ENV: ${{ github.event.inputs.ENV_REF }}
+  TARGET_ENV: ${{ github.event.inputs.ENV_REF || 'test' }}
   IMAGE_REGISTRY: "123154119074.dkr.ecr.eu-west-2.amazonaws.com"
   IMAGE_NAME: "odincm"
   IMAGE_TAG: "latest"
@@ -166,7 +166,7 @@ jobs:
           SLACK_CHANNEL: general
           SLACK_COLOR: ${{ job.status }}
           SLACK_ICON: https://github.com/rtCamp.png?size=48
-          SLACK_MESSAGE: 'Post Content :rocket:'
-          SLACK_TITLE: Post Title
+          SLACK_MESSAGE: 'OdinCM Deployment successful to ${{ env.TARGET_ENV }} env :rocket::'
+          SLACK_TITLE: OdinCM Deployment Status
           SLACK_USERNAME: rtCamp
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
