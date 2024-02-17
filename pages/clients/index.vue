@@ -27,7 +27,7 @@
                         <td class="u-dt"><small>{{ convertData(parseInt(strategy.publish_date)) }}</small></td>
 
                         <td v-for="(customfield, index) in customfields" :key="index">
-                            <ticker :performance="renderFieldValue(strategy.customFields[index]?.field_value)" />
+                            <ticker :performance="renderFieldValue(strategy.customFields[index] && strategy.customFields[index].field_value)" />
                         </td>
                     </tr>
                 </tbody>
