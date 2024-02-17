@@ -15,7 +15,7 @@ image:
   tag: "latest"
 
 targetImage: "registry.workstation.co.uk/odincm"
-targetImageTag: "latest"
+odincm: "latest"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -89,4 +89,4 @@ tolerations: []
 
 affinity: {}
 
-capthaSiteKey: "EMPTY-OVER-RIDE-AT-RUNTIME-FROM-SECRETS-FROM-VAULT"
+CAPTCHA_SITE_KEY: "EMPTY-OVER-RIDE-AT-RUNTIME-FROM-SECRETS-FROM-VAULT"
