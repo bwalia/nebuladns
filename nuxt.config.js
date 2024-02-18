@@ -74,10 +74,10 @@ export default {
     // publicPath  : '/dist/','/'
   },
   env: {
-    basePubURL: process.env.NODE_ENV == "development" ? "http://dev-my.workstation.co.uk"
-    : process.env.NODE_ENV == "test" ? "https://test-my.workstation.co.uk"
-    : process.env.NODE_ENV == "acceptance" ? "https://acc-my.workstation.co.uk"
-    : process.env.NODE_ENV == "integration" ? "http://int-my.workstation.co.uk"
+    basePubURL: process.env.TARGET_ENV == "development" ? "http://localhost:8080"
+    : process.env.TARGET_ENV == "test" ? "https://test-my.workstation.co.uk"
+    : process.env.TARGET_ENV == "acceptance" ? "https://acc-my.workstation.co.uk"
+    : process.env.TARGET_ENV == "integration" ? "http://int-my.workstation.co.uk"
     : "https://my.workstation.co.uk"
   },
 
@@ -91,10 +91,10 @@ export default {
   },
 //this.$config.apiSecretPub
   publicRuntimeConfig: {
-    baseAPIURL: process.env.NODE_ENV == "development" ? "http://dev-my.workstation.co.uk/api"
-    : process.env.NODE_ENV == "test" ? "https://test-my.workstation.co.uk/api"
-    : process.env.NODE_ENV == "acceptance" ? "https://acc-my.workstation.co.uk/api"
-    : process.env.NODE_ENV == "integration" ? "http://int-my.workstation.co.uk/api"
+    baseAPIURL: process.env.TARGET_ENV == "development" ? "http://localhost:8080/api"
+    : process.env.TARGET_ENV == "test" ? "https://test-my.workstation.co.uk/api"
+    : process.env.TARGET_ENV == "acceptance" ? "https://acc-my.workstation.co.uk/api"
+    : process.env.TARGET_ENV == "integration" ? "http://int-my.workstation.co.uk/api"
     : "https://my.workstation.co.uk/api"
     ,
     apiSecretPub: process.env.API_SECRET,
