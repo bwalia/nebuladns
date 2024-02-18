@@ -51,7 +51,8 @@
 export default {
   layout: 'blank',
   mounted() {
-    //console.log({"baseAPIURL public runtime config": this.$config.baseAPIURL});
+    console.log({currentENV: process.env.NODE_ENV});
+    // console.log({"baseAPIURL public runtime config": this.$config.baseAPIURL});
     console.log({ "apiSecretPub private runtime config": this.$config.apiSecretPub });
 
     if (this.$auth.$storage.getUniversal('loggedIn')) {
