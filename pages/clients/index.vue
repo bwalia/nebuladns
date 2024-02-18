@@ -75,8 +75,7 @@ export default {
             this.$auth.$storage.setUniversal('loggedIn', true)
             this.$auth.$storage.setUniversal('user', this.$auth.$storage.getUniversal('user'))
         }
-    },
-    created() {
+
         let testUrl = (this.$config.baseAPIURL && this.$auth.$storage.getUniversal('user'))
             ? this.$config.baseAPIURL + "/webpages/" + this.$auth.$storage.getUniversal('user').client_id
             : 'null';
@@ -111,6 +110,41 @@ export default {
             });
 
     },
+    // created() {
+    //     let testUrl = (this.$config.baseAPIURL && this.$auth.$storage.getUniversal('user'))
+    //         ? this.$config.baseAPIURL + "/webpages/" + this.$auth.$storage.getUniversal('user').client_id
+    //         : 'null';
+    //     // console.log("API URL: " + testUrl);
+
+
+    //     if (!this.$auth.$storage.getUniversal('loggedIn')) {
+    //         this.$router.push('/login');
+    //     }
+    //     let token = this.$auth.$storage.getUniversal('token')
+    //     this.$axios.setToken(token, 'Bearer');
+    //     this.$axios
+    //         .get((this.$config.baseAPIURL && this.$auth.$storage.getUniversal('user'))
+    //             ? this.$config.baseAPIURL + "/webpages/" + this.$auth.$storage.getUniversal('user').client_id
+    //             : null, {
+    //         })
+    //         .then((res) => {
+    //             const response = res.data.data;
+    //             this.strategies = res.data.data;
+    //             response.forEach((responseData, index) => {
+    //                 if (responseData?.customFields?.length) {
+    //                     this.customfields = responseData?.customFields;
+    //                 }
+    //             })
+    //         })
+    //         .catch((error) => {
+    //             console.log({ error });
+    //             this.$auth.$storage.setUniversal('token', null);
+    //             this.$auth.$storage.setUniversal('loggedIn', false);
+    //             this.$auth.$storage.setUniversal('user', null);
+    //             this.$router.push('/login');
+    //         });
+
+    // },
     methods: {
         inc() {
             this.sl = this.sl + 1;
