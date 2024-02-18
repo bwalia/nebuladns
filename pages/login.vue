@@ -51,7 +51,7 @@
 export default {
   layout: 'blank',
   mounted() {
-    console.log({pubUrl: process.env.basePubURL, target: process.env.TARGET_ENV});
+    console.log({pubUrl: this.$config.basePubURL, target: process.env.TARGET_ENV});
     // console.log({"baseAPIURL public runtime config": this.$config.baseAPIURL});
     console.log({ "apiSecretPub private runtime config": this.$config.apiSecretPub });
 
@@ -74,7 +74,7 @@ export default {
       if (this.checkErro() === false) {
         this.$axios
           .post(
-            process.env.basePubURL + '/auth/login',
+            this.$config.basePubURL + '/auth/login',
             {
               email: this.email,
               password: this.password
