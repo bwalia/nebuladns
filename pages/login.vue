@@ -51,7 +51,7 @@
 export default {
   layout: 'blank',
   mounted() {
-    console.log({currentENV: process.env.NODE_ENV});
+    console.log({pubUrl: process.env.basePubURL, target: process.env.TARGET_ENV});
     // console.log({"baseAPIURL public runtime config": this.$config.baseAPIURL});
     console.log({ "apiSecretPub private runtime config": this.$config.apiSecretPub });
 
