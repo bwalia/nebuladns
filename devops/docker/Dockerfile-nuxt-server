@@ -29,4 +29,4 @@ ENV NUXT_PORT=3000
 
 # For Dev run this command CMD [ "npm", "run", "dev" ]
 # For Prod run this command
-ENTRYPOINT [ "npm", "run", "start" ]
+ENTRYPOINT [ "npm", "run", "dev" ]
