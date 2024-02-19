@@ -12,7 +12,7 @@
                     <tr>
                         <th>Strategy</th>
                         <th class="u-dt">Inception</th>
-                        <th v-for="(customfield, index) in customfields" :key="index">{{ customfield.field_name }}</th>
+                        <th v-for="(customfield, index) in customfields" :key="index" :class="'th-' + index">{{ customfield.field_name }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -171,6 +171,11 @@ export default {
 table {
     width: 94%;
     margin: 1em 3%;
+}
+
+th {
+    line-height: 1.15em;
+    vertical-align: top;
 }
 
 th,
