@@ -1,5 +1,5 @@
 export default {
-  
+
   // Target: https://go.nuxtjs.dev/config-target
   target: 'server',
 
@@ -53,7 +53,7 @@ export default {
     '@nuxtjs/recaptcha',
     '@nuxtjs/toast',
   ],
-  
+
 
 
   // Axios module configuration: https://go.nuxtjs.dev/config-axios
@@ -74,37 +74,37 @@ export default {
     // publicPath  : '/dist/','/'
   },
   env: {
-    basePubURL: process.env.TARGET_ENV == "development" ? "https://localhost:9093"
-    : process.env.TARGET_ENV == "test" ? "https://test-my.workstation.co.uk"
-    : process.env.TARGET_ENV == "dev" ? "https://dev-my.workstation.co.uk"
-    : process.env.TARGET_ENV == "acceptance" ? "https://acc-my.workstation.co.uk"
-    : process.env.TARGET_ENV == "integration" ? "http://int-my.workstation.co.uk"
-    : "https://my.workstation.co.uk"
+    basePubURL: process.env.TARGET_ENV == "development" ? "http://localhost:8080"
+    : process.env.TARGET_ENV == "test" ? "https://test.odincm.com"
+    : process.env.TARGET_ENV == "dev" ? "https://dev.odincm.com"
+    : process.env.TARGET_ENV == "acceptance" ? "https://acc.odincm.com"
+    : process.env.TARGET_ENV == "integration" ? "http://int.odincm.com"
+    : "https://www.odincm.com"
   },
 
   generate: {
     fallback: true,
     routes: [
-      '/', 
+      '/',
 
       '/cookie-policy'
     ]
   },
 //this.$config.apiSecretPub
   publicRuntimeConfig: {
-    basePubURL: process.env.TARGET_ENV == "development" ? "https://localhost:9093"
-    : process.env.TARGET_ENV == "test" ? "https://test-my.workstation.co.uk"
-    : process.env.TARGET_ENV == "dev" ? "https://dev-my.workstation.co.uk"
-    : process.env.TARGET_ENV == "acceptance" ? "https://acc-my.workstation.co.uk"
-    : process.env.TARGET_ENV == "integration" ? "http://int-my.workstation.co.uk"
-    : "https://my.workstation.co.uk",
+    basePubURL: process.env.TARGET_ENV == "development" ? "http://localhost:8080"
+    : process.env.TARGET_ENV == "test" ? "https://test.odincm.com"
+    : process.env.TARGET_ENV == "dev" ? "https://dev.odincm.com"
+    : process.env.TARGET_ENV == "acceptance" ? "https://acc.odincm.com"
+    : process.env.TARGET_ENV == "integration" ? "http://int.odincm.com"
+    : "https://www.odincm.com",
 
-    baseAPIURL: process.env.TARGET_ENV == "development" ? "https://localhost:9093/api"
-    : process.env.TARGET_ENV == "test" ? "https://test-my.workstation.co.uk/api"
-    : process.env.TARGET_ENV == "dev" ? "https://dev-my.workstation.co.uk/api"
-    : process.env.TARGET_ENV == "acceptance" ? "https://acc-my.workstation.co.uk/api"
-    : process.env.TARGET_ENV == "integration" ? "http://int-my.workstation.co.uk/api"
-    : "https://my.workstation.co.uk/api"
+    baseAPIURL: process.env.TARGET_ENV == "development" ? "http://localhost:8080/api"
+    : process.env.TARGET_ENV == "test" ? "https://test.odincm.com/api"
+    : process.env.TARGET_ENV == "dev" ? "https://dev.odincm.com/api"
+    : process.env.TARGET_ENV == "acceptance" ? "https://acc.odincm.com/api"
+    : process.env.TARGET_ENV == "integration" ? "http://int.odincm.com/api"
+    : "https://www.odincm.com/api"
     ,
     apiSecretPub: process.env.API_SECRET,
     recaptcha: {
