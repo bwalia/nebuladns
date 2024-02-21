@@ -74,7 +74,7 @@ export default {
     // publicPath  : '/dist/','/'
   },
   env: {
-    basePubURL: process.env.TARGET_ENV == "development" ? "http://localhost:8080"
+    basePubURL: process.env.TARGET_ENV == "development" ? "https://localhost:9093"
     : process.env.TARGET_ENV == "test" ? "https://test-my.workstation.co.uk"
     : process.env.TARGET_ENV == "dev" ? "https://dev-my.workstation.co.uk"
     : process.env.TARGET_ENV == "acceptance" ? "https://acc-my.workstation.co.uk"
@@ -92,14 +92,14 @@ export default {
   },
 //this.$config.apiSecretPub
   publicRuntimeConfig: {
-    basePubURL: process.env.TARGET_ENV == "development" ? "http://localhost:8080"
+    basePubURL: process.env.TARGET_ENV == "development" ? "https://localhost:9093"
     : process.env.TARGET_ENV == "test" ? "https://test-my.workstation.co.uk"
     : process.env.TARGET_ENV == "dev" ? "https://dev-my.workstation.co.uk"
     : process.env.TARGET_ENV == "acceptance" ? "https://acc-my.workstation.co.uk"
     : process.env.TARGET_ENV == "integration" ? "http://int-my.workstation.co.uk"
     : "https://my.workstation.co.uk",
 
-    baseAPIURL: process.env.TARGET_ENV == "development" ? "http://localhost:8080/api"
+    baseAPIURL: process.env.TARGET_ENV == "development" ? "https://localhost:9093/api"
     : process.env.TARGET_ENV == "test" ? "https://test-my.workstation.co.uk/api"
     : process.env.TARGET_ENV == "dev" ? "https://dev-my.workstation.co.uk/api"
     : process.env.TARGET_ENV == "acceptance" ? "https://acc-my.workstation.co.uk/api"
