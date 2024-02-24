@@ -77,7 +77,7 @@ export default {
         }
 
         let testUrl = (this.$config.baseAPIURL && this.$auth.$storage.getUniversal('user'))
-            ? this.$config.baseAPIURL + "/webpages/" + this.$auth.$storage.getUniversal('user').client_id
+        ? this.$config.baseAPIURL + "/webpages/" + this.$auth.$storage.getUniversal('user').client_id + '?timestamp=' + new Date().getTime()
             : 'null';
         // console.log("API URL: " + testUrl);
 
@@ -89,7 +89,7 @@ export default {
         this.$axios.setToken(token, 'Bearer');
         this.$axios
             .get((this.$config.baseAPIURL && this.$auth.$storage.getUniversal('user'))
-                ? this.$config.baseAPIURL + "/webpages/" + this.$auth.$storage.getUniversal('user').client_id
+            ? this.$config.baseAPIURL + "/webpages/" + this.$auth.$storage.getUniversal('user').client_id + '?timestamp=' + new Date().getTime()
                 : null, {
             })
             .then((res) => {
