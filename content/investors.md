@@ -11,7 +11,7 @@ Title: 'Odin: Professional Investors'
 <grid class="u-gap-v">
 
 <div class="u-gap-h">
-<p>Hedge funds deliver their best returns in the first <span class="u-nobr">5 - 8 years</span> of their life.  After that size, incentives and behavioural shifts usually consign performance to average or poor.  We believe in backing managers and funds in their early phase, following Odin’s own blueprint for success.<br/><br/></p>
+<p>Hedge funds deliver their best returns in the first 5-8 years of their life. After that size, incentives and behavioural shifts usually consign performance to average or poor. We believe in backing managers and funds in their early phase, following Odin’s own blueprint for success.<br/><br/></p>
 
 <h2 class="u-font2 u-hbar">Our Investment Strategies</h2>
 <ul-table>
