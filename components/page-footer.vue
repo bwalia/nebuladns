@@ -8,13 +8,13 @@
 
             <div class="legals">
                 <nav>
-                    <!-- <nuxt-link to="/terms-conditions">Terms & Conditions</nuxt-link><span>&nbsp;&nbsp;|&nbsp;&nbsp;</span> -->
-                    <!-- <nuxt-link to="/privacy-policy">Privacy Policy</nuxt-link><span>&nbsp;&nbsp;|&nbsp;&nbsp;</span> -->
-                    <nuxt-link to="/cookie-policy">Cookie Policy</nuxt-link>                
-                </nav>    
+                    <nuxt-link to="/gdpr-privacy-notice">GDPR Privacy Notice</nuxt-link><span>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;</span>
+                    <nuxt-link to="/cookie-policy">Cookie Policy</nuxt-link><span>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;</span>  
+                    <nuxt-link class="u-nobr" to="/uk-stewardship-code-statement">UK Stewardship Code Statement</nuxt-link> 
+                </nav>
 
                 <small>
-                    Odin Capital Management Ltd is Authorised and Regulated by the Financial Conduct Authority no. 478321.
+                    Copyright ©2024 Odin Capital Management Ltd.<br/>Odin Capital Management Ltd is Authorised and Regulated by the Financial Conduct Authority no. 478321.
                 </small>
             </div>
            
@@ -50,11 +50,13 @@
     padding: 0;
     @media (min-width: 768px) { 
         flex-wrap: nowrap;
+
+        .legals > * {
+            flex: 0 0 48%
+        }
     }
 }
 
-.legals > * {
-    flex: 0 0 48%
-}
+
 
 </style>
