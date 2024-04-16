@@ -2,7 +2,7 @@ name: Build odincm docker image and Deploy to Kubernetes
 
 on:
   push:
-    branches: [ main ]
+    branches: [ dummy ]
   pull_request:
     branches: [ dummy/* ]
   schedule:
