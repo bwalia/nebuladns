@@ -5,8 +5,8 @@ on:
     branches: [ dummy ]
   pull_request:
     branches: [ dummy/* ]
-  schedule:
-    - cron: "0 0 * * *"
+  #   schedule:
+   #    - cron: "0 0 * * *"
 
   workflow_dispatch:
     inputs:
