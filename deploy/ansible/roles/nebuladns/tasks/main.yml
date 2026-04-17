@@ -123,6 +123,17 @@
     - daemon-reload
     - restart nebuladns
 
+- name: Ensure sysusers.d + tmpfiles.d drop-in dirs exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/sysusers.d
+    - /etc/tmpfiles.d
+
 - name: Install sysusers.d + tmpfiles.d drop-ins (safe even if user already exists)
   ansible.builtin.copy:
     src: "{{ role_path }}/../../../systemd/{{ item.src }}"
