@@ -1,0 +1,22 @@
+[package]
+name = "nebula-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "nebulactl — NebulaDNS admin CLI."
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "nebulactl"
+path = "src/bin/nebulactl.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }

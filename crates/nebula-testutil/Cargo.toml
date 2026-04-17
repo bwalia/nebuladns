@@ -1,0 +1,16 @@
+[package]
+name = "nebula-testutil"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Test harness and reference-peer drivers for NebulaDNS."
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+tokio = { workspace = true }
+anyhow = { workspace = true }

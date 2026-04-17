@@ -1,0 +1,18 @@
+# Demo config: DNS listeners + one example zone. For M1 smoke testing only.
+
+[api]
+bind = "127.0.0.1:8080"
+
+[metrics]
+bind = "127.0.0.1:9090"
+
+[logging]
+filter = "info,nebula=debug"
+json = false
+
+[dns]
+udp = "127.0.0.1:15353"
+tcp = "127.0.0.1:15353"
+
+[[zones]]
+file = "../zones/example.com.toml"

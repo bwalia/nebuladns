@@ -1,0 +1,19 @@
+# NebulaDNS example configuration (M0).
+# The full schema (zones, secondaries, DNSSEC, propagation) lands in M5.
+# Generate this file at any time with:
+#     nebuladns --print-default-config
+
+[api]
+# Admin / control-plane HTTP bind. Keep on loopback unless fronted by an ingress.
+bind = "127.0.0.1:8080"
+
+[metrics]
+# /metrics bind. MUST be a separate socket from [api].bind so a slow scraper cannot
+# backpressure the control plane.
+bind = "127.0.0.1:9090"
+
+[logging]
+# tracing filter directive (RUST_LOG-style).
+filter = "info,nebula=debug"
+# JSON lines on stdout (default in containers).
+json = true

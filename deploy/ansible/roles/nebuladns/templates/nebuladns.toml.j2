@@ -1,0 +1,25 @@
+{# Managed by Ansible — do not edit on the host. Changes will be overwritten. #}
+{# Deploy version: {{ nebuladns_version }} (sha: {{ nebuladns_git_sha }}) #}
+
+[api]
+bind = "{{ nebuladns_api_bind }}"
+
+[metrics]
+bind = "{{ nebuladns_metrics_bind }}"
+
+[logging]
+filter = "{{ nebuladns_log_filter }}"
+json = {{ nebuladns_log_json | ternary('true', 'false') }}
+
+[dns]
+{% if nebuladns_dns_udp_bind %}
+udp = "{{ nebuladns_dns_udp_bind }}"
+{% endif %}
+{% if nebuladns_dns_tcp_bind %}
+tcp = "{{ nebuladns_dns_tcp_bind }}"
+{% endif %}
+
+{% for z in nebuladns_zones %}
+[[zones]]
+file = "{{ nebuladns_zones_dir }}/{{ z.name }}.toml"
+{% endfor %}

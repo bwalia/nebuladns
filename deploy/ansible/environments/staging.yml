@@ -1,0 +1,17 @@
+---
+# Staging environment overrides. Bound to `hosts: nebuladns` via the inventory group.
+# Anything not overridden here uses the role defaults in roles/nebuladns/defaults/main.yml.
+
+nebuladns_api_bind: "127.0.0.1:8080"
+nebuladns_metrics_bind: "127.0.0.1:9090"
+nebuladns_dns_udp_bind: "0.0.0.0:53"
+nebuladns_dns_tcp_bind: "0.0.0.0:53"
+
+nebuladns_log_filter: "info,nebula=debug"
+
+# Roll the whole fleet at once in staging (there's only one box typically).
+nebuladns_serial: "100%"
+
+# Example zones. Drop the TOML file into deploy/ansible/files/zones/ before deploying.
+nebuladns_zones:
+  - { name: "example.test", src: "zones/example.test.toml" }

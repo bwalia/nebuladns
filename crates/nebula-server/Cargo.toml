@@ -1,0 +1,46 @@
+[package]
+name = "nebula-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "NebulaDNS authoritative DNS server binary."
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "nebuladns"
+path = "src/bin/nebuladns.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+arc-swap = { workspace = true }
+axum = { workspace = true }
+clap = { workspace = true }
+nebula-api = { workspace = true }
+nebula-metrics = { workspace = true }
+nebula-wire = { workspace = true }
+nebula-zone = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+toml = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+sd-notify = "0.4"
+
+[dev-dependencies]
+nebula-wire = { workspace = true }
+nebula-zone = { workspace = true }
+nebula-metrics = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+
+[build-dependencies]

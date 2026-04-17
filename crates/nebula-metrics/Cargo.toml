@@ -1,0 +1,16 @@
+[package]
+name = "nebula-metrics"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Always-on Prometheus metrics registry for NebulaDNS. Zero hot-path allocation."
+
+[lints]
+workspace = true
+
+[dependencies]
+nebula-wire = { workspace = true }
+parking_lot = { workspace = true }
+prometheus-client = { workspace = true }

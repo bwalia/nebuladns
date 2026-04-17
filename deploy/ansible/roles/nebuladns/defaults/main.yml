@@ -1,0 +1,39 @@
+---
+# Installable version tag / commit — overridden by the workflow via -e.
+nebuladns_version: "unknown"
+nebuladns_git_sha: "unknown"
+
+# System user the daemon runs as. Matches the UID/GID claimed by the Helm chart and
+# the systemd unit in deploy/systemd/.
+nebuladns_user: nebuladns
+nebuladns_group: nebuladns
+
+# Paths on the target host.
+nebuladns_bin_dir: /usr/local/bin
+nebuladns_config_dir: /etc/nebuladns
+nebuladns_state_dir: /var/lib/nebuladns
+nebuladns_log_dir: /var/log/nebuladns
+nebuladns_zones_dir: "{{ nebuladns_config_dir }}/zones"
+
+# Binary file served from the build artifact. Populated by
+# `actions/download-artifact@v4` in the deploy workflow.
+nebuladns_artifact_dir: "{{ role_path }}/files"
+
+# Listener binds. Override per environment in environments/*.yml.
+nebuladns_api_bind: "127.0.0.1:8080"
+nebuladns_metrics_bind: "127.0.0.1:9090"
+nebuladns_dns_udp_bind: "0.0.0.0:53"
+nebuladns_dns_tcp_bind: "0.0.0.0:53"
+
+# Logging.
+nebuladns_log_filter: "info,nebula=info"
+nebuladns_log_json: true
+
+# Zones to deploy. Each entry is `{ name: "example.com", src: "relative/path.toml" }`;
+# `src` is looked up via Ansible's usual `files/` + `templates/` search path so you can
+# drop zone files into `deploy/ansible/files/zones/` or the role's `files/zones/`.
+nebuladns_zones: []
+
+# Health probe after install.
+nebuladns_health_retries: 15
+nebuladns_health_delay_seconds: 2

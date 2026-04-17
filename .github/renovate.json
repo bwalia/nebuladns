@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":prConcurrentLimit10",
+    ":prHourlyLimit4",
+    "group:allNonMajor"
+  ],
+  "rangeStrategy": "bump",
+  "rust": { "enabled": true },
+  "packageRules": [
+    {
+      "matchPackagePatterns": ["^tokio", "^axum", "^tonic", "^rustls"],
+      "groupName": "async-runtime & transport",
+      "schedule": ["before 4am on monday"]
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    }
+  ],
+  "vulnerabilityAlerts": { "enabled": true },
+  "dependencyDashboard": true
+}

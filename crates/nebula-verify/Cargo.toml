@@ -1,0 +1,18 @@
+[package]
+name = "nebula-verify"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Propagation verifier — the gate that would have caught incidents 1273 and 1326."
+
+[lints]
+workspace = true
+
+[dependencies]
+nebula-proto = { workspace = true }
+nebula-metrics = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }

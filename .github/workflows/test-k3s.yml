@@ -1,0 +1,165 @@
+name: test-k3s
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "crates/**"
+      - "deploy/docker/**"
+      - "deploy/helm/**"
+      - "config/**"
+      - "zones/**"
+      - "Cargo.*"
+      - ".github/workflows/test-k3s.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "crates/**"
+      - "deploy/docker/**"
+      - "deploy/helm/**"
+      - "config/**"
+      - "zones/**"
+      - "Cargo.*"
+      - ".github/workflows/test-k3s.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: test-k3s-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  k3d:
+    name: k3d helm install + helm test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build nebuladns:dev image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          tags: nebuladns:dev
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Install k3d, helm, kubectl
+        uses: AbsaOSS/k3d-action@v2
+        with:
+          cluster-name: nebuladns-test
+          args: >-
+            --agents 1
+            --no-lb
+            --k3s-arg "--disable=traefik,metrics-server@server:0"
+
+      - name: Import image into k3d
+        run: k3d image import nebuladns:dev -c nebuladns-test
+
+      - name: Helm lint
+        run: helm lint deploy/helm/nebuladns --strict
+
+      - name: Create a values-test.yaml with a real zone
+        run: |
+          cat >/tmp/values-test.yaml <<'EOF'
+          image:
+            repository: nebuladns
+            tag: dev
+            pullPolicy: IfNotPresent
+
+          # Only one pod — kind clusters don't need HA.
+          replicaCount: 1
+          podDisruptionBudget:
+            enabled: false
+          networkPolicy:
+            enabled: false
+
+          service:
+            dns:
+              enabled: true
+              type: ClusterIP
+
+          zones:
+            - name: "example.com"
+              content: |
+                origin = "example.com."
+                default_ttl = 300
+                [soa]
+                mname = "ns1.example.com."
+                rname = "hostmaster.example.com."
+                serial = 2026041701
+                refresh = 10800
+                retry = 3600
+                expire = 604800
+                minimum = 300
+                [[records]]
+                name = "@"
+                type = "NS"
+                value = "ns1.example.com."
+                [[records]]
+                name = "ns1"
+                type = "A"
+                value = "192.0.2.1"
+                [[records]]
+                name = "www"
+                type = "A"
+                value = "192.0.2.10"
+                [[records]]
+                name = "www"
+                type = "A"
+                value = "192.0.2.11"
+
+          tests:
+            enabled: true
+            expectAnswers: true
+          EOF
+
+      - name: Helm install
+        run: |
+          kubectl create namespace nebuladns
+          helm install nebuladns deploy/helm/nebuladns \
+            --namespace nebuladns \
+            --values /tmp/values-test.yaml \
+            --wait --timeout 3m
+
+      - name: Helm test
+        run: helm test nebuladns --namespace nebuladns --logs
+
+      - name: Port-forward + external dig sanity
+        run: |
+          kubectl -n nebuladns port-forward svc/nebuladns 15353:53 &
+          PF=$!
+          trap "kill $PF" EXIT
+          sleep 3
+          sudo apt-get update && sudo apt-get install -y dnsutils
+          # Port-forward only handles TCP — dig +tcp.
+          dig +tcp @127.0.0.1 -p 15353 www.example.com A +short | tee /tmp/a.out
+          grep -q '192.0.2.10' /tmp/a.out
+
+      - name: Scrape /metrics
+        run: |
+          kubectl -n nebuladns port-forward svc/nebuladns 9090:9090 &
+          PF=$!
+          trap "kill $PF" EXIT
+          sleep 3
+          curl -fsS http://127.0.0.1:9090/metrics | grep -q '^nebula_build_info'
+
+      - name: Dump diagnostics on failure
+        if: failure()
+        run: |
+          kubectl -n nebuladns get all -o wide
+          kubectl -n nebuladns describe pods
+          kubectl -n nebuladns logs -l app.kubernetes.io/name=nebuladns --tail=200 || true
+          kubectl -n nebuladns logs nebuladns-smoke --all-containers=true || true
+
+      - name: Clean up
+        if: always()
+        run: |
+          helm uninstall nebuladns -n nebuladns || true
+          k3d cluster delete nebuladns-test || true

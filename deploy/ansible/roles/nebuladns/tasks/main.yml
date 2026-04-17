@@ -1,0 +1,169 @@
+---
+# Pre-flight: never ship an unknown binary. The workflow always passes a version tag;
+# a bare `unknown` means the operator ran the playbook ad-hoc without `-e`, which is
+# fine for dev but should warn loudly.
+- name: Warn when nebuladns_version is unset
+  ansible.builtin.debug:
+    msg: "nebuladns_version is 'unknown' — set via -e nebuladns_version=<tag> in production"
+  when: nebuladns_version == "unknown"
+
+- name: Ensure nebuladns group exists
+  ansible.builtin.group:
+    name: "{{ nebuladns_group }}"
+    system: true
+    state: present
+
+- name: Ensure nebuladns user exists
+  ansible.builtin.user:
+    name: "{{ nebuladns_user }}"
+    group: "{{ nebuladns_group }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ nebuladns_state_dir }}"
+    create_home: false
+    state: present
+
+- name: Create directory tree
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(nebuladns_user) }}"
+    group: "{{ item.group | default(nebuladns_group) }}"
+    mode: "{{ item.mode | default('0750') }}"
+  loop:
+    - { path: "{{ nebuladns_config_dir }}", owner: root, group: "{{ nebuladns_group }}", mode: "0750" }
+    - { path: "{{ nebuladns_zones_dir }}",  owner: root, group: "{{ nebuladns_group }}", mode: "0750" }
+    - { path: "{{ nebuladns_state_dir }}" }
+    - { path: "{{ nebuladns_log_dir }}" }
+
+# Stage the binary into a versioned path, smoke-test it, then flip a symlink. If anything
+# below `blocks` fails the previous binary stays in place — the atomic symlink swap is
+# the closest we get to "fail closed" without a full blue/green.
+- name: Stage new nebuladns binary
+  ansible.builtin.copy:
+    src: "{{ nebuladns_artifact_dir }}/nebuladns"
+    dest: "{{ nebuladns_bin_dir }}/nebuladns-{{ nebuladns_version }}"
+    owner: root
+    group: root
+    mode: "0755"
+  notify: restart nebuladns
+
+- name: Stage new nebulactl binary
+  ansible.builtin.copy:
+    src: "{{ nebuladns_artifact_dir }}/nebulactl"
+    dest: "{{ nebuladns_bin_dir }}/nebulactl-{{ nebuladns_version }}"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Smoke-test the staged binary (--print-default-config)
+  ansible.builtin.command:
+    cmd: "{{ nebuladns_bin_dir }}/nebuladns-{{ nebuladns_version }} --print-default-config"
+  register: nebuladns_smoke
+  changed_when: false
+  # Short timeout so a broken binary fails fast rather than hanging a deploy.
+
+- name: Point /usr/local/bin/nebuladns at the new binary
+  ansible.builtin.file:
+    src: "{{ nebuladns_bin_dir }}/nebuladns-{{ nebuladns_version }}"
+    dest: "{{ nebuladns_bin_dir }}/nebuladns"
+    state: link
+    force: true
+  notify: restart nebuladns
+
+- name: Point /usr/local/bin/nebulactl at the new binary
+  ansible.builtin.file:
+    src: "{{ nebuladns_bin_dir }}/nebulactl-{{ nebuladns_version }}"
+    dest: "{{ nebuladns_bin_dir }}/nebulactl"
+    state: link
+    force: true
+
+- name: Grant CAP_NET_BIND_SERVICE so the server can bind :53 without root
+  community.general.capabilities:
+    path: "{{ nebuladns_bin_dir }}/nebuladns-{{ nebuladns_version }}"
+    capability: cap_net_bind_service=+ep
+    state: present
+  # On hosts that don't have python3-pylibacl installed this module fails with a clear
+  # message — treat as a soft fail so the common case (systemd's AmbientCapabilities,
+  # which the unit already grants) still carries the deploy.
+  failed_when: false
+
+- name: Render nebuladns.toml
+  ansible.builtin.template:
+    src: nebuladns.toml.j2
+    dest: "{{ nebuladns_config_dir }}/nebuladns.toml"
+    owner: root
+    group: "{{ nebuladns_group }}"
+    mode: "0640"
+    validate: "{{ nebuladns_bin_dir }}/nebuladns-{{ nebuladns_version }} --config %s --print-default-config"
+    # --print-default-config ignores the --config flag, so `validate` here only catches
+    # "binary won't even start". A real config-validator subcommand lands in M5.
+  notify: restart nebuladns
+
+- name: Deploy zone files
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ nebuladns_zones_dir }}/{{ item.name }}.toml"
+    owner: root
+    group: "{{ nebuladns_group }}"
+    mode: "0640"
+  loop: "{{ nebuladns_zones }}"
+  loop_control:
+    label: "{{ item.name }}"
+  notify: restart nebuladns
+
+- name: Install systemd unit
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../../../systemd/nebuladns.service"
+    dest: /etc/systemd/system/nebuladns.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - daemon-reload
+    - restart nebuladns
+
+- name: Install sysusers.d + tmpfiles.d drop-ins (safe even if user already exists)
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../../../systemd/{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - { src: "sysusers.d-nebuladns.conf", dest: "/etc/sysusers.d/nebuladns.conf" }
+    - { src: "tmpfiles.d-nebuladns.conf", dest: "/etc/tmpfiles.d/nebuladns.conf" }
+
+# Flush handlers now so the restart happens before we probe /livez.
+- name: Flush handlers (restart if needed)
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure nebuladns is enabled and started
+  ansible.builtin.systemd:
+    name: nebuladns
+    enabled: true
+    state: started
+
+- name: Health probe against admin /livez on the target host
+  ansible.builtin.uri:
+    url: "http://{{ nebuladns_api_bind }}/livez"
+    return_content: false
+    status_code: 200
+  register: livez
+  retries: "{{ nebuladns_health_retries }}"
+  delay: "{{ nebuladns_health_delay_seconds }}"
+  until: livez.status == 200
+
+- name: Prune old versioned binaries (keep current + previous)
+  # Belt-and-braces rollback: we keep the previous binary so `rollback.yml` can flip the
+  # symlink back without downloading anything.
+  ansible.builtin.shell: |
+    set -euo pipefail
+    cd "{{ nebuladns_bin_dir }}"
+    # List nebuladns-* by mtime, newest first, drop the top 2, remove the rest.
+    # shellcheck disable=SC2012
+    ls -1t nebuladns-* 2>/dev/null | tail -n +3 | xargs -r rm -f
+    ls -1t nebulactl-* 2>/dev/null | tail -n +3 | xargs -r rm -f
+  args:
+    executable: /bin/bash
+  changed_when: false

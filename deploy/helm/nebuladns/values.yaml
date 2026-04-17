@@ -1,0 +1,165 @@
+# Default values for the NebulaDNS chart.
+# See https://docs.nebuladns.io/helm for full reference.
+
+# Install mode: `standalone` | `ha` | `cluster-dns`
+mode: standalone
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/nebuladns/nebuladns
+  tag: ""                 # falls back to Chart.appVersion
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+# PodSecurityStandard `restricted`-compatible defaults.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65532
+  capabilities:
+    drop: [ALL]
+    add: [NET_BIND_SERVICE]
+
+service:
+  # Admin + metrics service.
+  control:
+    type: ClusterIP
+    apiPort: 8080
+    metricsPort: 9090
+  # DNS service. Enabled by default in M1; set type=ClusterIP if you don't need an
+  # external IP (e.g., when NebulaDNS fronts internal zones only).
+  dns:
+    enabled: true
+    type: ClusterIP
+    udpPort: 53
+    tcpPort: 53
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 2000m
+    memory: 1Gi
+
+persistence:
+  enabled: false           # M0 has no on-disk state; enable once the store lands.
+  size: 10Gi
+  storageClass: ""
+  accessModes: [ReadWriteOnce]
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+topologySpreadConstraints: []
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  # Allow scraping from the Prometheus namespace; override for your cluster.
+  allowScrapeFromNamespace: monitoring
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+serviceMonitor:
+  enabled: false           # set true if kube-prometheus-stack is installed
+  namespace: ""
+  interval: 15s
+  scrapeTimeout: 10s
+  labels: {}
+
+prometheusRule:
+  enabled: false
+  labels: {}
+
+grafanaDashboard:
+  enabled: false
+  labels:
+    grafana_dashboard: "1"
+
+# Contents of /etc/nebuladns/nebuladns.toml mounted into the pod. Zones are appended to
+# this automatically from `.Values.zones` below.
+config: |
+  [api]
+  bind = "0.0.0.0:8080"
+
+  [metrics]
+  bind = "0.0.0.0:9090"
+
+  [logging]
+  filter = "info,nebula=debug"
+  json = true
+
+  [dns]
+  udp = "0.0.0.0:53"
+  tcp = "0.0.0.0:53"
+
+# Zone files mounted into /etc/nebuladns/zones/ and referenced from the generated config.
+# Each entry: { name: "example.com", content: "<TOML body>" }.
+# Leave empty to deploy the server with no zones (it will answer REFUSED for everything,
+# which is the correct authoritative behaviour).
+zones: []
+# zones:
+#   - name: "example.com"
+#     content: |
+#       origin = "example.com."
+#       default_ttl = 300
+#       [soa]
+#       mname = "ns1.example.com."
+#       rname = "hostmaster.example.com."
+#       serial = 2026041701
+#       refresh = 10800
+#       retry = 3600
+#       expire = 604800
+#       minimum = 300
+#       [[records]]
+#       name = "@"
+#       type = "NS"
+#       value = "ns1.example.com."
+
+# Enable the `helm test` smoke: runs `dig` against the service and asserts a 200 on /livez.
+# See templates/tests/smoke.yaml.
+tests:
+  enabled: true
+  image: alpine:3.20
+  # If `zones` has at least one entry, the smoke test will also try `dig @<svc> <name> SOA`
+  # for each zone — helpful for catching misconfigured config bodies at install time.
+  expectAnswers: true
+
+# Extra env vars (list of {name, value} or {name, valueFrom}).
+env: []
+
+# Extra volumes / volume mounts.
+extraVolumes: []
+extraVolumeMounts: []
+
+terminationGracePeriodSeconds: 60

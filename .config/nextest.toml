@@ -1,0 +1,15 @@
+[profile.default]
+slow-timeout = { period = "60s", terminate-after = 2 }
+failure-output = "immediate-final"
+success-output = "never"
+
+[profile.ci]
+# CI runs with retries + JUnit output.
+retries = 1
+slow-timeout = { period = "120s", terminate-after = 2 }
+failure-output = "immediate-final"
+success-output = "final"
+status-level = "pass"
+
+[profile.ci.junit]
+path = "junit.xml"

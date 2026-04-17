@@ -1,0 +1,9 @@
+# Fallback dependency updates. Renovate is the primary; dependabot stays enabled for
+# GitHub Actions specifically.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["kind/chore", "area/ci"]

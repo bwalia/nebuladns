@@ -1,0 +1,18 @@
+[package]
+name = "nebula-wire"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "RFC 1035 DNS wire codec for NebulaDNS. Zero unsafe, fuzz-tested."
+
+[lints]
+workspace = true
+
+[dependencies]
+bytes = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }

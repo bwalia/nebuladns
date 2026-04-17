@@ -1,0 +1,47 @@
+[Unit]
+Description=NebulaDNS authoritative DNS server
+Documentation=https://docs.nebuladns.io
+After=network-online.target
+Wants=network-online.target
+AssertPathExists=/etc/nebuladns/nebuladns.toml
+
+[Service]
+Type=notify
+NotifyAccess=main
+User=nebuladns
+Group=nebuladns
+ExecStart=/usr/bin/nebuladns --config /etc/nebuladns/nebuladns.toml
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=2s
+LimitNOFILE=1048576
+LimitNPROC=65536
+
+# Binding to :53 requires privileged ports
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+ReadWritePaths=/var/lib/nebuladns /var/log/nebuladns
+
+# Watchdog — server sends sd_notify() heartbeats
+WatchdogSec=30s
+
+[Install]
+WantedBy=multi-user.target

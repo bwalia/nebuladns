@@ -1,0 +1,18 @@
+[package]
+name = "nebula-zone"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Zone file parser, validator, and serializer for NebulaDNS."
+
+[lints]
+workspace = true
+
+[dependencies]
+nebula-proto = { workspace = true }
+nebula-wire = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+toml = { workspace = true }

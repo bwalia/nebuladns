@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NebulaDNS — a modern authoritative DNS server in Rust</title>
+<meta name="description" content="NebulaDNS is a modern, observable, API-first authoritative DNS server written in safe Rust. Replaces TinyDNS / BIND / Knot / NSD / PowerDNS with zero-GC tail latency, built-in propagation verification, and Kubernetes-native operators." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><text y=%22.9em%22 font-size=%2228%22>🛰️</text></svg>" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['ui-sans-serif','system-ui','-apple-system','Segoe UI','Inter','Helvetica','Arial','sans-serif'],
+          mono: ['ui-monospace','SFMono-Regular','Menlo','Monaco','Consolas','monospace'],
+        },
+        colors: {
+          nebula: {
+            50:  '#eef3ff',
+            100: '#dbe5ff',
+            200: '#b9cbff',
+            300: '#8ba6ff',
+            400: '#6985ff',
+            500: '#4b62f5',
+            600: '#3a48db',
+            700: '#2e38ac',
+            800: '#252d85',
+            900: '#1c225e',
+            950: '#11153a',
+          },
+        },
+      },
+    },
+  }
+</script>
+<style>
+  html { color-scheme: dark; }
+  body { background: radial-gradient(ellipse at top, #1c225e 0%, #05060f 60%, #05060f 100%); }
+  .nebula-glow { box-shadow: 0 0 60px -10px rgba(75,98,245,0.55); }
+  .card { background: rgba(17,21,58,0.55); backdrop-filter: blur(6px); border: 1px solid rgba(139,166,255,0.18); }
+  .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  pre.code-block { background: #05060f; border: 1px solid rgba(139,166,255,0.18); border-radius: 0.75rem; padding: 1rem 1.25rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.55; }
+  .grid-faint { background-image: linear-gradient(rgba(139,166,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(139,166,255,0.08) 1px, transparent 1px); background-size: 36px 36px; }
+  .tag { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+  details summary { cursor: pointer; list-style: none; }
+  details summary::-webkit-details-marker { display: none; }
+</style>
+</head>
+<body class="text-slate-100 font-sans antialiased">
+
+<!-- Top nav -->
+<header class="sticky top-0 z-40 backdrop-blur-md bg-[#05060f]/70 border-b border-slate-800/60">
+  <div class="mx-auto max-w-7xl flex items-center justify-between px-6 py-4">
+    <a href="#" class="flex items-center gap-2 font-bold tracking-tight">
+      <span class="inline-block w-3 h-3 rounded-full bg-nebula-400 nebula-glow"></span>
+      <span class="text-lg">NebulaDNS</span>
+      <span class="tag bg-nebula-500/20 text-nebula-200 border border-nebula-500/40">M1</span>
+    </a>
+    <nav class="hidden md:flex items-center gap-6 text-sm text-slate-300">
+      <a href="#features" class="hover:text-white">Features</a>
+      <a href="#quickstart" class="hover:text-white">Quickstart</a>
+      <a href="#compare" class="hover:text-white">vs. others</a>
+      <a href="#architecture" class="hover:text-white">Architecture</a>
+      <a href="#roadmap" class="hover:text-white">Roadmap</a>
+      <a href="https://github.com/nebuladns/nebuladns" class="text-white bg-nebula-600/80 hover:bg-nebula-500 px-3 py-1.5 rounded-md">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="relative">
+  <div class="absolute inset-0 grid-faint opacity-40 pointer-events-none"></div>
+  <div class="relative mx-auto max-w-7xl px-6 pt-20 pb-24">
+    <div class="flex items-center gap-2 mb-6">
+      <span class="tag bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Zero unsafe</span>
+      <span class="tag bg-amber-500/20 text-amber-200 border border-amber-500/40">Fuzzed</span>
+      <span class="tag bg-slate-500/20 text-slate-200 border border-slate-500/40">Apache-2.0</span>
+    </div>
+    <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight max-w-4xl">
+      The authoritative DNS server you <span class="text-nebula-300">can actually see</span>.
+    </h1>
+    <p class="mt-6 text-lg md:text-xl text-slate-300 max-w-3xl">
+      NebulaDNS is a modern, observable, API-first authoritative DNS server written in safe
+      Rust. It replaces 2001-era daemons (TinyDNS, djbdns) and 40-year-old C codebases
+      (BIND) with a single small binary that ships with metrics, a control plane, and a
+      Kubernetes operator — so the next failure is detected in seconds, not by customers.
+    </p>
+
+    <div class="mt-8 flex flex-wrap gap-3">
+      <a href="#quickstart" class="px-5 py-3 rounded-md font-semibold bg-nebula-500 hover:bg-nebula-400 text-white">
+        Quickstart ↓
+      </a>
+      <a href="https://github.com/nebuladns/nebuladns" class="px-5 py-3 rounded-md font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700">
+        View on GitHub
+      </a>
+      <a href="#compare" class="px-5 py-3 rounded-md font-semibold text-slate-200 hover:text-white">
+        Why another DNS server? →
+      </a>
+    </div>
+
+    <div class="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl">
+      <div class="card rounded-xl p-4">
+        <div class="text-2xl font-extrabold text-nebula-300">≤ 40 µs</div>
+        <div class="text-xs text-slate-400 mt-1">Target p50 in-process latency</div>
+      </div>
+      <div class="card rounded-xl p-4">
+        <div class="text-2xl font-extrabold text-nebula-300">≤ 150 µs</div>
+        <div class="text-xs text-slate-400 mt-1">Target p99</div>
+      </div>
+      <div class="card rounded-xl p-4">
+        <div class="text-2xl font-extrabold text-nebula-300">≥ 2M qps</div>
+        <div class="text-xs text-slate-400 mt-1">Target UDP throughput / 16-core node</div>
+      </div>
+      <div class="card rounded-xl p-4">
+        <div class="text-2xl font-extrabold text-nebula-300">0</div>
+        <div class="text-xs text-slate-400 mt-1">Bytes of GC-induced tail latency</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Why -->
+<section class="mx-auto max-w-7xl px-6 py-16 border-t border-slate-800/60">
+  <div class="grid md:grid-cols-2 gap-10 items-start">
+    <div>
+      <h2 class="text-sm uppercase tracking-wider text-nebula-300 font-semibold">Why we built this</h2>
+      <h3 class="mt-2 text-3xl font-bold">Two production outages in 22 days, same root cause.</h3>
+      <p class="mt-4 text-slate-300 leading-relaxed">
+        We ran <span class="code text-nebula-200">djbdns 1.05</span> (released 2001) behind a CDN. It sends AXFR
+        responses with <span class="code text-nebula-200">QDCOUNT=0</span>, which BIND 9.18+ rejects as FORMERR.
+        Our downstream secondaries silently upgraded to BIND 9.18, and our zone-transfer redundancy eroded
+        <strong>invisibly for 13 months</strong> until only one working agent remained.
+      </p>
+      <p class="mt-3 text-slate-300 leading-relaxed">
+        No <span class="code text-nebula-200">/metrics</span>, no API, no post-deploy verification, no way to see
+        that half the fleet had stopped transferring. Engineers had to SSH into six servers to reconstruct state
+        during the incident.
+      </p>
+      <p class="mt-3 text-slate-300 leading-relaxed">
+        NebulaDNS is the direct answer. Every failure mode that caused those incidents is a first-class
+        feature here: propagation verification, peer software fingerprinting, atomic versioned deploys,
+        deterministic SOA serials, and an API for every operator action.
+      </p>
+    </div>
+    <div class="card rounded-2xl p-6">
+      <div class="text-xs uppercase tracking-widest text-slate-400 mb-3">What the next incident looks like</div>
+      <ol class="space-y-3 text-sm">
+        <li class="flex gap-3"><span class="text-emerald-400 font-bold shrink-0">30s</span><span>Dashboard surfaces the FORMERR with peer software fingerprint and packet detail.</span></li>
+        <li class="flex gap-3"><span class="text-emerald-400 font-bold shrink-0">60s</span><span>Deploy pipeline reports <em>failure</em>, not "complete". Propagation gate blocks.</span></li>
+        <li class="flex gap-3"><span class="text-emerald-400 font-bold shrink-0">2m</span><span>On-call rolls back the zone via UI or API — no SSH required.</span></li>
+        <li class="flex gap-3"><span class="text-emerald-400 font-bold shrink-0">∞</span><span>CI's interop matrix would have failed before the bad build ever shipped.</span></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- Features grid -->
+<section id="features" class="mx-auto max-w-7xl px-6 py-20 border-t border-slate-800/60">
+  <h2 class="text-sm uppercase tracking-wider text-nebula-300 font-semibold">Features</h2>
+  <h3 class="mt-2 text-3xl font-bold">Batteries included. All twelve of them.</h3>
+
+  <div class="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="card rounded-xl p-5">
+      <div class="text-2xl">🛰️</div>
+      <h4 class="font-semibold mt-3">API-first</h4>
+      <p class="text-sm text-slate-300 mt-2">Every operator action — create zone, edit record, rotate TSIG key, trigger rollover, roll back — is a single authenticated REST/gRPC call. The CLI and UI are thin clients.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="text-2xl">📊</div>
+      <h4 class="font-semibold mt-3">Observable by default</h4>
+      <p class="text-sm text-slate-300 mt-2">Prometheus <code class="code text-nebula-200">/metrics</code> is always-on with zero hot-path cost. Enum-typed labels cap cardinality at compile time. Structured JSON logs, OTLP traces.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="text-2xl">✅</div>
+      <h4 class="font-semibold mt-3">Verified propagation</h4>
+      <p class="text-sm text-slate-300 mt-2">A deploy isn't "done" until every declared downstream secondary reports the new SOA serial. The propagation gate is built in — the single feature missing from every other auth DNS server.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="text-2xl">🧬</div>
+      <h4 class="font-semibold mt-3">Peer software fingerprinting</h4>
+      <p class="text-sm text-slate-300 mt-2">The server records <code class="code text-nebula-200">version.bind</code> CHAOS responses from every declared secondary. Silent upgrades can't erode your redundancy invisibly.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="text-2xl">🔐</div>
+      <h4 class="font-semibold mt-3">Safe Rust</h4>
+      <p class="text-sm text-slate-300 mt-2"><code class="code text-nebula-200">#![forbid(unsafe_code)]</code> across every crate. Continuous fuzzing on the wire codec, zone parser, and DNSSEC signer.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="text-2xl">⚡</div>
+      <h4 class="font-semibold mt-3">Zero-GC tail latency</h4>
+      <p class="text-sm text-slate-300 mt-2">Deterministic allocation means no p99.9 hiccups. Lock-free zone store served through <code class="code text-nebula-200">arc-swap</code>; readers never block.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="text-2xl">📦</div>
+      <h4 class="font-semibold mt-3">Atomic versioned configuration</h4>
+      <p class="text-sm text-slate-300 mt-2">Zone data is content-addressed and deployed atomically. Roll forward and rollback are one-liners. No partial reads. No "edit the file and SIGHUP".</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="text-2xl">🧮</div>
+      <h4 class="font-semibold mt-3">Deterministic SOA serials</h4>
+      <p class="text-sm text-slate-300 mt-2">Auto-generated, monotonic serials. Retry-with-same-serial is impossible by construction — no more wedged recoveries.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="text-2xl">☸️</div>
+      <h4 class="font-semibold mt-3">Kubernetes-native</h4>
+      <p class="text-sm text-slate-300 mt-2">Helm chart, operator, and CRDs (<code class="code text-nebula-200">Zone</code>, <code class="code text-nebula-200">Record</code>, <code class="code text-nebula-200">Secondary</code>, <code class="code text-nebula-200">TsigKey</code>, <code class="code text-nebula-200">DeployGate</code>). GitOps-ready from day one. Drop-in replacement for CoreDNS as cluster DNS.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="text-2xl">🧱</div>
+      <h4 class="font-semibold mt-3">Standards-conformant wire</h4>
+      <p class="text-sm text-slate-300 mt-2">Strict RFC 1034/1035/5936/1995/1996/8945/4034-5/7766/7858/8484/9250. Errors are explicit (<code class="code text-nebula-200">QdCountMismatch</code>) — never silently malformed.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="text-2xl">🧭</div>
+      <h4 class="font-semibold mt-3">Redundancy you can see</h4>
+      <p class="text-sm text-slate-300 mt-2">The dashboard shows, at a glance, which secondaries last transferred each zone and when. No more silent 13-month erosion.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="text-2xl">🧯</div>
+      <h4 class="font-semibold mt-3">Hardened by default</h4>
+      <p class="text-sm text-slate-300 mt-2">systemd unit with <code class="code text-nebula-200">ProtectSystem=strict</code>, <code class="code text-nebula-200">CAP_NET_BIND_SERVICE</code> only, seccomp syscall filter, read-only rootfs. Non-root container, distroless base, ≤ 25 MB compressed.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Install / Quickstart -->
+<section id="quickstart" class="mx-auto max-w-7xl px-6 py-20 border-t border-slate-800/60">
+  <h2 class="text-sm uppercase tracking-wider text-nebula-300 font-semibold">Install</h2>
+  <h3 class="mt-2 text-3xl font-bold">Three ways to try it in the next five minutes.</h3>
+
+  <div class="mt-10 grid md:grid-cols-3 gap-6">
+
+    <div class="card rounded-2xl p-6">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="tag bg-nebula-500/20 text-nebula-200 border border-nebula-500/40">Docker</span>
+        <span class="text-xs text-slate-400">Single container</span>
+      </div>
+      <h4 class="text-xl font-bold">Docker Compose</h4>
+      <p class="text-sm text-slate-300 mt-2">NebulaDNS + Prometheus + Grafana, with a real example zone and a dig-based smoke container.</p>
+<pre class="code-block mt-4"><code>git clone https://github.com/nebuladns/nebuladns
+cd nebuladns
+docker compose -f deploy/docker/compose/docker-compose.yml \
+  up --build -d
+
+# Real DNS over UDP and TCP
+dig @127.0.0.1 -p 5353 www.example.com A +short
+# 192.0.2.10
+# 192.0.2.11
+
+# Dashboards
+open http://127.0.0.1:3000  # Grafana
+open http://127.0.0.1:9091  # Prometheus</code></pre>
+    </div>
+
+    <div class="card rounded-2xl p-6">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="tag bg-nebula-500/20 text-nebula-200 border border-nebula-500/40">Helm</span>
+        <span class="text-xs text-slate-400">Kubernetes</span>
+      </div>
+      <h4 class="text-xl font-bold">Helm chart</h4>
+      <p class="text-sm text-slate-300 mt-2">StatefulSet, Service, PDB, NetworkPolicy, ServiceMonitor, PrometheusRule, and a <code class="code text-nebula-200">helm test</code> smoke pod, ready to <code class="code text-nebula-200">helm install</code>.</p>
+<pre class="code-block mt-4"><code>helm install nebuladns \
+  oci://ghcr.io/nebuladns/charts/nebuladns \
+  --namespace nebuladns --create-namespace \
+  --values values.yaml
+
+helm test nebuladns -n nebuladns --logs
+kubectl -n nebuladns port-forward svc/nebuladns 9090:9090
+curl http://127.0.0.1:9090/metrics | head</code></pre>
+    </div>
+
+    <div class="card rounded-2xl p-6">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="tag bg-nebula-500/20 text-nebula-200 border border-nebula-500/40">systemd</span>
+        <span class="text-xs text-slate-400">Bare metal / VM</span>
+      </div>
+      <h4 class="text-xl font-bold">Debian / Ubuntu via Ansible</h4>
+      <p class="text-sm text-slate-300 mt-2">Hardened systemd unit with watchdog + <code class="code text-nebula-200">sd_notify</code>. Ansible role with atomic symlink swap, smoke test, and rollback.</p>
+<pre class="code-block mt-4"><code>cd deploy/ansible
+ansible-galaxy collection install -r requirements.yml
+ansible-playbook -i inventory.ini playbook.yml \
+  -e nebuladns_version=v0.1.0 \
+  -e @environments/staging.yml
+
+# Rollback? One command, a few seconds per host.
+ansible-playbook -i inventory.ini rollback.yml</code></pre>
+    </div>
+  </div>
+
+  <div class="mt-10 card rounded-2xl p-6">
+    <h4 class="text-lg font-bold mb-2">Build from source</h4>
+<pre class="code-block"><code>cargo build --release --bin nebuladns --bin nebulactl
+./target/release/nebuladns --config config/nebuladns.demo.toml &amp;
+
+dig @127.0.0.1 -p 15353 www.example.com A +short
+./target/release/nebulactl health</code></pre>
+  </div>
+</section>
+
+<!-- Comparison table -->
+<section id="compare" class="mx-auto max-w-7xl px-6 py-20 border-t border-slate-800/60">
+  <h2 class="text-sm uppercase tracking-wider text-nebula-300 font-semibold">Comparison</h2>
+  <h3 class="mt-2 text-3xl font-bold">What's missing from every existing auth DNS server.</h3>
+  <div class="mt-8 overflow-x-auto card rounded-2xl">
+    <table class="min-w-full text-sm">
+      <thead class="text-left text-slate-300 uppercase tracking-wider text-xs">
+        <tr class="border-b border-slate-800/70">
+          <th class="px-4 py-3">Capability</th>
+          <th class="px-4 py-3">TinyDNS</th>
+          <th class="px-4 py-3">BIND 9</th>
+          <th class="px-4 py-3">Knot</th>
+          <th class="px-4 py-3">NSD</th>
+          <th class="px-4 py-3">PowerDNS</th>
+          <th class="px-4 py-3">CoreDNS</th>
+          <th class="px-4 py-3 text-nebula-300">NebulaDNS</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800/60">
+        <tr><td class="px-4 py-2">Full REST API</td><td>❌</td><td>partial (rndc)</td><td>partial (knotc)</td><td>❌</td><td>partial</td><td>—</td><td class="text-emerald-300">✅</td></tr>
+        <tr><td class="px-4 py-2">Native Prometheus <code class="code text-nebula-200">/metrics</code></td><td>❌</td><td>XML/JSON only</td><td>module</td><td>module</td><td>module</td><td>✅</td><td class="text-emerald-300">✅ always-on</td></tr>
+        <tr><td class="px-4 py-2">Built-in propagation gate</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td class="text-emerald-300">✅</td></tr>
+        <tr><td class="px-4 py-2">Kubernetes operator + CRDs</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td class="text-emerald-300">✅</td></tr>
+        <tr><td class="px-4 py-2">Online DNSSEC signing</td><td>❌</td><td>✅</td><td>✅</td><td>❌ (offline)</td><td>✅</td><td>partial</td><td class="text-emerald-300">✅ (HSM/KMS)</td></tr>
+        <tr><td class="px-4 py-2">Memory-safe language</td><td>❌ (C)</td><td>❌ (C)</td><td>❌ (C)</td><td>❌ (C)</td><td>❌ (C++)</td><td>⚠️ (Go, GC)</td><td class="text-emerald-300">✅ (Rust, no GC)</td></tr>
+        <tr><td class="px-4 py-2">Peer software fingerprinting</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td class="text-emerald-300">✅</td></tr>
+        <tr><td class="px-4 py-2">Atomic versioned zone store</td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>SQL-backed</td><td>—</td><td class="text-emerald-300">✅ content-addressed</td></tr>
+        <tr><td class="px-4 py-2">React dashboard included</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>third-party</td><td>❌</td><td class="text-amber-300">⬅ v1.0 (M9)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="mt-4 text-xs text-slate-500">✅ = shipped today · ⬅ = planned for v1.0 GA · ⚠️ = with caveats. See the full competitive analysis in <code class="code">PROJECT_PROMPT.md §2.5</code>.</p>
+</section>
+
+<!-- Architecture -->
+<section id="architecture" class="mx-auto max-w-7xl px-6 py-20 border-t border-slate-800/60">
+  <h2 class="text-sm uppercase tracking-wider text-nebula-300 font-semibold">Architecture</h2>
+  <h3 class="mt-2 text-3xl font-bold">One binary. One API. Every piece swappable.</h3>
+
+  <div class="mt-10 card rounded-2xl p-6 overflow-x-auto">
+    <pre class="code text-xs md:text-sm leading-6 text-slate-300">
+                       ┌──────────────────────────────────────────┐
+                       │            React Web UI (v1.0)           │
+                       └───────────────────┬──────────────────────┘
+                                           │ HTTPS (OpenAPI)
+                       ┌───────────────────▼──────────────────────┐
+                       │          Control Plane API               │
+                       │   axum (REST) + tonic (gRPC)             │
+                       │   AuthN: mTLS + OIDC   AuthZ: RBAC       │
+                       └───────┬──────────────────┬───────────────┘
+                               │                  │
+                ┌──────────────▼──┐       ┌───────▼────────────┐
+                │  Zone Manager   │       │ Propagation        │
+                │  validate       │       │ Verifier           │
+                │  sign (DNSSEC)  │       │  polls secondaries │
+                │  atomic commit  │       │  confirms SOA      │
+                └────────┬────────┘       └────────────────────┘
+                         │
+        ┌────────────────▼─────────────────────────┐
+        │       Zone Store (content-addressed)     │
+        │       sled / redb / pluggable            │
+        └────────────────┬─────────────────────────┘
+                         │
+        ┌────────────────▼─────────────────────────┐
+        │          DNS Data Plane                  │
+        │   tokio + io_uring (Linux ≥ 5.19)        │
+        │   UDP · TCP · DoT · DoH · DoQ            │
+        │   AXFR / IXFR / NOTIFY / TSIG            │
+        │   DNSSEC online signer                   │
+        └──────────────────────────────────────────┘
+
+    Observability spine: tracing → OpenTelemetry → Prometheus + Loki + Tempo
+    </pre>
+  </div>
+
+  <div class="mt-8 grid md:grid-cols-3 gap-4">
+    <div class="card rounded-xl p-5">
+      <h5 class="font-semibold text-nebula-300">Data plane</h5>
+      <p class="text-sm text-slate-300 mt-2">Hand-rolled zero-copy wire codec. Lock-free zone snapshots via <code class="code">arc-swap</code>. No allocations on the hot path in steady state.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <h5 class="font-semibold text-nebula-300">Control plane</h5>
+      <p class="text-sm text-slate-300 mt-2">OpenAPI spec is generated from code via <code class="code">utoipa</code>. Every write is idempotent, dry-run-able, and audit-logged.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <h5 class="font-semibold text-nebula-300">Storage</h5>
+      <p class="text-sm text-slate-300 mt-2">Content-addressed, versioned. Rollback is a one-liner. Writes are atomic; readers never block. Optional S3-backed continuous backup.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Metrics + observability -->
+<section class="mx-auto max-w-7xl px-6 py-20 border-t border-slate-800/60">
+  <h2 class="text-sm uppercase tracking-wider text-nebula-300 font-semibold">Metrics</h2>
+  <h3 class="mt-2 text-3xl font-bold">Every query. Every transfer. Every deploy.</h3>
+  <p class="text-slate-300 mt-4 max-w-3xl">
+    Metrics are always-on with a compile-time cardinality budget. The design contract:
+    zero hot-path allocation, ≤ 1% CPU overhead, ≤ 1 µs added to p99 latency. The full
+    catalogue is in the planning prompt; here's a slice of what's live today.
+  </p>
+<pre class="code-block mt-6 text-xs"><code># Wire / query pipeline
+nebula_dns_queries_total{proto,qtype,rcode}
+nebula_dns_query_duration_seconds_bucket{proto,qtype,le}
+nebula_dns_dropped_total{reason}
+nebula_dns_formerr_total{peer,direction,reason}
+
+# Zone transfer / NOTIFY (M3)
+nebula_axfr_attempts_total{peer,zone,direction,result}
+nebula_axfr_last_success_timestamp_seconds{peer,zone}
+nebula_peer_version_info{peer,software,version}   # the 1326 signal
+
+# Propagation verifier (M6)
+nebula_zone_current_soa_serial{zone}
+nebula_secondary_observed_soa_serial{zone,peer}
+nebula_zone_propagation_lag_seconds{zone,peer}
+nebula_zone_propagation_converged{zone}           0|1
+
+# Runtime
+nebula_build_info{version,commit,rustc,target} 1
+nebula_process_resident_memory_bytes
+nebula_memory_hot_path_allocations_total          # MUST stay at 0</code></pre>
+</section>
+
+<!-- Roadmap -->
+<section id="roadmap" class="mx-auto max-w-7xl px-6 py-20 border-t border-slate-800/60">
+  <h2 class="text-sm uppercase tracking-wider text-nebula-300 font-semibold">Roadmap</h2>
+  <h3 class="mt-2 text-3xl font-bold">Fourteen milestones to GA.</h3>
+  <div class="mt-10 grid md:grid-cols-2 gap-4">
+    <div class="card rounded-xl p-5">
+      <div class="flex items-center gap-2">
+        <span class="tag bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Done</span>
+        <span class="text-sm font-semibold">M0 — Skeleton</span>
+      </div>
+      <p class="text-sm text-slate-300 mt-2">Workspace, CI, <code class="code">/livez</code>, <code class="code">/readyz</code>, <code class="code">/metrics</code>, systemd unit, distroless container, Helm skeleton, fuzz harness.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="flex items-center gap-2">
+        <span class="tag bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Done</span>
+        <span class="text-sm font-semibold">M1 — Wire + Zone</span>
+      </div>
+      <p class="text-sm text-slate-300 mt-2">Full RFC 1035 message codec, name compression, RR types (A/AAAA/NS/CNAME/SOA/MX/TXT/PTR/SRV/CAA), TOML zone loader, UDP + TCP listeners, real <code class="code">dig</code> answering end-to-end.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="flex items-center gap-2">
+        <span class="tag bg-amber-500/20 text-amber-300 border border-amber-500/40">Next</span>
+        <span class="text-sm font-semibold">M2 — Auth zone completeness</span>
+      </div>
+      <p class="text-sm text-slate-300 mt-2">Wildcards, CNAME chasing, glue, RFC 2308 negative responses, EDNS negotiation, response-rate-limiting.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="flex items-center gap-2">
+        <span class="tag bg-slate-500/20 text-slate-300 border border-slate-500/40">Planned</span>
+        <span class="text-sm font-semibold">M3 — Transfers</span>
+      </div>
+      <p class="text-sm text-slate-300 mt-2">AXFR, IXFR, NOTIFY, TSIG + daily interop matrix against BIND / Knot / NSD / PowerDNS / CoreDNS.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="flex items-center gap-2">
+        <span class="tag bg-slate-500/20 text-slate-300 border border-slate-500/40">Planned</span>
+        <span class="text-sm font-semibold">M4 — DNSSEC</span>
+      </div>
+      <p class="text-sm text-slate-300 mt-2">Online signing (Ed25519 / ECDSA / RSA), automatic KSK/ZSK rollover (RFC 6781), HSM (PKCS#11) and AWS KMS backends.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="flex items-center gap-2">
+        <span class="tag bg-slate-500/20 text-slate-300 border border-slate-500/40">Planned</span>
+        <span class="text-sm font-semibold">M6 — Propagation verifier</span>
+      </div>
+      <p class="text-sm text-slate-300 mt-2">The feature that makes incidents 1273 and 1326 impossible to recur.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="flex items-center gap-2">
+        <span class="tag bg-slate-500/20 text-slate-300 border border-slate-500/40">Planned</span>
+        <span class="text-sm font-semibold">M7 — HA + multi-region</span>
+      </div>
+      <p class="text-sm text-slate-300 mt-2">Raft in-region, async log-ship cross-region, active-active with CRDTs, explicit failover gates.</p>
+    </div>
+    <div class="card rounded-xl p-5">
+      <div class="flex items-center gap-2">
+        <span class="tag bg-slate-500/20 text-slate-300 border border-slate-500/40">Planned</span>
+        <span class="text-sm font-semibold">M8 — Kubernetes operator + CRDs</span>
+      </div>
+      <p class="text-sm text-slate-300 mt-2">First-class <code class="code">Zone</code> / <code class="code">Record</code> / <code class="code">Secondary</code> / <code class="code">TsigKey</code> / <code class="code">DeployGate</code> resources. ExternalDNS provider. CoreDNS cluster-DNS drop-in.</p>
+    </div>
+  </div>
+  <p class="mt-6 text-sm text-slate-400">Full milestone schedule and SLOs: <a href="https://github.com/nebuladns/nebuladns/blob/main/PROJECT_PROMPT.md" class="text-nebula-300 underline">PROJECT_PROMPT.md §15</a>.</p>
+</section>
+
+<!-- CTA -->
+<section class="mx-auto max-w-5xl px-6 py-20 text-center">
+  <h3 class="text-3xl md:text-4xl font-extrabold">Run it. Break it. File an issue.</h3>
+  <p class="mt-4 text-slate-300 max-w-2xl mx-auto">
+    NebulaDNS is pre-1.0 and moving fast. If the compose rig doesn't spin up on your
+    machine in under two minutes, or the Helm chart lands a pod that isn't answering
+    real <code class="code text-nebula-200">dig</code> queries within thirty seconds,
+    that's a bug and we want the trace.
+  </p>
+  <div class="mt-8 flex flex-wrap justify-center gap-3">
+    <a href="https://github.com/nebuladns/nebuladns" class="px-5 py-3 rounded-md font-semibold bg-nebula-500 hover:bg-nebula-400 text-white">Star on GitHub</a>
+    <a href="https://github.com/nebuladns/nebuladns/issues/new" class="px-5 py-3 rounded-md font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700">Report an issue</a>
+  </div>
+</section>
+
+<footer class="border-t border-slate-800/60 py-10 mt-10">
+  <div class="mx-auto max-w-7xl px-6 flex flex-wrap justify-between items-center gap-4 text-sm text-slate-400">
+    <div class="flex items-center gap-2">
+      <span class="inline-block w-2 h-2 rounded-full bg-nebula-400"></span>
+      <span>NebulaDNS · Apache-2.0</span>
+    </div>
+    <div class="flex gap-6">
+      <a href="https://github.com/nebuladns/nebuladns" class="hover:text-white">GitHub</a>
+      <a href="https://github.com/nebuladns/nebuladns/blob/main/SECURITY.md" class="hover:text-white">Security</a>
+      <a href="https://github.com/nebuladns/nebuladns/blob/main/CONTRIBUTING.md" class="hover:text-white">Contributing</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

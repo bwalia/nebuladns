@@ -1,0 +1,11 @@
+---
+- name: Deploy NebulaDNS
+  hosts: nebuladns
+  become: true
+  gather_facts: true
+  # Serialize so rolling updates don't take every secondary offline at once.
+  serial: "{{ nebuladns_serial | default('50%') }}"
+  any_errors_fatal: false
+  max_fail_percentage: 25
+  roles:
+    - role: nebuladns

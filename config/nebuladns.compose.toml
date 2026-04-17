@@ -1,0 +1,19 @@
+# NebulaDNS config for the docker-compose rig. Binds on 0.0.0.0 so the host can reach
+# the ports via the forwarded addresses in docker-compose.yml.
+
+[api]
+bind = "0.0.0.0:8080"
+
+[metrics]
+bind = "0.0.0.0:9090"
+
+[logging]
+filter = "info,nebula=debug"
+json = true
+
+[dns]
+udp = "0.0.0.0:53"
+tcp = "0.0.0.0:53"
+
+[[zones]]
+file = "/etc/nebuladns/zones/example.com.toml"

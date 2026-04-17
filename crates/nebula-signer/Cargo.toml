@@ -1,0 +1,15 @@
+[package]
+name = "nebula-signer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Online DNSSEC signing and key management for NebulaDNS."
+
+[lints]
+workspace = true
+
+[dependencies]
+nebula-proto = { workspace = true }
+thiserror = { workspace = true }

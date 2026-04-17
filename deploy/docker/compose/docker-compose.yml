@@ -1,0 +1,100 @@
+# Full testing rig for NebulaDNS.
+#
+# Quickstart:
+#   docker compose -f deploy/docker/compose/docker-compose.yml up --build -d
+#   dig @127.0.0.1 -p 5353 www.example.com A +short
+#   curl -s http://127.0.0.1:9090/metrics | grep nebula_dns_queries
+#   open http://127.0.0.1:3000         # Grafana (admin / admin)
+#   open http://127.0.0.1:9091         # Prometheus
+#
+#   docker compose -f deploy/docker/compose/docker-compose.yml --profile smoke run --rm smoke
+#   docker compose -f deploy/docker/compose/docker-compose.yml --profile interop up -d bind918
+#   docker compose -f deploy/docker/compose/docker-compose.yml down -v
+
+services:
+  nebuladns:
+    build:
+      context: ../../..
+      dockerfile: deploy/docker/Dockerfile
+    image: nebuladns:dev
+    container_name: nebuladns
+    ports:
+      - "5353:53/udp"
+      - "5353:53/tcp"
+      - "8080:8080/tcp"
+      - "9090:9090/tcp"
+    volumes:
+      - ../../../config/nebuladns.compose.toml:/etc/nebuladns/nebuladns.toml:ro
+      - ../../../zones:/etc/nebuladns/zones:ro
+    environment:
+      RUST_LOG: "info,nebula=debug"
+      NEBULA_API_BIND: "0.0.0.0:8080"
+    healthcheck:
+      test: ["CMD", "/usr/bin/nebuladns", "--healthcheck"]
+      interval: 10s
+      timeout: 2s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: nebuladns-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=6h
+    depends_on:
+      nebuladns:
+        condition: service_healthy
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: nebuladns-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_DEFAULT_THEME: dark
+    volumes:
+      - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # `smoke` is a one-shot dig-based test container. `docker compose run smoke`.
+  # Exit code reflects test success.
+  smoke:
+    image: alpine:3.20
+    container_name: nebuladns-smoke
+    profiles: ["smoke"]
+    volumes:
+      - ./smoke.sh:/smoke.sh:ro
+    command: ["/bin/sh", "/smoke.sh", "nebuladns", "53"]
+    depends_on:
+      nebuladns:
+        condition: service_healthy
+
+  # Optional BIND 9.18 peer for interop (AXFR/IXFR) tests — enabled via profile.
+  bind918:
+    image: internetsystemsconsortium/bind9:9.18
+    container_name: nebuladns-bind918
+    command: ["-g", "-c", "/etc/bind/named.conf"]
+    profiles: ["interop"]
+    ports:
+      - "5354:53/udp"
+      - "5354:53/tcp"
+    restart: unless-stopped
+
+networks:
+  default:
+    name: nebuladns

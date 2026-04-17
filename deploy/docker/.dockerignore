@@ -1,0 +1,15 @@
+target/
+**/*.rs.bk
+.git/
+.github/
+ui/node_modules
+ui/dist
+docs/
+deploy/helm/
+deploy/packages/
+deploy/terraform/
+*.log
+.DS_Store
+.vscode/
+.idea/
+.claude/

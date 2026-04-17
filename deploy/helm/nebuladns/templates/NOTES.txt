@@ -1,0 +1,18 @@
+NebulaDNS {{ .Chart.AppVersion }} (release {{ .Release.Name }}) installed.
+
+This is the M0 chart: it ships health endpoints and a Prometheus /metrics endpoint.
+DNS listeners land in M2. Do not route production DNS traffic here yet.
+
+1. Wait for the pod to become ready:
+    kubectl rollout status statefulset/{{ include "nebuladns.fullname" . }} -n {{ .Release.Namespace }}
+
+2. Port-forward the admin API:
+    kubectl port-forward svc/{{ include "nebuladns.fullname" . }} 8080:{{ .Values.service.control.apiPort }}
+
+3. Probe health:
+    curl http://localhost:8080/livez
+    curl http://localhost:8080/readyz
+
+4. Scrape metrics:
+    kubectl port-forward svc/{{ include "nebuladns.fullname" . }} 9090:{{ .Values.service.control.metricsPort }}
+    curl http://localhost:9090/metrics

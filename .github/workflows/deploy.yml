@@ -1,0 +1,246 @@
+name: deploy
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options: [staging, production]
+        default: staging
+      ref:
+        description: Git ref to deploy (branch, tag, or SHA). Defaults to the workflow ref.
+        required: false
+        type: string
+
+concurrency:
+  # Serialize deploys per environment. A push to `main` and a manual `production` run do
+  # not stomp on each other; two production runs queue rather than race.
+  group: deploy-${{ github.event.inputs.environment || 'staging' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  # Required for cosign keyless signing via GitHub OIDC once we wire signing into
+  # release-engineering. Declared now so the token minting works on first use.
+  id-token: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  # Choose the environment based on the trigger: tag pushes → production, manual → input.
+  TARGET_ENV: >-
+    ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'production' }}
+
+jobs:
+  test:
+    name: test gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { key: deploy-test }
+      - uses: taiki-e/install-action@v2
+        with: { tool: cargo-nextest }
+      - name: Fmt + clippy
+        run: |
+          cargo fmt --all --check
+          cargo clippy --workspace --all-targets -- -D warnings
+      - name: Unit + integration tests
+        run: cargo nextest run --workspace --profile ci
+
+  build:
+    name: build musl ${{ matrix.target }}
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: deploy-build-${{ matrix.target }}
+      - uses: taiki-e/install-action@v2
+        with: { tool: cross }
+
+      - name: Cross-compile release binaries
+        env:
+          # Stamp the metrics `nebula_build_info` series with the build context.
+          NEBULA_GIT_COMMIT: ${{ github.sha }}
+          NEBULA_RUSTC_VERSION: rustc-stable
+          NEBULA_TARGET: ${{ matrix.target }}
+        run: |
+          cross build --release --target ${{ matrix.target }} \
+                      --bin nebuladns --bin nebulactl
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/nebuladns dist/nebuladns
+          cp target/${{ matrix.target }}/release/nebulactl dist/nebulactl
+          ( cd dist && sha256sum nebuladns nebulactl > SHA256SUMS )
+
+      - name: Smoke-test the binary on the build host
+        # Confirm it at least starts in `--print-default-config` mode before we ship it.
+        # A genuinely broken binary (missing symbol, wrong libc) falls over here.
+        run: |
+          if [[ "${{ matrix.target }}" == "x86_64-unknown-linux-musl" ]]; then
+            dist/nebuladns --print-default-config
+          else
+            echo "Skipping smoke on non-native target ${{ matrix.target }}"
+          fi
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nebuladns-${{ matrix.target }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  ansible:
+    name: ansible-deploy (${{ github.event.inputs.environment || 'production' }})
+    needs: [build]
+    runs-on: ubuntu-latest
+    # Bind the GitHub Environment so approvals/secrets can be scoped per env. The
+    # environment name must be created in repo Settings → Environments (staging /
+    # production) before the first run.
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}
+      url: ${{ vars.NEBULADNS_DASHBOARD_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+
+      - name: Resolve target architecture from inventory
+        id: target
+        run: |
+          # Deploys default to amd64; flip DEPLOY_ARCH=arm64 in env vars for ARM hosts.
+          arch="${DEPLOY_ARCH:-amd64}"
+          case "$arch" in
+            amd64) echo "rust_target=x86_64-unknown-linux-musl" >> "$GITHUB_OUTPUT" ;;
+            arm64) echo "rust_target=aarch64-unknown-linux-musl" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::unsupported DEPLOY_ARCH: $arch"; exit 1 ;;
+          esac
+        env:
+          DEPLOY_ARCH: ${{ vars.DEPLOY_ARCH }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: nebuladns-${{ steps.target.outputs.rust_target }}
+          path: deploy/ansible/roles/nebuladns/files/
+
+      - name: Verify artifact checksums
+        working-directory: deploy/ansible/roles/nebuladns/files
+        run: |
+          ls -la
+          sha256sum -c SHA256SUMS
+
+      - name: Install ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install "ansible-core==2.17.*"
+          ansible --version
+          ansible-galaxy collection install -r deploy/ansible/requirements.yml
+
+      - name: Write SSH private key
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          if [ -z "${SSH_KEY:-}" ]; then
+            echo "::error::DEPLOY_SSH_KEY secret is not set"; exit 1
+          fi
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+      - name: Write known_hosts
+        env:
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          if [ -z "${KNOWN_HOSTS:-}" ]; then
+            echo "::error::DEPLOY_KNOWN_HOSTS secret is not set (run ssh-keyscan and paste the output)"
+            exit 1
+          fi
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Render inventory from secret
+        env:
+          INVENTORY: ${{ secrets.DEPLOY_INVENTORY }}
+        run: |
+          if [ -z "${INVENTORY:-}" ]; then
+            echo "::error::DEPLOY_INVENTORY secret is not set (paste your Ansible inventory)"
+            exit 1
+          fi
+          printf '%s\n' "$INVENTORY" > deploy/ansible/inventory.ini
+          head -20 deploy/ansible/inventory.ini | sed 's/ansible_password=.*/ansible_password=REDACTED/'
+
+      - name: Ansible syntax-check
+        working-directory: deploy/ansible
+        run: ansible-playbook -i inventory.ini playbook.yml --syntax-check
+
+      - name: Ansible deploy (check mode first for production)
+        if: ${{ (github.event.inputs.environment || 'production') == 'production' }}
+        working-directory: deploy/ansible
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "True"
+          ANSIBLE_FORCE_COLOR: "True"
+        run: |
+          ansible-playbook -i inventory.ini playbook.yml \
+            -e "nebuladns_version=${GITHUB_REF_NAME}" \
+            -e "nebuladns_git_sha=${GITHUB_SHA}" \
+            -e "@environments/${{ github.event.inputs.environment || 'production' }}.yml" \
+            --private-key ~/.ssh/id_deploy \
+            --check --diff
+
+      - name: Ansible deploy (apply)
+        working-directory: deploy/ansible
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "True"
+          ANSIBLE_FORCE_COLOR: "True"
+        run: |
+          ansible-playbook -i inventory.ini playbook.yml \
+            -e "nebuladns_version=${GITHUB_REF_NAME}" \
+            -e "nebuladns_git_sha=${GITHUB_SHA}" \
+            -e "@environments/${{ github.event.inputs.environment || 'production' }}.yml" \
+            --private-key ~/.ssh/id_deploy \
+            --diff
+
+      - name: Post-deploy health probe (via SSH tunnel)
+        if: success()
+        env:
+          API_BIND: ${{ vars.NEBULADNS_API_BIND }}
+        run: |
+          # If the admin API isn't directly reachable from GHA, the playbook already
+          # ran an in-host curl. This step is an optional second line of defense for
+          # environments that expose /livez externally.
+          if [ -z "${API_BIND:-}" ]; then
+            echo "NEBULADNS_API_BIND not set — skipping external probe."
+            exit 0
+          fi
+          for _ in 1 2 3 4 5; do
+            if curl -fsS --max-time 5 "http://${API_BIND}/livez" >/dev/null; then
+              echo "external /livez OK"; exit 0
+            fi
+            sleep 3
+          done
+          echo "::warning::external /livez probe failed — in-host probe already ran in the playbook"
+
+      - name: Always scrub secrets from runner
+        if: always()
+        run: |
+          shred -uzf ~/.ssh/id_deploy 2>/dev/null || rm -f ~/.ssh/id_deploy
+          rm -f deploy/ansible/inventory.ini

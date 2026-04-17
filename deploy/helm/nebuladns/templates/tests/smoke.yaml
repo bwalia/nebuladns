@@ -1,0 +1,52 @@
+{{- if .Values.tests.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "nebuladns.fullname" . }}-smoke
+  labels:
+    {{- include "nebuladns.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: smoke
+      image: {{ .Values.tests.image | default "alpine:3.20" }}
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          set -eu
+          apk add --no-cache bind-tools curl >/dev/null
+
+          SVC="{{ include "nebuladns.fullname" . }}"
+          echo "== /livez (HTTP) =="
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS --max-time 3 "http://${SVC}:{{ .Values.service.control.apiPort }}/livez" >/dev/null; then
+              echo "  pass  /livez 200 OK"
+              break
+            fi
+            sleep 2
+          done
+
+          echo "== /metrics =="
+          curl -fsS --max-time 3 "http://${SVC}:{{ .Values.service.control.metricsPort }}/metrics" \
+            | grep -q '^nebula_build_info' && echo "  pass  nebula_build_info present"
+
+          {{- if and .Values.service.dns.enabled .Values.zones .Values.tests.expectAnswers }}
+          echo "== dig smoke =="
+          {{- range .Values.zones }}
+          dig @${SVC} -p {{ $.Values.service.dns.udpPort }} {{ .name }} SOA +short >/tmp/soa
+          if [ -s /tmp/soa ]; then
+            echo "  pass  SOA {{ .name }} = $(cat /tmp/soa)"
+          else
+            echo "  FAIL  SOA {{ .name }} returned empty"
+            exit 1
+          fi
+          {{- end }}
+          {{- else if .Values.service.dns.enabled }}
+          echo "== dig smoke skipped (no zones configured) =="
+          {{- end }}
+
+          echo "SMOKE PASSED"
+{{- end }}

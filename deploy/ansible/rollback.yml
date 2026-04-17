@@ -1,0 +1,73 @@
+---
+# Emergency rollback: flip the /usr/local/bin/nebuladns symlink back to the previous
+# versioned binary and restart. Run interactively:
+#
+#   ansible-playbook -i inventory.ini rollback.yml
+#
+# There is no automatic target — you must confirm. If you know the exact version to
+# restore:
+#
+#   ansible-playbook -i inventory.ini rollback.yml -e rollback_version=v1.2.3
+
+- name: Roll back NebulaDNS to previous version
+  hosts: nebuladns
+  become: true
+  gather_facts: false
+  vars:
+    nebuladns_bin_dir: /usr/local/bin
+    rollback_version: ""
+  tasks:
+    - name: Determine previous versioned binary
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          cd "{{ nebuladns_bin_dir }}"
+          if [ -n "{{ rollback_version }}" ]; then
+            echo "nebuladns-{{ rollback_version }}"
+          else
+            current="$(readlink nebuladns || true)"
+            # Pick the newest versioned binary that isn't the current one.
+            # shellcheck disable=SC2012
+            ls -1t nebuladns-* 2>/dev/null | grep -vx "${current}" | head -n 1
+          fi
+        executable: /bin/bash
+      register: rollback_pick
+      changed_when: false
+
+    - name: Fail if no rollback target found
+      ansible.builtin.fail:
+        msg: "No previous binary available — cannot roll back automatically."
+      when: rollback_pick.stdout | length == 0
+
+    - name: Confirm rollback target
+      ansible.builtin.debug:
+        msg: "Rolling back to {{ rollback_pick.stdout }}"
+
+    - name: Flip nebuladns symlink
+      ansible.builtin.file:
+        src: "{{ nebuladns_bin_dir }}/{{ rollback_pick.stdout }}"
+        dest: "{{ nebuladns_bin_dir }}/nebuladns"
+        state: link
+        force: true
+
+    - name: Flip nebulactl symlink (best-effort — matching version only)
+      ansible.builtin.file:
+        src: "{{ nebuladns_bin_dir }}/{{ rollback_pick.stdout | replace('nebuladns-', 'nebulactl-') }}"
+        dest: "{{ nebuladns_bin_dir }}/nebulactl"
+        state: link
+        force: true
+      failed_when: false
+
+    - name: Restart nebuladns
+      ansible.builtin.systemd:
+        name: nebuladns
+        state: restarted
+
+    - name: Wait for /livez to go green
+      ansible.builtin.uri:
+        url: "http://{{ nebuladns_api_bind | default('127.0.0.1:8080') }}/livez"
+        status_code: 200
+      register: rb_livez
+      retries: 15
+      delay: 2
+      until: rb_livez.status == 200

@@ -1,0 +1,19 @@
+[package]
+name = "nebula-transfer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "AXFR / IXFR / NOTIFY / TSIG for NebulaDNS."
+
+[lints]
+workspace = true
+
+[dependencies]
+nebula-proto = { workspace = true }
+nebula-wire = { workspace = true }
+thiserror = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
+subtle = { workspace = true }

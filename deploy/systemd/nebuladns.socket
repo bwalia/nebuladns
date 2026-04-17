@@ -1,0 +1,13 @@
+[Unit]
+Description=NebulaDNS socket activation (optional, for zero-downtime restart)
+
+[Socket]
+ListenStream=53
+ListenDatagram=53
+ListenStream=853
+ListenStream=443
+Accept=false
+BindIPv6Only=both
+
+[Install]
+WantedBy=sockets.target

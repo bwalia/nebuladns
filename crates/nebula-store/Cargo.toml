@@ -1,0 +1,16 @@
+[package]
+name = "nebula-store"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Storage abstraction with embedded and pluggable backends for NebulaDNS."
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait = { workspace = true }
+nebula-proto = { workspace = true }
+thiserror = { workspace = true }

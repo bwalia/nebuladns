@@ -1,0 +1,165 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/nebula-wire",
+    "crates/nebula-proto",
+    "crates/nebula-zone",
+    "crates/nebula-signer",
+    "crates/nebula-store",
+    "crates/nebula-transfer",
+    "crates/nebula-server",
+    "crates/nebula-api",
+    "crates/nebula-verify",
+    "crates/nebula-metrics",
+    "crates/nebula-cli",
+    "crates/nebula-testutil",
+    "xtask",
+]
+default-members = [
+    "crates/nebula-server",
+    "crates/nebula-cli",
+]
+
+[workspace.package]
+version = "0.1.0-m0"
+edition = "2021"
+rust-version = "1.80"
+license = "Apache-2.0"
+repository = "https://github.com/nebuladns/nebuladns"
+homepage = "https://nebuladns.io"
+authors = ["NebulaDNS Authors"]
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+# RFC 1035 flag bits are literally booleans; a state machine would obscure the wire format.
+struct_excessive_bools = "allow"
+# `RCode::from_u8` deliberately maps unknown codes to ServFail per RFC 6895 §2.3.
+match_same_arms = "allow"
+# Too noisy; we write domain terms like `nebulactl`, `io_uring`, `sd_notify` in plain prose.
+doc_markdown = "allow"
+# Lets library authors pick const-ness when it's load-bearing, not when it looks tidy.
+missing_const_for_fn = "allow"
+# Forbids helpers like `try_run` that wrap `run` — fine locally, noisy at workspace scope.
+similar_names = "allow"
+# We frequently use struct literals across modules; this fires on intentional re-exports.
+redundant_pub_crate = "allow"
+# `option_if_let_else` rewrites can hurt readability when the match has side-effects.
+option_if_let_else = "allow"
+# The if-let-else form keeps control flow legible in the answer path.
+if_not_else = "allow"
+# We intentionally build Header/Message via `struct { ..Default::default() }` patterns.
+field_reassign_with_default = "allow"
+# Tests legitimately pass owned values for readability.
+needless_pass_by_value = "allow"
+# Ambiguous across tasteful cases; the explicit numeric casts in the wire codec are
+# deliberate documentation.
+unnecessary_cast = "allow"
+# `u32` RFC serial fields underscore-group differently from prose.
+inconsistent_digit_grouping = "allow"
+# `fn foo() -> Result<T, Infallible>` patterns: we keep the Result for forward-compat when
+# a subsequent milestone adds real error paths.
+unnecessary_wraps = "allow"
+# Items-after-statements is fine in test modules.
+items_after_statements = "allow"
+# "First paragraph too long" is a style preference; our docstrings are technical.
+too_long_first_doc_paragraph = "allow"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.40", features = ["full"] }
+tokio-util = "0.7"
+futures = "0.3"
+async-trait = "0.1"
+
+# Error & result
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+serde_yaml = "0.9"
+
+# Tracing / logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+tracing-opentelemetry = "0.25"
+
+# HTTP / API
+axum = { version = "0.7", features = ["macros", "http2"] }
+tower = "0.5"
+tower-http = { version = "0.5", features = ["trace", "timeout", "cors", "compression-gzip"] }
+hyper = "1.4"
+utoipa = { version = "4.2", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "7.1", features = ["axum"] }
+
+# gRPC
+tonic = "0.12"
+tonic-build = "0.12"
+prost = "0.13"
+
+# Prometheus
+prometheus-client = "0.22"
+
+# TLS
+rustls = "0.23"
+rustls-pemfile = "2.1"
+
+# CLI
+clap = { version = "4.5", features = ["derive", "env"] }
+
+# Testing
+proptest = "1.5"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+# Misc
+arc-swap = "1.7"
+bytes = "1.7"
+once_cell = "1.19"
+parking_lot = "0.12"
+time = { version = "0.3", features = ["serde", "formatting", "macros"] }
+uuid = { version = "1.10", features = ["v4", "v7", "serde"] }
+hmac = "0.12"
+sha2 = "0.10"
+subtle = "2.6"
+
+# Internal crates (path deps)
+nebula-wire = { path = "crates/nebula-wire" }
+nebula-proto = { path = "crates/nebula-proto" }
+nebula-zone = { path = "crates/nebula-zone" }
+nebula-signer = { path = "crates/nebula-signer" }
+nebula-store = { path = "crates/nebula-store" }
+nebula-transfer = { path = "crates/nebula-transfer" }
+nebula-api = { path = "crates/nebula-api" }
+nebula-verify = { path = "crates/nebula-verify" }
+nebula-metrics = { path = "crates/nebula-metrics" }
+nebula-testutil = { path = "crates/nebula-testutil" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
+debug = false
+
+[profile.release-debug]
+inherits = "release"
+strip = "none"
+debug = true
+
+[profile.bench]
+inherits = "release"
+debug = true

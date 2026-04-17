@@ -1,0 +1,19 @@
+# CODEOWNERS for NebulaDNS
+# Syntax: https://docs.github.com/articles/about-codeowners
+
+# Default: at least one maintainer reviews every PR
+*                               @nebuladns/maintainers
+
+# Wire codec changes require extra scrutiny (RFC-conformance critical)
+/crates/nebula-wire/            @nebuladns/maintainers @nebuladns/wire
+/crates/nebula-transfer/        @nebuladns/maintainers @nebuladns/wire
+
+# DNSSEC / cryptography
+/crates/nebula-signer/          @nebuladns/maintainers @nebuladns/security
+
+# Deployment & release engineering
+/deploy/                        @nebuladns/maintainers @nebuladns/release
+/.github/                       @nebuladns/maintainers @nebuladns/release
+
+# Docs
+/docs/                          @nebuladns/maintainers @nebuladns/docs

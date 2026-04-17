@@ -1,0 +1,15 @@
+---
+# Production environment overrides.
+
+nebuladns_api_bind: "127.0.0.1:8080"
+nebuladns_metrics_bind: "127.0.0.1:9090"
+nebuladns_dns_udp_bind: "0.0.0.0:53"
+nebuladns_dns_tcp_bind: "0.0.0.0:53"
+
+nebuladns_log_filter: "warn,nebula=info"
+nebuladns_log_json: true
+
+# Roll 25% at a time — with our propagation gate (M6) this becomes stricter.
+nebuladns_serial: "25%"
+
+nebuladns_zones: []

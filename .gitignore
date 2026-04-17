@@ -1,0 +1,35 @@
+/target
+**/*.rs.bk
+Cargo.lock.bak
+
+# Fuzzing
+**/fuzz/corpus
+**/fuzz/artifacts
+**/fuzz/coverage
+**/fuzz/target
+
+# IDE
+.vscode/
+.idea/
+*.iml
+.DS_Store
+
+# Local config / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+!deploy/**/*.crt
+!deploy/**/example*.pem
+
+# UI
+ui/node_modules
+ui/dist
+ui/.vite
+
+# Misc
+*.log
+/tmp
+/.claude

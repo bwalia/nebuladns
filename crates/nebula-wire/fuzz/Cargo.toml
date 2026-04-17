@@ -1,0 +1,39 @@
+[package]
+name = "nebula-wire-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+nebula-wire = { path = ".." }
+
+[[bin]]
+name = "header_decode"
+path = "fuzz_targets/header_decode.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "question_decode"
+path = "fuzz_targets/question_decode.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "name_decode"
+path = "fuzz_targets/name_decode.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "message_decode"
+path = "fuzz_targets/message_decode.rs"
+test = false
+doc = false
+
+[workspace]
+# Excluded from the top-level workspace; built on demand via `cargo fuzz`.

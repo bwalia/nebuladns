@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nebuladns.fullname" . }}
+  labels:
+    {{- include "nebuladns.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.control.type }}
+  selector:
+    {{- include "nebuladns.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: api
+      port: {{ .Values.service.control.apiPort }}
+      targetPort: api
+      protocol: TCP
+    - name: metrics
+      port: {{ .Values.service.control.metricsPort }}
+      targetPort: metrics
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nebuladns.fullname" . }}-headless
+  labels:
+    {{- include "nebuladns.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    {{- include "nebuladns.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: api
+      port: {{ .Values.service.control.apiPort }}
+      targetPort: api
+{{- if .Values.service.dns.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nebuladns.fullname" . }}-dns
+  labels:
+    {{- include "nebuladns.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.dns.type }}
+  selector:
+    {{- include "nebuladns.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: dns-udp
+      port: {{ .Values.service.dns.udpPort }}
+      targetPort: dns-udp
+      protocol: UDP
+    - name: dns-tcp
+      port: {{ .Values.service.dns.tcpPort }}
+      targetPort: dns-tcp
+      protocol: TCP
+{{- end }}

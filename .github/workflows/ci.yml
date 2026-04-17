@@ -1,0 +1,167 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  RUSTFLAGS: -Dwarnings
+
+jobs:
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { components: rustfmt }
+      - run: cargo fmt --all --check
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { components: clippy }
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  test:
+    name: test (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            target: aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with: { tool: cargo-nextest }
+      - run: cargo nextest run --workspace --profile ci
+      - run: cargo test --workspace --doc
+
+  build-musl:
+    name: build musl (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: ${{ matrix.target }} }
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with: { tool: cross }
+      - run: cross build --release --target ${{ matrix.target }} --bin nebuladns --bin nebulactl
+
+  deny:
+    name: cargo-deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+
+  audit:
+    name: cargo-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  fuzz-smoke:
+    name: fuzz smoke (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [header_decode, question_decode, name_decode, message_decode]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with: { tool: cargo-fuzz }
+      - name: Smoke run (60s)
+        run: |
+          cargo +nightly fuzz run ${{ matrix.target }} \
+            --fuzz-dir crates/nebula-wire/fuzz \
+            -- -max_total_time=60 -print_final_stats=1
+
+  helm:
+    name: helm lint + kubeconform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: helm lint
+        run: helm lint deploy/helm/nebuladns --strict
+      - name: helm template
+        run: helm template test deploy/helm/nebuladns > /tmp/rendered.yaml
+      - uses: bewuethr/kubeconform-action@v1
+        with:
+          files: /tmp/rendered.yaml
+          strict: true
+
+  dockerfile:
+    name: hadolint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: deploy/docker/Dockerfile
+
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ludeeus/action-shellcheck@master
+        with:
+          severity: warning
+
+  ansible:
+    name: ansible-lint + syntax-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Install ansible
+        run: |
+          pip install "ansible-core==2.17.*" "ansible-lint==24.*" "yamllint==1.*"
+          ansible-galaxy collection install -r deploy/ansible/requirements.yml
+      - name: yamllint
+        run: yamllint -s deploy/ansible/
+      - name: ansible-lint
+        working-directory: deploy/ansible
+        run: ansible-lint -p --offline playbook.yml rollback.yml
+      - name: Syntax-check (playbook.yml)
+        working-directory: deploy/ansible
+        run: ansible-playbook -i inventory.example.ini playbook.yml --syntax-check
+      - name: Syntax-check (rollback.yml)
+        working-directory: deploy/ansible
+        run: ansible-playbook -i inventory.example.ini rollback.yml --syntax-check

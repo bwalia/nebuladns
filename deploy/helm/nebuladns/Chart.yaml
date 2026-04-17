@@ -1,0 +1,23 @@
+apiVersion: v2
+name: nebuladns
+description: NebulaDNS — modern authoritative DNS server in Rust.
+type: application
+version: 0.1.0
+appVersion: "0.1.0-m0"
+kubeVersion: ">=1.27.0"
+home: https://nebuladns.io
+sources:
+  - https://github.com/nebuladns/nebuladns
+maintainers:
+  - name: NebulaDNS Authors
+    url: https://github.com/nebuladns
+keywords:
+  - dns
+  - authoritative
+  - dnssec
+  - kubernetes
+  - coredns
+annotations:
+  artifacthub.io/changes: |
+    - M0 skeleton chart: health endpoints + metrics only. No DNS listener yet.
+  artifacthub.io/license: Apache-2.0

@@ -1,0 +1,56 @@
+origin = "example.com."
+default_ttl = 300
+
+[soa]
+mname = "ns1.example.com."
+rname = "hostmaster.example.com."
+serial = 2026041701
+refresh = 10800
+retry = 3600
+expire = 604800
+minimum = 300
+
+[[records]]
+name = "@"
+type = "NS"
+value = "ns1.example.com."
+
+[[records]]
+name = "@"
+type = "NS"
+value = "ns2.example.com."
+
+[[records]]
+name = "ns1"
+type = "A"
+value = "192.0.2.1"
+
+[[records]]
+name = "ns2"
+type = "A"
+value = "192.0.2.2"
+
+[[records]]
+name = "www"
+type = "A"
+value = "192.0.2.10"
+
+[[records]]
+name = "www"
+type = "A"
+value = "192.0.2.11"
+
+[[records]]
+name = "www"
+type = "AAAA"
+value = "2001:db8::10"
+
+[[records]]
+name = "@"
+type = "MX"
+value = "10 mail.example.com."
+
+[[records]]
+name = "mail"
+type = "A"
+value = "192.0.2.25"
