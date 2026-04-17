@@ -54,9 +54,12 @@ jobs:
         uses: AbsaOSS/k3d-action@v2
         with:
           cluster-name: nebuladns-test
+          # Pin a k3s image that satisfies the chart's `kubeVersion: ">=1.27.0"`.
+          # The default on AbsaOSS/k3d-action@v2 is v1.24.4, which is too old.
           args: >-
             --agents 1
             --no-lb
+            --image rancher/k3s:v1.30.4-k3s1
             --k3s-arg "--disable=traefik,metrics-server@server:0"
 
       - name: Import image into k3d
@@ -135,7 +138,7 @@ jobs:
         run: |
           kubectl -n nebuladns port-forward svc/nebuladns 15353:53 &
           PF=$!
-          trap "kill $PF" EXIT
+          trap 'kill $PF' EXIT
           sleep 3
           sudo apt-get update && sudo apt-get install -y dnsutils
           # Port-forward only handles TCP — dig +tcp.
@@ -146,7 +149,7 @@ jobs:
         run: |
           kubectl -n nebuladns port-forward svc/nebuladns 9090:9090 &
           PF=$!
-          trap "kill $PF" EXIT
+          trap 'kill $PF' EXIT
           sleep 3
           curl -fsS http://127.0.0.1:9090/metrics | grep -q '^nebula_build_info'
 

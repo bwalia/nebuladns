@@ -58,12 +58,12 @@ jobs:
           # Wait for the health check to report healthy. `docker compose` doesn't block
           # on health by default; poll the health state instead.
           for i in $(seq 1 30); do
-            state="$(docker inspect -f '{{`{{.State.Health.Status}}`}}' nebuladns 2>/dev/null || echo none)"
+            state="$(docker inspect -f '{{.State.Health.Status}}' nebuladns 2>/dev/null || echo none)"
             echo "attempt $i: nebuladns health=$state"
             [ "$state" = "healthy" ] && break
             sleep 2
           done
-          docker inspect -f '{{`{{.State.Health.Status}}`}}' nebuladns | grep -q healthy
+          docker inspect -f '{{.State.Health.Status}}' nebuladns | grep -q healthy
 
       - name: Smoke via compose `smoke` profile
         working-directory: deploy/docker/compose
