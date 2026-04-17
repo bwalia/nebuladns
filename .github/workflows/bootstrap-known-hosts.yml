@@ -26,21 +26,15 @@ jobs:
           HOSTS: ${{ github.event.inputs.hosts }}
         run: |
           set -euo pipefail
-          mkdir -p out
-          : > out/known_hosts
+          : > known_hosts
           for h in $HOSTS; do
-            ssh-keyscan -T 15 -t rsa,ecdsa,ed25519 "$h" >> out/known_hosts
+            ssh-keyscan -T 15 -t rsa,ecdsa,ed25519 "$h" >> known_hosts
           done
-          echo "---- lines ----"
-          wc -l out/known_hosts
-          echo "---- host/type preview ----"
-          awk '!/^#/ {print $1, $2}' out/known_hosts
           # Sanity: confirm at least one valid host key decodes.
-          ssh-keygen -lf out/known_hosts | head
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: known_hosts
-          path: out/known_hosts
-          if-no-files-found: error
-          retention-days: 1
+          echo "---- fingerprints ----"
+          ssh-keygen -lf known_hosts
+          # Print between sentinels so the caller can grep/awk it out of the log.
+          # Host pubkeys are public by design — safe to emit to the workflow log.
+          echo "---- BEGIN_KNOWN_HOSTS ----"
+          cat known_hosts
+          echo "---- END_KNOWN_HOSTS ----"
