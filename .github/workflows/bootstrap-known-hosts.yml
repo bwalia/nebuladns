@@ -1,0 +1,46 @@
+name: bootstrap-known-hosts
+
+# One-off helper: runs ssh-keyscan from the GitHub runner (whose IP is not
+# rate-limited by our nameservers) and uploads the result as an artifact so
+# we can set DEPLOY_KNOWN_HOSTS locally via `gh secret set`.
+#
+# Usage:
+#   gh workflow run bootstrap-known-hosts.yml
+#   gh run download <run-id> -n known_hosts
+#   gh secret set DEPLOY_KNOWN_HOSTS < known_hosts/known_hosts
+
+on:
+  workflow_dispatch:
+    inputs:
+      hosts:
+        description: "Space-separated host list (IPs or DNS names) to scan"
+        required: true
+        default: "187.77.179.206 187.124.112.155"
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ssh-keyscan
+        env:
+          HOSTS: ${{ github.event.inputs.hosts }}
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          : > out/known_hosts
+          for h in $HOSTS; do
+            ssh-keyscan -T 15 -t rsa,ecdsa,ed25519 "$h" >> out/known_hosts
+          done
+          echo "---- lines ----"
+          wc -l out/known_hosts
+          echo "---- host/type preview ----"
+          awk '!/^#/ {print $1, $2}' out/known_hosts
+          # Sanity: confirm at least one valid host key decodes.
+          ssh-keygen -lf out/known_hosts | head
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: known_hosts
+          path: out/known_hosts
+          if-no-files-found: error
+          retention-days: 1
