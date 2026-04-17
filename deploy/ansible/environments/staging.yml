@@ -14,4 +14,4 @@ nebuladns_serial: "100%"
 
 # Example zones. Drop the TOML file into deploy/ansible/files/zones/ before deploying.
 nebuladns_zones:
-  - { name: "example.test", src: "zones/example.test.toml" }
+  - {name: "example.test", src: "zones/example.test.toml"}

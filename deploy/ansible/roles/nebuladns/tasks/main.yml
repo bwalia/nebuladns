@@ -31,10 +31,10 @@
     group: "{{ item.group | default(nebuladns_group) }}"
     mode: "{{ item.mode | default('0750') }}"
   loop:
-    - { path: "{{ nebuladns_config_dir }}", owner: root, group: "{{ nebuladns_group }}", mode: "0750" }
-    - { path: "{{ nebuladns_zones_dir }}",  owner: root, group: "{{ nebuladns_group }}", mode: "0750" }
-    - { path: "{{ nebuladns_state_dir }}" }
-    - { path: "{{ nebuladns_log_dir }}" }
+    - {path: "{{ nebuladns_config_dir }}", owner: root, group: "{{ nebuladns_group }}", mode: "0750"}
+    - {path: "{{ nebuladns_zones_dir }}", owner: root, group: "{{ nebuladns_group }}", mode: "0750"}
+    - {path: "{{ nebuladns_state_dir }}"}
+    - {path: "{{ nebuladns_log_dir }}"}
 
 # Stage the binary into a versioned path, smoke-test it, then flip a symlink. If anything
 # below `blocks` fails the previous binary stays in place — the atomic symlink swap is
@@ -131,8 +131,8 @@
     group: root
     mode: "0644"
   loop:
-    - { src: "sysusers.d-nebuladns.conf", dest: "/etc/sysusers.d/nebuladns.conf" }
-    - { src: "tmpfiles.d-nebuladns.conf", dest: "/etc/tmpfiles.d/nebuladns.conf" }
+    - {src: "sysusers.d-nebuladns.conf", dest: "/etc/sysusers.d/nebuladns.conf"}
+    - {src: "tmpfiles.d-nebuladns.conf", dest: "/etc/tmpfiles.d/nebuladns.conf"}
 
 # Flush handlers now so the restart happens before we probe /livez.
 - name: Flush handlers (restart if needed)
