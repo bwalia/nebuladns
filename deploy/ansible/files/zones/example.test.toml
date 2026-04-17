@@ -1,0 +1,36 @@
+origin = "example.test."
+default_ttl = 300
+
+[soa]
+mname = "ns1.example.test."
+rname = "hostmaster.example.test."
+serial = 2026041801
+refresh = 10800
+retry = 3600
+expire = 604800
+minimum = 300
+
+[[records]]
+name = "@"
+type = "NS"
+value = "ns1.example.test."
+
+[[records]]
+name = "@"
+type = "NS"
+value = "ns2.example.test."
+
+[[records]]
+name = "ns1"
+type = "A"
+value = "187.77.179.206"
+
+[[records]]
+name = "ns2"
+type = "A"
+value = "187.124.112.155"
+
+[[records]]
+name = "www"
+type = "A"
+value = "192.0.2.10"
