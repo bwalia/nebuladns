@@ -100,6 +100,11 @@ jobs:
       fail-fast: false
       matrix:
         target: [header_decode, question_decode, name_decode, message_decode]
+    # Unset the workspace-wide `-Dwarnings`: cargo-fuzz appends its own sanitizer
+    # flags, and treating every nursery-level warning as an error from a *release*
+    # sanitizer build is needlessly strict. Keep clippy as the warning gate.
+    env:
+      RUSTFLAGS: ""
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
@@ -107,9 +112,12 @@ jobs:
       - uses: taiki-e/install-action@v2
         with: { tool: cargo-fuzz }
       - name: Smoke run (60s)
+        # Force x86_64-unknown-linux-gnu so cargo-fuzz doesn't try to build against musl
+        # (which would require `x86_64-linux-musl-g++` which isn't on ubuntu-latest).
         run: |
           cargo +nightly fuzz run ${{ matrix.target }} \
             --fuzz-dir crates/nebula-wire/fuzz \
+            --target x86_64-unknown-linux-gnu \
             -- -max_total_time=60 -print_final_stats=1
 
   helm:
@@ -120,12 +128,24 @@ jobs:
       - uses: azure/setup-helm@v4
       - name: helm lint
         run: helm lint deploy/helm/nebuladns --strict
-      - name: helm template
-        run: helm template test deploy/helm/nebuladns > /tmp/rendered.yaml
-      - uses: bewuethr/kubeconform-action@v1
-        with:
-          files: /tmp/rendered.yaml
-          strict: true
+      - name: helm template (example with a zone)
+        # Include a real zone so the zones ConfigMap + helm-test pod paths render.
+        run: |
+          helm template test deploy/helm/nebuladns \
+            --set "zones[0].name=example.com" \
+            --set "zones[0].content=origin = \"example.com.\"" \
+            > /tmp/rendered.yaml
+      - name: Install kubeconform
+        run: |
+          KC_VERSION=v0.6.7
+          curl -fsSL "https://github.com/yannh/kubeconform/releases/download/${KC_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | tar -xz -C /usr/local/bin kubeconform
+          kubeconform -v
+      - name: kubeconform (strict, permits CRDs from Prometheus Operator)
+        run: |
+          kubeconform -strict -summary -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            /tmp/rendered.yaml
 
   dockerfile:
     name: hadolint
@@ -135,6 +155,9 @@ jobs:
       - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: deploy/docker/Dockerfile
+          # DL3008 (pin apt versions) is noisy and not what we care about for a
+          # throwaway builder stage. Security scanning is cargo-audit's job.
+          ignore: DL3008
 
   shellcheck:
     name: shellcheck
@@ -157,7 +180,9 @@ jobs:
           pip install "ansible-core==2.17.*" "ansible-lint==24.*" "yamllint==1.*"
           ansible-galaxy collection install -r deploy/ansible/requirements.yml
       - name: yamllint
-        run: yamllint -s deploy/ansible/
+        # Use the config that lives next to the Ansible tree so line-length etc. match
+        # the local `yamllint` pass. `-s` = strict (warnings fail).
+        run: yamllint -s -c deploy/ansible/.yamllint deploy/ansible/
       - name: ansible-lint
         working-directory: deploy/ansible
         run: ansible-lint -p --offline playbook.yml rollback.yml

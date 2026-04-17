@@ -90,7 +90,10 @@ jobs:
         run: |
           # Give Prometheus one scrape cycle.
           sleep 16
-          curl -fsS 'http://127.0.0.1:9091/api/v1/query?query=up{job=%22nebuladns%22}' \
+          # Let curl URL-encode the PromQL for us; embedding %22 in shell-quoted strings
+          # is one of those things that sometimes breaks and we lose an hour debugging it.
+          curl -fsSG 'http://127.0.0.1:9091/api/v1/query' \
+            --data-urlencode 'query=up{job="nebuladns"}' \
             | tee /tmp/prom.json | grep -q '"value":\[.*,"1"\]'
 
       - name: Dump logs on failure

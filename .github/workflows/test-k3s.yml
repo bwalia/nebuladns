@@ -50,17 +50,22 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Install k3d, helm, kubectl
-        uses: AbsaOSS/k3d-action@v2
-        with:
-          cluster-name: nebuladns-test
-          # Pin a k3s image that satisfies the chart's `kubeVersion: ">=1.27.0"`.
-          # The default on AbsaOSS/k3d-action@v2 is v1.24.4, which is too old.
-          args: >-
-            --agents 1
-            --no-lb
-            --image rancher/k3s:v1.30.4-k3s1
-            --k3s-arg "--disable=traefik,metrics-server@server:0"
+      - name: Install k3d
+        run: |
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+          k3d version
+
+      - name: Create cluster
+        # `helm` is preinstalled on ubuntu-latest runners (GHA image ~2024.x onwards).
+        # The chart's kubeVersion >=1.27.0 requires a modern k3s; v1.30.x is the current
+        # stable line.
+        run: |
+          k3d cluster create nebuladns-test \
+            --agents 1 \
+            --no-lb \
+            --image rancher/k3s:v1.30.4-k3s1 \
+            --k3s-arg "--disable=traefik,metrics-server@server:0" \
+            --wait
 
       - name: Import image into k3d
         run: k3d image import nebuladns:dev -c nebuladns-test

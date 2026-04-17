@@ -13,7 +13,12 @@ targets = [
 [advisories]
 version = 2
 yanked = "deny"
-ignore = []
+ignore = [
+    # Transitive dep of `clap_derive` via `utoipa-gen`. Upstream clap has migrated off
+    # proc-macro-error on main; once the next clap release lands (and flows through
+    # utoipa), `cargo update` will drop this. No runtime impact.
+    "RUSTSEC-2024-0370", # proc-macro-error unmaintained
+]
 
 [licenses]
 version = 2
