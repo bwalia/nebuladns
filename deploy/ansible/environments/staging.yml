@@ -2,8 +2,10 @@
 # Staging environment overrides. Bound to `hosts: nebuladns` via the inventory group.
 # Anything not overridden here uses the role defaults in roles/nebuladns/defaults/main.yml.
 
-nebuladns_api_bind: "127.0.0.1:8080"
-nebuladns_metrics_bind: "127.0.0.1:9090"
+# Staging hosts already run nginx on :8080 and docker-proxy on :9090, so pick
+# non-conflicting ports for the admin API and metrics endpoints.
+nebuladns_api_bind: "127.0.0.1:18080"
+nebuladns_metrics_bind: "127.0.0.1:19090"
 nebuladns_dns_udp_bind: "0.0.0.0:53"
 nebuladns_dns_tcp_bind: "0.0.0.0:53"
 
