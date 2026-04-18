@@ -1,0 +1,62 @@
+name: debug-remote
+
+# One-off helper to pull diagnostics from a nameserver when local SSH is blocked.
+# Prints systemctl + journalctl + config to the workflow log.
+#
+# Usage:
+#   gh workflow run debug-remote.yml -f host=187.77.179.206
+
+on:
+  workflow_dispatch:
+    inputs:
+      host:
+        description: "Target host IP"
+        required: true
+        default: "187.77.179.206"
+
+permissions:
+  contents: read
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write SSH key + known_hosts
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Pull diagnostics
+        env:
+          HOST: ${{ github.event.inputs.host }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -o ConnectTimeout=15 root@"$HOST" bash <<'EOS'
+          set +e
+          echo "==== systemctl status nebuladns.service ===="
+          systemctl status nebuladns.service --no-pager -l
+          echo
+          echo "==== journalctl -u nebuladns.service (last 80) ===="
+          journalctl -u nebuladns.service --no-pager -n 80
+          echo
+          echo "==== nebuladns.toml ===="
+          cat /etc/nebuladns/nebuladns.toml 2>/dev/null | sed -E 's/(token|password|secret)[[:space:]]*=[[:space:]]*".*"/\1=REDACTED/i'
+          echo
+          echo "==== zones/ listing ===="
+          ls -la /etc/nebuladns/zones/ 2>/dev/null
+          echo
+          echo "==== /usr/local/bin/nebuladns --help ===="
+          /usr/local/bin/nebuladns --help 2>&1 | head -40
+          echo
+          echo "==== manual run (foreground, 3s timeout) ===="
+          timeout 3 /usr/local/bin/nebuladns --config /etc/nebuladns/nebuladns.toml 2>&1 | head -60
+          EOS
+
+      - name: Scrub
+        if: always()
+        run: shred -uzf ~/.ssh/id_deploy 2>/dev/null || rm -f ~/.ssh/id_deploy
