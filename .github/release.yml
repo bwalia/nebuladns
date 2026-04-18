@@ -1,0 +1,63 @@
+# Configuration for GitHub's native release-notes generator.
+# Docs: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+#
+# The `release.yml` workflow calls the Releases API with
+# `generate_release_notes: true`, and this file controls how PRs merged since
+# the previous tag are grouped into the changelog shown on each Release page.
+#
+# To get your PR into a useful bucket, tag it with one of the labels below.
+# If you add new labels, add them here too or they'll fall into "Other
+# changes".
+
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - skip-changelog
+      - dependabot
+    authors:
+      - dependabot
+      - renovate
+  categories:
+    - title: ⚠️  Breaking changes
+      labels:
+        - breaking
+        - semver-major
+    - title: 🚀 Features
+      labels:
+        - feature
+        - enhancement
+        - feat
+    - title: 🐛 Bug fixes
+      labels:
+        - bug
+        - fix
+    - title: 🔐 Security
+      labels:
+        - security
+    - title: ⚙️  Operations / deploy
+      labels:
+        - ops
+        - deploy
+        - infra
+    - title: 📊 Observability
+      labels:
+        - metrics
+        - observability
+        - telemetry
+    - title: 📚 Documentation
+      labels:
+        - docs
+        - documentation
+    - title: 🧪 Tests / CI
+      labels:
+        - tests
+        - ci
+    - title: 🧹 Chore / refactor
+      labels:
+        - chore
+        - refactor
+        - cleanup
+    - title: Other changes
+      labels:
+        - "*"

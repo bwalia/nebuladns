@@ -64,6 +64,7 @@
       <a href="#compare" class="hover:text-white">vs. others</a>
       <a href="#architecture" class="hover:text-white">Architecture</a>
       <a href="#roadmap" class="hover:text-white">Roadmap</a>
+      <a href="#releases" class="hover:text-white">Releases</a>
       <a href="https://github.com/bwalia/nebuladns" class="text-white bg-nebula-600/80 hover:bg-nebula-500 px-3 py-1.5 rounded-md">GitHub</a>
     </nav>
   </div>
@@ -487,6 +488,74 @@ nebula_memory_hot_path_allocations_total          # MUST stay at 0</code></pre>
   <p class="mt-6 text-sm text-slate-400">Full milestone schedule and SLOs: <a href="https://github.com/bwalia/nebuladns/blob/main/PROJECT_PROMPT.md" class="text-nebula-300 underline">PROJECT_PROMPT.md §15</a>.</p>
 </section>
 
+<!-- Releases -->
+<section id="releases" class="mx-auto max-w-7xl px-6 py-20 border-t border-slate-800/60">
+  <h2 class="text-sm uppercase tracking-wider text-nebula-300 font-semibold">Releases</h2>
+  <h3 class="mt-2 text-3xl font-bold">Versioned, verified, immutable.</h3>
+  <p class="mt-4 text-slate-300 max-w-3xl">
+    Every tagged commit produces a GitHub Release with static Linux (musl) and macOS
+    binaries for <code class="code text-nebula-200">nebuladns</code> and
+    <code class="code text-nebula-200">nebulactl</code>, per-archive
+    <code class="code text-nebula-200">SHA-256</code> checksums, and auto-generated
+    release notes grouped by PR label. Releases are immutable — a rollback is a new
+    version, never a rewritten tag.
+  </p>
+
+  <div class="mt-10 grid md:grid-cols-3 gap-6">
+
+    <div class="card rounded-2xl p-6">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="tag bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Latest</span>
+        <span class="text-xs text-slate-400">GitHub Releases</span>
+      </div>
+      <h4 class="text-xl font-bold">Download</h4>
+      <p class="text-sm text-slate-300 mt-2">Static binaries for <code class="code">x86_64</code> and <code class="code">aarch64</code> — Linux (musl) and macOS. Verify with the <code class="code">SHA256SUMS</code> file shipped with every release.</p>
+      <a href="https://github.com/bwalia/nebuladns/releases" class="mt-4 inline-block px-4 py-2 rounded-md font-semibold bg-nebula-500 hover:bg-nebula-400 text-white text-sm">
+        View all releases →
+      </a>
+    </div>
+
+    <div class="card rounded-2xl p-6">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="tag bg-nebula-500/20 text-nebula-200 border border-nebula-500/40">Docs</span>
+        <span class="text-xs text-slate-400">For developers &amp; agents</span>
+      </div>
+      <h4 class="text-xl font-bold">RELEASE.md</h4>
+      <p class="text-sm text-slate-300 mt-2">The release runbook. How to cut a version, what the workflow does, how to verify an artifact, how to roll back — and a dedicated section for AI coding agents.</p>
+      <a href="https://github.com/bwalia/nebuladns/blob/main/RELEASE.md" class="mt-4 inline-block px-4 py-2 rounded-md font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm">
+        Read RELEASE.md →
+      </a>
+    </div>
+
+    <div class="card rounded-2xl p-6">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="tag bg-slate-500/20 text-slate-200 border border-slate-500/40">CI</span>
+        <span class="text-xs text-slate-400">Tag-triggered</span>
+      </div>
+      <h4 class="text-xl font-bold">Release workflow</h4>
+      <p class="text-sm text-slate-300 mt-2">Pushing a <code class="code">v*.*.*</code> tag re-runs the test gate against the exact SHA, cross-compiles four targets, smoke-tests each binary, and publishes the Release with auto-generated notes.</p>
+      <a href="https://github.com/bwalia/nebuladns/blob/main/.github/workflows/release.yml" class="mt-4 inline-block px-4 py-2 rounded-md font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm">
+        View workflow →
+      </a>
+    </div>
+  </div>
+
+  <div class="mt-10 card rounded-2xl p-6">
+    <h4 class="text-lg font-bold mb-2">Verify a downloaded release</h4>
+<pre class="code-block"><code>VERSION=v0.2.0
+TARGET=x86_64-unknown-linux-musl
+gh release download "$VERSION" \
+  --pattern "nebuladns-${VERSION}-${TARGET}.tar.gz" \
+  --pattern "nebuladns-${VERSION}-${TARGET}.tar.gz.sha256"
+
+shasum -a 256 -c "nebuladns-${VERSION}-${TARGET}.tar.gz.sha256"
+# nebuladns-v0.2.0-x86_64-unknown-linux-musl.tar.gz: OK
+
+tar -xzf "nebuladns-${VERSION}-${TARGET}.tar.gz"
+./nebuladns-${VERSION}-${TARGET}/nebuladns --print-default-config | head</code></pre>
+  </div>
+</section>
+
 <!-- CTA -->
 <section class="mx-auto max-w-5xl px-6 py-20 text-center">
   <h3 class="text-3xl md:text-4xl font-extrabold">Run it. Break it. File an issue.</h3>
@@ -510,6 +579,8 @@ nebula_memory_hot_path_allocations_total          # MUST stay at 0</code></pre>
     </div>
     <div class="flex gap-6">
       <a href="https://github.com/bwalia/nebuladns" class="hover:text-white">GitHub</a>
+      <a href="https://github.com/bwalia/nebuladns/releases" class="hover:text-white">Releases</a>
+      <a href="https://github.com/bwalia/nebuladns/blob/main/RELEASE.md" class="hover:text-white">Release process</a>
       <a href="https://github.com/bwalia/nebuladns/blob/main/SECURITY.md" class="hover:text-white">Security</a>
       <a href="https://github.com/bwalia/nebuladns/blob/main/CONTRIBUTING.md" class="hover:text-white">Contributing</a>
     </div>

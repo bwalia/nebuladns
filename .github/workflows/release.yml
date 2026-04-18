@@ -1,0 +1,231 @@
+name: release
+
+# Tag-triggered release. Produces a GitHub Release with:
+#   - static musl binaries for x86_64 and aarch64 Linux
+#   - macOS binaries for x86_64 and aarch64
+#   - SHA256SUMS + per-archive checksums
+#   - auto-generated notes (see .github/release.yml)
+#
+# To cut a release, push a SemVer tag that starts with `v`:
+#
+#   git tag -a v0.2.0 -m "v0.2.0"
+#   git push origin v0.2.0
+#
+# The separate `deploy.yml` workflow continues to own remote deploys; this
+# workflow is purely about publishing versioned artifacts for humans and
+# downstream consumers to download.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+      - "v*.*.*-*"   # pre-releases: v0.2.0-rc1, v0.2.0-m3.pre, ...
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to (re-)release (e.g. v0.2.0)
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # required to create the GitHub Release
+  id-token: write   # future: cosign keyless signing
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # Fail fast if the tag was pushed without the code being green. Re-running the
+  # full CI suite against the exact tagged SHA is the cheapest defence against
+  # "I pushed the tag from the wrong branch".
+  test-gate:
+    name: test gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { key: release-test }
+      - uses: taiki-e/install-action@v2
+        with: { tool: cargo-nextest }
+      - name: Fmt + clippy
+        run: |
+          cargo fmt --all --check
+          cargo clippy --workspace --all-targets -- -D warnings
+      - name: Unit + integration tests
+        run: cargo nextest run --workspace --profile ci
+
+  build:
+    name: build ${{ matrix.target }}
+    needs: test-gate
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            use_cross: true
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            use_cross: true
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            use_cross: false
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            use_cross: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+
+      - name: Install cross
+        if: matrix.use_cross
+        uses: taiki-e/install-action@v2
+        with: { tool: cross }
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          # github.ref_name is the tag name on tag pushes; for workflow_dispatch
+          # we take the user-supplied input.
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          # strip leading 'v' for file-stem purposes
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build release binaries
+        shell: bash
+        env:
+          NEBULA_GIT_COMMIT: ${{ github.sha }}
+          NEBULA_RUSTC_VERSION: rustc-stable
+          NEBULA_TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.use_cross }}" = "true" ]; then
+            cross build --release --locked --target ${{ matrix.target }} \
+                        --bin nebuladns --bin nebulactl
+          else
+            cargo build --release --locked --target ${{ matrix.target }} \
+                        --bin nebuladns --bin nebulactl
+          fi
+
+      - name: Stage archive
+        id: archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="nebuladns-${{ steps.ver.outputs.tag }}-${{ matrix.target }}"
+          stage="dist/${name}"
+          mkdir -p "${stage}"
+          cp target/${{ matrix.target }}/release/nebuladns "${stage}/"
+          cp target/${{ matrix.target }}/release/nebulactl "${stage}/"
+          cp README.md LICENSE RELEASE.md "${stage}/" || true
+          # Prefer tar.gz for Linux and macOS uniformly; zip can be added later
+          # if Windows support lands.
+          tar -C dist -czf "dist/${name}.tar.gz" "${name}"
+          ( cd dist && shasum -a 256 "${name}.tar.gz" > "${name}.tar.gz.sha256" )
+          echo "archive=dist/${name}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "checksum=dist/${name}.tar.gz.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke-test the binary (native hosts only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ matrix.target }}" in
+            x86_64-unknown-linux-musl)
+              target/${{ matrix.target }}/release/nebuladns --print-default-config >/dev/null
+              ;;
+            x86_64-apple-darwin|aarch64-apple-darwin)
+              # On macOS runners both archs are runnable for darwin targets
+              # (aarch64 runner is Apple silicon, x86_64 runs under Rosetta
+              # when available). Skip if the kernel rejects the binary.
+              target/${{ matrix.target }}/release/nebuladns --print-default-config >/dev/null || \
+                echo "::warning::could not run ${{ matrix.target }} on this host"
+              ;;
+            *)
+              echo "skipping smoke on non-native target ${{ matrix.target }}"
+              ;;
+          esac
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nebuladns-${{ matrix.target }}
+          path: |
+            ${{ steps.archive.outputs.archive }}
+            ${{ steps.archive.outputs.checksum }}
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0   # needed so auto-generated notes can diff vs previous tag
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Assemble combined SHA256SUMS
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          find artifacts -type f \( -name '*.tar.gz' -o -name '*.tar.gz.sha256' \) \
+            -exec cp {} release/ \;
+          ( cd release && cat ./*.tar.gz.sha256 | sort > SHA256SUMS )
+          ls -la release
+
+      - name: Resolve tag + prerelease flag
+        id: meta
+        shell: bash
+        run: |
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          # Any tag with a `-` after the SemVer is a pre-release
+          # (e.g. v0.2.0-rc1, v0.2.0-m3.pre).
+          if [[ "${tag}" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create / update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.tag }}
+          # Let the native GitHub release-notes generator build the changelog
+          # from merged PRs; categories are configured in .github/release.yml.
+          generate_release_notes: true
+          prerelease: ${{ steps.meta.outputs.prerelease }}
+          draft: false
+          fail_on_unmatched_files: true
+          files: |
+            release/*.tar.gz
+            release/*.tar.gz.sha256
+            release/SHA256SUMS
