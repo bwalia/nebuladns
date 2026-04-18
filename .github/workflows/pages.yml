@@ -1,0 +1,62 @@
+name: pages
+
+# Publish the NebulaDNS landing page (index.html at the repo root) to GitHub
+# Pages. Deploys on every push to main that touches the page or its workflow
+# definition; also runnable manually via workflow_dispatch for force-rebuilds.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - ".github/workflows/pages.yml"
+      - "site/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage site contents
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp index.html _site/index.html
+          # Serve the same HTML for 404s — no server-side routing, so this keeps
+          # stray paths on the brand page instead of GitHub's default 404.
+          cp index.html _site/404.html
+          # Optional static assets live under site/ (reserved for future use).
+          if [ -d site ]; then
+            cp -r site/* _site/ || true
+          fi
+          # CNAME, if present at the repo root, is the canonical hostname for Pages.
+          if [ -f CNAME ]; then
+            cp CNAME _site/CNAME
+          fi
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
