@@ -55,6 +55,9 @@ jobs:
           echo
           echo "==== manual run (foreground, 3s timeout) ===="
           timeout 3 /usr/local/bin/nebuladns --config /etc/nebuladns/nebuladns.toml 2>&1 | head -60
+          echo
+          echo "==== listeners on 8080/9090/53 ===="
+          ss -tulpn 2>/dev/null | grep -E ':(8080|9090|53)\b' || echo "(none or ss unavailable)"
           EOS
 
       - name: Scrub
