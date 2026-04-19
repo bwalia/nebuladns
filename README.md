@@ -223,6 +223,39 @@ dig @127.0.0.1 -p 15353 www.example.com A +short
 
 Requires **Rust stable 1.80+** (pinned via `rust-toolchain.toml`).
 
+### Model Context Protocol (MCP)
+
+`nebula-mcp` exposes NebulaDNS admin operations to Claude (Desktop, Code, or any other
+MCP-aware client) as a stdio server. Read-only tools are active today against M0/M1;
+the full zone / deploy / secondaries tool set lights up once the M5 REST surface ships.
+
+```bash
+cargo build --release --bin nebula-mcp
+```
+
+Register it with Claude Desktop in `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "nebuladns": {
+      "command": "/absolute/path/to/target/release/nebula-mcp",
+      "env": {
+        "NEBULA_API": "127.0.0.1:8080",
+        "NEBULA_MCP_ALLOW_WRITES": "0"
+      }
+    }
+  }
+}
+```
+
+Or add it to Claude Code: `claude mcp add nebuladns /absolute/path/to/nebula-mcp`.
+
+Mutating tools (`create_zone`, `replace_zone`, `add_records`, `rollback_zone`,
+`force_notify`, `trigger_dnssec_rollover`, `deploy`) refuse to run unless
+`NEBULA_MCP_ALLOW_WRITES=1` is set — a per-process kill switch that prevents the model
+from changing DNS state in read-only sessions.
+
 ---
 
 ## Why NebulaDNS
@@ -312,6 +345,7 @@ feature that would have prevented both of our incidents. It's core to NebulaDNS 
 | `nebula-verify` | Propagation verifier (M6). |
 | `nebula-metrics` | Always-on Prometheus registry. |
 | `nebula-cli` | `nebulactl` admin CLI. |
+| `nebula-mcp` | Model Context Protocol server. Exposes admin ops to Claude / any MCP client. |
 | `nebula-testutil` | Test harness + reference-peer drivers. |
 
 ---

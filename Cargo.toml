@@ -12,6 +12,7 @@ members = [
     "crates/nebula-verify",
     "crates/nebula-metrics",
     "crates/nebula-cli",
+    "crates/nebula-mcp",
     "crates/nebula-testutil",
     "xtask",
 ]
