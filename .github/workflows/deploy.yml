@@ -137,7 +137,7 @@ jobs:
         env:
           DEPLOY_ARCH: ${{ vars.DEPLOY_ARCH }}
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: nebuladns-${{ steps.target.outputs.rust_target }}
           path: deploy/ansible/roles/nebuladns/files/
