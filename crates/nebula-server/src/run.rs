@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use clap::Parser;
+use nebula_api::auth::Auth;
+use nebula_api::records::RecordPolicy;
 use nebula_api::{control_plane_router, metrics_router, AppState};
 use nebula_metrics::{dns::DnsMetrics, Metrics};
 use nebula_zone::Zone;
@@ -77,7 +79,36 @@ pub async fn main(args: Args) -> Result<()> {
     }
     zone_registry.replace(zones);
 
-    let state = AppState::new(metrics.clone());
+    let auth = Auth::from_parts(
+        cfg.api.token_sha256.as_deref(),
+        std::env::var("NEBULA_API_TOKEN").ok().as_deref(),
+    )
+    .context("API token configuration")?;
+    if auth.is_enabled() {
+        tracing::info!("zone record API enabled (bearer token required)");
+    } else {
+        tracing::warn!("NEBULA_API_TOKEN / api.token_sha256 unset; /api/v1/zones is refuse-closed");
+    }
+
+    let rec = &cfg.api.records;
+    anyhow::ensure!(
+        rec.min_ttl <= rec.default_ttl && rec.default_ttl <= rec.max_ttl,
+        "api.records TTL policy is inconsistent: min={} default={} max={}",
+        rec.min_ttl,
+        rec.default_ttl,
+        rec.max_ttl
+    );
+    let policy = RecordPolicy {
+        default_ttl: rec.default_ttl,
+        min_ttl: rec.min_ttl,
+        max_ttl: rec.max_ttl,
+        max_writes_per_sec: 50,
+    };
+
+    let state = AppState::new(metrics.clone())
+        .with_zones(zone_registry.clone())
+        .with_auth(auth)
+        .with_policy(policy);
 
     tracing::info!(
         version = env!("CARGO_PKG_VERSION"),

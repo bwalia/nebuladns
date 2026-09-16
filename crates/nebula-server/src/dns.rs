@@ -9,85 +9,21 @@
 //! Wildcards, CNAME chasing, NS delegation, and proper negative responses (RFC 2308) land
 //! in M2. This module is deliberately tiny so we can iterate quickly against `dig`.
 
-use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Instant;
 
-use arc_swap::ArcSwap;
 use nebula_metrics::dns::{
     DnsMetrics, DropLabels, DropReason, Proto, QTypeLabel, QueryLabels, RcodeLabel,
 };
 use nebula_wire::{
-    Header, Message, Name, QClass, QType, RCode, RData, ResourceRecord, Soa, MAX_UDP_MESSAGE_SIZE,
+    Header, Message, QClass, QType, RCode, RData, ResourceRecord, Soa, MAX_UDP_MESSAGE_SIZE,
 };
-use nebula_zone::Zone;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio_util::sync::CancellationToken;
 
-/// Shared registry of loaded zones, keyed by lowercased origin. Writes publish a new
-/// snapshot atomically via arc-swap; readers never block and never allocate.
-#[derive(Debug, Clone, Default)]
-pub struct ZoneRegistry {
-    inner: Arc<ArcSwap<HashMap<Name, Arc<Zone>>>>,
-}
-
-impl ZoneRegistry {
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            inner: Arc::new(ArcSwap::new(Arc::new(HashMap::new()))),
-        }
-    }
-
-    /// Replace the registry contents atomically.
-    pub fn replace(&self, zones: impl IntoIterator<Item = Zone>) {
-        let map: HashMap<Name, Arc<Zone>> = zones
-            .into_iter()
-            .map(|z| (z.origin().to_ascii_lowercase(), Arc::new(z)))
-            .collect();
-        self.inner.store(Arc::new(map));
-    }
-
-    /// Find the most-specific zone containing `qname`.
-    #[must_use]
-    pub fn zone_for(&self, qname: &Name) -> Option<Arc<Zone>> {
-        let map = self.inner.load();
-        let qname_lower = qname.to_ascii_lowercase();
-        let labels = qname_lower.labels();
-        // Walk from the full name toward the apex — longest-match wins.
-        for skip in 0..=labels.len() {
-            let tail = labels[skip..].to_vec();
-            let candidate = Name::from_labels(tail);
-            if let Some(z) = map.get(&candidate) {
-                return Some(z.clone());
-            }
-        }
-        None
-    }
-}
-
-/// Construct a Name directly from label byte vectors. Not public API on Name itself yet
-/// because labels are a private implementation detail over there; we expose a shim here
-/// via `from_ascii` round-tripping. Using `to_ascii_lowercase().labels()` above keeps
-/// ownership simple.
-trait NameFromLabels {
-    fn from_labels(labels: Vec<Vec<u8>>) -> Self;
-}
-impl NameFromLabels for Name {
-    fn from_labels(labels: Vec<Vec<u8>>) -> Self {
-        // There's no public constructor, so we rebuild via the ASCII path.
-        if labels.is_empty() {
-            return Self::root();
-        }
-        let parts: Vec<String> = labels
-            .iter()
-            .map(|l| String::from_utf8_lossy(l).into_owned())
-            .collect();
-        Self::from_ascii(&parts.join(".")).unwrap_or_else(|_| Self::root())
-    }
-}
+pub use nebula_zone::ZoneRegistry;
 
 /// Produce a response for `query`. Never panics on untrusted input.
 pub fn answer(query: &Message, zones: &ZoneRegistry) -> Message {

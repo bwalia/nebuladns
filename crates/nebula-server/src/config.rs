@@ -48,14 +48,56 @@ pub struct ZoneConfig {
 pub struct ApiConfig {
     /// Admin/control-plane HTTP bind. Default: `127.0.0.1:8080`.
     pub bind: SocketAddr,
+    /// SHA-256 hex digest of the API bearer token. Prefer `NEBULA_API_TOKEN` in the
+    /// environment so the raw secret never sits in the config file.
+    #[serde(default)]
+    pub token_sha256: Option<String>,
+    /// Fast-record TTL policy. Writes default to a 5s TTL so caches expire quickly.
+    #[serde(default)]
+    pub records: RecordApiConfig,
 }
 
 impl Default for ApiConfig {
     fn default() -> Self {
         Self {
             bind: "127.0.0.1:8080".parse().unwrap(),
+            token_sha256: None,
+            records: RecordApiConfig::default(),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::struct_field_names)]
+pub struct RecordApiConfig {
+    /// TTL used when the write omits `ttl`. Default 5 (fast failover).
+    #[serde(default = "default_fast_ttl")]
+    pub default_ttl: u32,
+    #[serde(default = "default_min_ttl")]
+    pub min_ttl: u32,
+    #[serde(default = "default_max_ttl")]
+    pub max_ttl: u32,
+}
+
+impl Default for RecordApiConfig {
+    fn default() -> Self {
+        Self {
+            default_ttl: default_fast_ttl(),
+            min_ttl: default_min_ttl(),
+            max_ttl: default_max_ttl(),
+        }
+    }
+}
+
+fn default_fast_ttl() -> u32 {
+    5
+}
+fn default_min_ttl() -> u32 {
+    1
+}
+fn default_max_ttl() -> u32 {
+    60
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

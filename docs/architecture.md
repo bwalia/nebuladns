@@ -112,6 +112,9 @@ Delivered on top of M0:
 - **RFC 4035 compliance fix**: header codec now recognizes the AD/CD DNSSEC bits
   (previously rejected as reserved Z bits — which caused `dig` queries to fail FORMERR
   in the first smoke test).
+- **Control plane**: authenticated `PUT/POST/DELETE /api/v1/zones/{zone}/records`
+  for fast CNAME/A/AAAA/TXT changes (fail-closed bearer token, default TTL 5s,
+  hash-chained audit log). Health endpoints stay unauthenticated.
 
 End-to-end validated with real `dig` over UDP and TCP.
 

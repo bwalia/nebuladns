@@ -41,7 +41,7 @@ jobs:
     name: test gate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: { key: deploy-test }
@@ -65,7 +65,7 @@ jobs:
           - x86_64-unknown-linux-musl
           - aarch64-unknown-linux-musl
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.ref || github.ref }}
       - uses: dtolnay/rust-toolchain@stable
@@ -102,7 +102,7 @@ jobs:
           fi
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nebuladns-${{ matrix.target }}
           path: dist/
@@ -120,7 +120,7 @@ jobs:
       name: ${{ github.event.inputs.environment || 'production' }}
       url: ${{ vars.NEBULADNS_DASHBOARD_URL }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.ref || github.ref }}
 
@@ -137,7 +137,7 @@ jobs:
         env:
           DEPLOY_ARCH: ${{ vars.DEPLOY_ARCH }}
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: nebuladns-${{ steps.target.outputs.rust_target }}
           path: deploy/ansible/roles/nebuladns/files/

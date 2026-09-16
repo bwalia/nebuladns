@@ -16,7 +16,6 @@ path = "src/bin/nebuladns.rs"
 
 [dependencies]
 anyhow = { workspace = true }
-arc-swap = { workspace = true }
 axum = { workspace = true }
 clap = { workspace = true }
 nebula-api = { workspace = true }

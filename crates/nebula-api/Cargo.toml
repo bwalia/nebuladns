@@ -13,11 +13,16 @@ workspace = true
 [dependencies]
 axum = { workspace = true }
 nebula-metrics = { workspace = true }
+nebula-wire = { workspace = true }
+nebula-zone = { workspace = true }
+parking_lot = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
+subtle = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
-tower = { workspace = true }
+tower = { workspace = true, features = ["util"] }
 tower-http = { workspace = true }
 tracing = { workspace = true }
 utoipa = { workspace = true }

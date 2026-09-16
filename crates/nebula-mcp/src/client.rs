@@ -26,7 +26,7 @@ use tokio::net::TcpStream;
 #[derive(Debug, Clone)]
 pub struct ApiClient {
     pub addr: SocketAddr,
-    /// Optional bearer token. M5+ will require auth; passing `None` today is fine.
+    /// Optional bearer token. Required for `/api/v1/zones` once a token is configured.
     pub token: Option<String>,
 }
 
@@ -64,6 +64,17 @@ impl ApiClient {
         let resp = self
             .send("PUT", path, Some(("application/json", serialized)))
             .await?;
+        resp.expect_success()?;
+        if resp.body.trim().is_empty() {
+            Ok(Value::Null)
+        } else {
+            serde_json::from_str(&resp.body)
+                .with_context(|| format!("parse JSON response from {path}"))
+        }
+    }
+
+    pub async fn delete(&self, path: &str) -> Result<Value> {
+        let resp = self.send("DELETE", path, None).await?;
         resp.expect_success()?;
         if resp.body.trim().is_empty() {
             Ok(Value::Null)

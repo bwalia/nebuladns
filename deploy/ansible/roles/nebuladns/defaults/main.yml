@@ -16,7 +16,7 @@ nebuladns_log_dir: /var/log/nebuladns
 nebuladns_zones_dir: "{{ nebuladns_config_dir }}/zones"
 
 # Binary file served from the build artifact. Populated by
-# `actions/download-artifact@v4` in the deploy workflow.
+# `actions/download-artifact@v8` in the deploy workflow.
 nebuladns_artifact_dir: "{{ role_path }}/files"
 
 # Listener binds. Override per environment in environments/*.yml.

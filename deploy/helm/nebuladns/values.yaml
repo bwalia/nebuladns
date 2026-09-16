@@ -156,6 +156,8 @@ tests:
   expectAnswers: true
 
 # Extra env vars (list of {name, value} or {name, valueFrom}).
+# Set NEBULA_API_TOKEN from a Secret to enable PUT /api/v1/zones/{zone}/records.
+# Without it the record API is refuse-closed (writes return 403).
 env: []
 
 # Extra volumes / volume mounts.

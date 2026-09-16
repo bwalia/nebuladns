@@ -714,8 +714,13 @@ version = "0.1.0-m0"
 dependencies = [
  "axum",
  "nebula-metrics",
+ "nebula-wire",
+ "nebula-zone",
+ "parking_lot",
  "serde",
  "serde_json",
+ "sha2",
+ "subtle",
  "thiserror",
  "tokio",
  "tower",
@@ -770,7 +775,6 @@ name = "nebula-server"
 version = "0.1.0-m0"
 dependencies = [
  "anyhow",
- "arc-swap",
  "axum",
  "clap",
  "nebula-api",
@@ -850,8 +854,10 @@ dependencies = [
 name = "nebula-zone"
 version = "0.1.0-m0"
 dependencies = [
+ "arc-swap",
  "nebula-proto",
  "nebula-wire",
+ "parking_lot",
  "serde",
  "thiserror",
  "toml",
