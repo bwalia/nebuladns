@@ -46,7 +46,7 @@
     owner: root
     group: root
     mode: "0755"
-  notify: restart nebuladns
+  notify: Restart nebuladns
 
 - name: Stage new nebulactl binary
   ansible.builtin.copy:
@@ -69,7 +69,7 @@
     dest: "{{ nebuladns_bin_dir }}/nebuladns"
     state: link
     force: true
-  notify: restart nebuladns
+  notify: Restart nebuladns
 
 - name: Point /usr/local/bin/nebulactl at the new binary
   ansible.builtin.file:
@@ -98,7 +98,7 @@
     validate: "{{ nebuladns_bin_dir }}/nebuladns-{{ nebuladns_version }} --config %s --print-default-config"
     # --print-default-config ignores the --config flag, so `validate` here only catches
     # "binary won't even start". A real config-validator subcommand lands in M5.
-  notify: restart nebuladns
+  notify: Restart nebuladns
 
 - name: Deploy zone files
   ansible.builtin.copy:
@@ -110,7 +110,7 @@
   loop: "{{ nebuladns_zones }}"
   loop_control:
     label: "{{ item.name }}"
-  notify: restart nebuladns
+  notify: Restart nebuladns
 
 - name: Install systemd unit
   ansible.builtin.copy:
@@ -120,8 +120,8 @@
     group: root
     mode: "0644"
   notify:
-    - daemon-reload
-    - restart nebuladns
+    - Reload systemd daemon
+    - Restart nebuladns
 
 - name: Ensure sysusers.d + tmpfiles.d drop-in dirs exist
   ansible.builtin.file:

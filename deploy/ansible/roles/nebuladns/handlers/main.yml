@@ -1,9 +1,9 @@
 ---
-- name: daemon-reload
+- name: Reload systemd daemon
   ansible.builtin.systemd:
     daemon_reload: true
 
-- name: restart nebuladns
+- name: Restart nebuladns
   ansible.builtin.systemd:
     name: nebuladns
     state: restarted

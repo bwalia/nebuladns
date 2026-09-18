@@ -20,6 +20,7 @@ spec:
           apk add --no-cache bind-tools curl >/dev/null
 
           SVC="{{ include "nebuladns.fullname" . }}"
+          DNS_SVC="${SVC}-dns"
           echo "== /livez (HTTP) =="
           for i in 1 2 3 4 5 6 7 8 9 10; do
             if curl -fsS --max-time 3 "http://${SVC}:{{ .Values.service.control.apiPort }}/livez" >/dev/null; then
@@ -36,7 +37,12 @@ spec:
           {{- if and .Values.service.dns.enabled .Values.zones .Values.tests.expectAnswers }}
           echo "== dig smoke =="
           {{- range .Values.zones }}
-          dig @${SVC} -p {{ $.Values.service.dns.udpPort }} {{ .name }} SOA +short >/tmp/soa
+          # DNS is on a dedicated Service (`*-dns`); the control Service has no :53.
+          # Use TCP so ClusterIP does not drop the UDP probe.
+          if ! dig +tcp +time=2 +tries=3 @${DNS_SVC} -p {{ $.Values.service.dns.tcpPort }} {{ .name }} SOA +short >/tmp/soa; then
+            echo "  FAIL  dig SOA {{ .name }} failed"
+            exit 1
+          fi
           if [ -s /tmp/soa ]; then
             echo "  pass  SOA {{ .name }} = $(cat /tmp/soa)"
           else
