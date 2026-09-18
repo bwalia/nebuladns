@@ -141,7 +141,7 @@ jobs:
 
       - name: Port-forward + external dig sanity
         run: |
-          kubectl -n nebuladns port-forward svc/nebuladns 15353:53 &
+          kubectl -n nebuladns port-forward svc/nebuladns-dns 15353:53 &
           PF=$!
           trap 'kill $PF' EXIT
           sleep 3

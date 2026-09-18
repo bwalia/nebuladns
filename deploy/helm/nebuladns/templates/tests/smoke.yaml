@@ -7,7 +7,8 @@ metadata:
     {{- include "nebuladns.labels" . | nindent 4 }}
   annotations:
     "helm.sh/hook": test
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    # Keep the pod after success so `helm test --logs` can still find it.
+    "helm.sh/hook-delete-policy": before-hook-creation
 spec:
   restartPolicy: Never
   containers:
