@@ -3,6 +3,12 @@
 
 [api]
 bind = "{{ nebuladns_api_bind }}"
+# Zone writes require NEBULA_API_TOKEN (systemd EnvironmentFile) or token_sha256.
+
+[api.records]
+default_ttl = 5
+min_ttl = 1
+max_ttl = 60
 
 [metrics]
 bind = "{{ nebuladns_metrics_bind }}"

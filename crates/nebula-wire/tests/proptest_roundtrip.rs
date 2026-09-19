@@ -164,7 +164,20 @@ proptest! {
         let mut buf = vec![0u8; 4096];
         let n = msg.encode(&mut buf).unwrap();
         let back = Message::decode(&buf[..n]).unwrap();
-        prop_assert_eq!(back.questions, msg.questions);
-        prop_assert_eq!(back.answers, msg.answers);
+        // Name compression is case-insensitive (RFC 1035 §2.3.3): a later name that
+        // shares a suffix with an earlier one may be rewritten to the earlier casing.
+        prop_assert_eq!(back.questions.len(), msg.questions.len());
+        for (got, want) in back.questions.iter().zip(msg.questions.iter()) {
+            prop_assert!(got.qname.eq_ignore_ascii_case(&want.qname));
+            prop_assert_eq!(got.qtype, want.qtype);
+            prop_assert_eq!(got.qclass, want.qclass);
+        }
+        prop_assert_eq!(back.answers.len(), msg.answers.len());
+        for (got, want) in back.answers.iter().zip(msg.answers.iter()) {
+            prop_assert!(got.name.eq_ignore_ascii_case(&want.name));
+            prop_assert_eq!(got.ttl, want.ttl);
+            prop_assert_eq!(got.class, want.class);
+            prop_assert_eq!(&got.data, &want.data);
+        }
     }
 }

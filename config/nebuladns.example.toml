@@ -6,6 +6,15 @@
 [api]
 # Admin / control-plane HTTP bind. Keep on loopback unless fronted by an ingress.
 bind = "127.0.0.1:8080"
+# SHA-256 of the bearer token. Prefer NEBULA_API_TOKEN in the environment so the
+# raw secret never sits on disk. Zone/record writes fail closed if neither is set.
+# token_sha256 = "64-hex-chars"
+
+[api.records]
+# Fast-change path. Writes default to 5s so resolver caches expire quickly.
+default_ttl = 5
+min_ttl = 1
+max_ttl = 60
 
 [metrics]
 # /metrics bind. MUST be a separate socket from [api].bind so a slow scraper cannot

@@ -44,12 +44,12 @@ pub fn catalogue() -> Vec<ToolDescriptor> {
         // -------- read-only, M5-gated --------
         ToolDescriptor {
             name: "list_zones",
-            description: "[M5] List all zones the caller is authorised to see.",
+            description: "List all loaded zones (origin + SOA serial). Requires a bearer token.",
             input_schema: empty_schema(),
         },
         ToolDescriptor {
             name: "get_zone",
-            description: "[M5] Fetch a single zone's metadata and current record set.",
+            description: "Fetch a single zone's origin, SOA serial, and RRset count. Requires a bearer token.",
             input_schema: zone_name_schema(),
         },
         ToolDescriptor {
@@ -121,8 +121,8 @@ pub fn catalogue() -> Vec<ToolDescriptor> {
         },
         ToolDescriptor {
             name: "add_records",
-            description: "[M5][write] Batch add or modify records in a zone. Requires \
-                          NEBULA_MCP_ALLOW_WRITES=1.",
+            description: "[write] Batch upsert records in a zone (transactional per request, \
+                          low TTL by default). Requires NEBULA_MCP_ALLOW_WRITES=1 and a bearer token.",
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -132,6 +132,45 @@ pub fn catalogue() -> Vec<ToolDescriptor> {
                 "required": ["name", "records"],
                 "additionalProperties": false,
             }),
+        },
+        ToolDescriptor {
+            name: "set_record",
+            description: "[write] Fast upsert of a single RRset (CNAME/A/AAAA/TXT/…). \
+                          Defaults to TTL 5. Requires NEBULA_MCP_ALLOW_WRITES=1 and a bearer token.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string", "description": "Zone apex." },
+                    "record_name": { "type": "string", "description": "Owner name (`@`, relative, or FQDN)." },
+                    "type": { "type": "string", "description": "RR type, e.g. CNAME." },
+                    "value": { "type": "string" },
+                    "ttl": { "type": "integer", "minimum": 1, "description": "TTL seconds. Default 5, max 60." },
+                    "dry_run": { "type": "boolean", "default": false }
+                },
+                "required": ["name", "record_name", "type", "value"],
+                "additionalProperties": false,
+            }),
+        },
+        ToolDescriptor {
+            name: "delete_record",
+            description: "[write] Delete one RRset by owner name and type. Requires \
+                          NEBULA_MCP_ALLOW_WRITES=1 and a bearer token.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string" },
+                    "record_name": { "type": "string" },
+                    "type": { "type": "string" },
+                    "dry_run": { "type": "boolean", "default": false }
+                },
+                "required": ["name", "record_name", "type"],
+                "additionalProperties": false,
+            }),
+        },
+        ToolDescriptor {
+            name: "get_audit_log",
+            description: "Return the hash-chained audit log of zone mutations. Requires a bearer token.",
+            input_schema: empty_schema(),
         },
         ToolDescriptor {
             name: "rollback_zone",
@@ -188,6 +227,7 @@ pub fn catalogue() -> Vec<ToolDescriptor> {
 /// The `allow_writes` flag is a server-level gate: without it, mutating tools refuse up
 /// front so we never hit the API at all. Refusal is surfaced as a tool-level error
 /// (`isError: true`) so the model sees it and can explain to the user what to do.
+#[allow(clippy::too_many_lines)]
 pub async fn invoke(
     name: &str,
     args: &Value,
@@ -208,6 +248,7 @@ pub async fn invoke(
         // ---- read-only, M5 ----
         "list_zones" => api_get_json(client, "/api/v1/zones").await,
         "get_zone" => api_get_json(client, &zone_path(&args, "", None)?).await,
+        "get_audit_log" => api_get_json(client, "/api/v1/audit").await,
         "get_zone_history" => api_get_json(client, &zone_path(&args, "/history", None)?).await,
         "get_propagation_status" => {
             api_get_json(client, &zone_path(&args, "/propagation", None)?).await
@@ -245,6 +286,44 @@ pub async fn invoke(
                 .cloned()
                 .ok_or_else(|| anyhow::anyhow!("missing `records`"))?;
             api_post_json(client, &path, &json!({ "records": records })).await
+        }
+        "set_record" => {
+            guard_write(allow_writes)?;
+            let dry = args
+                .get("dry_run")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+            let path = if dry {
+                format!("{}?dry_run=true", zone_path(&args, "/records", None)?)
+            } else {
+                zone_path(&args, "/records", None)?
+            };
+            let body = json!({
+                "name": str_field(&args, "record_name")?,
+                "type": str_field(&args, "type")?,
+                "value": str_field(&args, "value")?,
+                "ttl": args.get("ttl").and_then(Value::as_u64),
+            });
+            api_put_json(client, &path, &body).await
+        }
+        "delete_record" => {
+            guard_write(allow_writes)?;
+            let record_name = str_field(&args, "record_name")?;
+            let rtype = str_field(&args, "type")?;
+            let dry = args
+                .get("dry_run")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+            let mut path = format!(
+                "{}?name={}&type={}",
+                zone_path(&args, "/records", None)?,
+                record_name,
+                rtype
+            );
+            if dry {
+                path.push_str("&dry_run=true");
+            }
+            api_delete_json(client, &path).await
         }
         "rollback_zone" => {
             guard_write(allow_writes)?;
@@ -366,6 +445,11 @@ async fn api_put_json(client: &ApiClient, path: &str, body: &Value) -> Result<To
     Ok(ToolCallResult::text(serde_json::to_string_pretty(&resp)?))
 }
 
+async fn api_delete_json(client: &ApiClient, path: &str) -> Result<ToolCallResult> {
+    let resp = client.delete(path).await?;
+    Ok(ToolCallResult::text(serde_json::to_string_pretty(&resp)?))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -381,6 +465,9 @@ mod tests {
             "get_zone",
             "create_zone",
             "deploy",
+            "set_record",
+            "delete_record",
+            "get_audit_log",
         ] {
             assert!(names.contains(&expected), "missing tool: {expected}");
         }

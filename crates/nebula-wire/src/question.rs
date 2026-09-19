@@ -26,6 +26,60 @@ impl QType {
     pub const AXFR: Self = Self(252);
     pub const IXFR: Self = Self(251);
     pub const ANY: Self = Self(255);
+
+    /// IANA mnemonic (`"A"`, `"CNAME"`, …). Unknown types return `None`.
+    #[must_use]
+    pub fn mnemonic(self) -> Option<&'static str> {
+        match self {
+            Self::A => Some("A"),
+            Self::NS => Some("NS"),
+            Self::CNAME => Some("CNAME"),
+            Self::SOA => Some("SOA"),
+            Self::PTR => Some("PTR"),
+            Self::MX => Some("MX"),
+            Self::TXT => Some("TXT"),
+            Self::AAAA => Some("AAAA"),
+            Self::SRV => Some("SRV"),
+            Self::OPT => Some("OPT"),
+            Self::DS => Some("DS"),
+            Self::RRSIG => Some("RRSIG"),
+            Self::NSEC => Some("NSEC"),
+            Self::DNSKEY => Some("DNSKEY"),
+            Self::NSEC3 => Some("NSEC3"),
+            Self::CAA => Some("CAA"),
+            Self::AXFR => Some("AXFR"),
+            Self::IXFR => Some("IXFR"),
+            Self::ANY => Some("ANY"),
+            _ => None,
+        }
+    }
+
+    /// Parse an IANA mnemonic. Comparison is case-insensitive.
+    #[must_use]
+    pub fn from_mnemonic(s: &str) -> Option<Self> {
+        Some(match s.to_ascii_uppercase().as_str() {
+            "A" => Self::A,
+            "NS" => Self::NS,
+            "CNAME" => Self::CNAME,
+            "SOA" => Self::SOA,
+            "PTR" => Self::PTR,
+            "MX" => Self::MX,
+            "TXT" => Self::TXT,
+            "AAAA" => Self::AAAA,
+            "SRV" => Self::SRV,
+            "OPT" => Self::OPT,
+            "DS" => Self::DS,
+            "RRSIG" => Self::RRSIG,
+            "NSEC" => Self::NSEC,
+            "DNSKEY" => Self::DNSKEY,
+            "NSEC3" => Self::NSEC3,
+            "CAA" => Self::CAA,
+            "AXFR" => Self::AXFR,
+            "IXFR" => Self::IXFR,
+            "ANY" => Self::ANY,
+            _ => return None,
+        })
+    }
 }
 
 /// DNS QCLASS (§3.2.4 + §3.2.5).

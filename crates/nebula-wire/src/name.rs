@@ -4,6 +4,7 @@
 //! the encoder emits pointers when the suffix has already been written.
 
 use std::collections::HashMap;
+use std::fmt;
 
 use crate::{ParseError, MAX_LABEL_LEN, MAX_NAME_LEN};
 
@@ -65,6 +66,55 @@ impl Name {
         }
     }
 
+    /// Presentation form with a trailing dot (`example.com.`). Root is `"."`.
+    #[must_use]
+    pub fn to_ascii(&self) -> String {
+        if self.labels.is_empty() {
+            return ".".to_string();
+        }
+        let mut out = String::new();
+        for (i, label) in self.labels.iter().enumerate() {
+            if i > 0 {
+                out.push('.');
+            }
+            out.push_str(&String::from_utf8_lossy(label));
+        }
+        out.push('.');
+        out
+    }
+
+    /// True if `self` is `suffix` or a descendant of `suffix` (case-insensitive).
+    #[must_use]
+    pub fn ends_with_name(&self, suffix: &Self) -> bool {
+        let a = self.labels();
+        let b = suffix.labels();
+        if b.len() > a.len() {
+            return false;
+        }
+        let tail = &a[a.len() - b.len()..];
+        tail.iter()
+            .zip(b.iter())
+            .all(|(x, y)| x.eq_ignore_ascii_case(y))
+    }
+
+    /// Build from raw label bytes. An empty vector is the root. Empty labels are rejected.
+    pub fn from_labels(labels: Vec<Vec<u8>>) -> Result<Self, ParseError> {
+        if labels.is_empty() {
+            return Ok(Self::root());
+        }
+        let mut total = 1;
+        for label in &labels {
+            if label.is_empty() || label.len() > MAX_LABEL_LEN {
+                return Err(ParseError::LabelTooLong { len: label.len() });
+            }
+            total += 1 + label.len();
+            if total > MAX_NAME_LEN {
+                return Err(ParseError::NameTooLong { len: total });
+            }
+        }
+        Ok(Self { labels })
+    }
+
     /// Build from a dotted ASCII representation.
     pub fn from_ascii(s: &str) -> Result<Self, ParseError> {
         let s = s.trim_end_matches('.');
@@ -109,7 +159,15 @@ impl Name {
         out[pos] = 0;
         Ok(pos + 1)
     }
+}
 
+impl fmt::Display for Name {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.to_ascii())
+    }
+}
+
+impl Name {
     /// Decode a name starting at `offset` in `buf`. Follows compression pointers with
     /// a visited-set to reject pointer cycles (a classic CVE in older DNS software).
     ///
@@ -424,5 +482,21 @@ mod tests {
         let n2 = ctx.write_name(&b, &mut buf[n1..], n1).unwrap();
         // Same compression savings whether the earlier name was mixed-case.
         assert_eq!(n2, 7);
+    }
+
+    #[test]
+    fn to_ascii_has_trailing_dot() {
+        let n = Name::from_ascii("www.example.com").unwrap();
+        assert_eq!(n.to_ascii(), "www.example.com.");
+        assert_eq!(Name::root().to_ascii(), ".");
+        assert_eq!(format!("{n}"), "www.example.com.");
+    }
+
+    #[test]
+    fn ends_with_name_is_case_insensitive() {
+        let q = Name::from_ascii("App.Example.COM").unwrap();
+        let origin = Name::from_ascii("example.com").unwrap();
+        assert!(q.ends_with_name(&origin));
+        assert!(!origin.ends_with_name(&q));
     }
 }

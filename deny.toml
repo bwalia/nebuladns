@@ -39,7 +39,10 @@ confidence-threshold = 0.93
 
 [bans]
 multiple-versions = "warn"
-wildcards = "deny"
+# Workspace crates use `{ workspace = true }` / path deps without a version
+# until they are published. cargo-deny 0.20 treats that as a `*` wildcard.
+wildcards = "allow"
+allow-wildcard-paths = true
 highlight = "all"
 workspace-default-features = "allow"
 external-default-features = "allow"

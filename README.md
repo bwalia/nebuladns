@@ -79,7 +79,7 @@ Full milestone schedule in [`PROJECT_PROMPT.md §15`](PROJECT_PROMPT.md).
 | Authoritative answer path | NOERROR with answers / NODATA / NXDOMAIN + SOA / REFUSED for out-of-zone. |
 | UDP + TCP listeners | tokio-based; RFC 7766 length-prefix framing on TCP; UDP truncation with `TC=1` when responses exceed 512 bytes. |
 | Zone registry | `arc-swap`-backed lock-free snapshot; readers never block; zones replaced atomically. |
-| Control plane | `/livez`, `/readyz`, `/api/v1/version` served on a separate bind. |
+| Control plane | `/livez`, `/readyz`, `/api/v1/version` on a separate bind. Authenticated `PUT /api/v1/zones/{zone}/records` for fast CNAME/A/AAAA/TXT changes (fail-closed bearer token, default TTL 5s, hash-chained audit log). |
 | Metrics | Always-on Prometheus with compile-time-bounded labels (`proto`/`qtype`/`rcode`). Counter + histogram + drop reasons. Zero hot-path allocation. |
 | Logging | Structured JSON via `tracing`; configurable filter. |
 | systemd integration | `Type=notify` with `sd_notify` READY + watchdog; graceful SIGTERM shutdown. |
@@ -137,6 +137,31 @@ docker compose -f deploy/docker/compose/docker-compose.yml --profile smoke run -
 # Teardown
 docker compose -f deploy/docker/compose/docker-compose.yml down -v
 ```
+
+### Fast record changes (CNAME failover)
+
+Zone writes are **fail-closed**: they require `Authorization: Bearer …` matching
+`NEBULA_API_TOKEN` (or `api.token_sha256`). Default TTL is 5 seconds so resolver
+caches expire quickly. Apex CNAME and CNAME-alongside-other-types are rejected.
+
+```bash
+export NEBULA_API_TOKEN=please-use-a-long-random-secret
+# Restart nebuladns so it picks up the token, then:
+
+curl -sS -X PUT http://127.0.0.1:8080/api/v1/zones/example.com/records \
+  -H "Authorization: Bearer $NEBULA_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: failover-1" \
+  -d '{"name":"app","type":"CNAME","value":"west.example.net.","ttl":5}'
+
+dig @127.0.0.1 -p 15353 app.example.com CNAME +ttl
+
+# Automated workflow (spawns a throwaway server, stdlib only):
+cargo build -p nebula-server --bin nebuladns
+python3 tests/python/test_fast_record.py --bin target/debug/nebuladns
+```
+
+See [`docs/decisions/0002-fast-record-api.md`](docs/decisions/0002-fast-record-api.md).
 
 ### Helm / Kubernetes
 

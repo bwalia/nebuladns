@@ -43,3 +43,6 @@ every other `v1.x` designated an LTS with 3-year security patches. The current s
 - EDNS cookies, per-client rate limits, and RRL enabled by default
 - DNSSEC private keys encrypted at rest; HSM/KMS supported
 - Append-only, hash-chained audit log
+- Zone/record API is fail-closed: no bearer token configured means every
+  `/api/v1/zones*` call is refused. Tokens are compared as SHA-256 digests
+  in constant time. Apex CNAME and CNAME+other-type coexistence are rejected.

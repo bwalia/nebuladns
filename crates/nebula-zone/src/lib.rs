@@ -7,6 +7,9 @@
 
 #![forbid(unsafe_code)]
 
+pub mod mutate;
+pub mod rdata;
+pub mod registry;
 pub mod toml_schema;
 
 use std::collections::HashMap;
@@ -15,6 +18,10 @@ use nebula_wire::{Name, QClass, QType, RData, ResourceRecord};
 use thiserror::Error;
 
 use crate::toml_schema::ZoneDoc;
+
+pub use mutate::{DeleteOutcome, UpsertOutcome};
+pub use rdata::{parse_rdata, rdata_presentation};
+pub use registry::ZoneRegistry;
 
 /// Error raised while loading or validating a zone.
 #[derive(Debug, Error)]
@@ -35,6 +42,22 @@ pub enum ZoneError {
     },
     #[error("record owner {owner:?} is not inside the zone origin {origin:?}")]
     OwnerOutsideOrigin { owner: String, origin: String },
+    #[error("unknown zone {zone}")]
+    UnknownZone { zone: String },
+    #[error("refusing to mutate protected RRset {owner} {rtype}")]
+    ProtectedRRset { owner: String, rtype: String },
+    #[error("CNAME is not allowed at the zone apex {origin}")]
+    CnameAtApex { origin: String },
+    #[error("CNAME cannot coexist with other record types at {owner}")]
+    CnameConflict { owner: String },
+    #[error("CNAME RRset must contain exactly one target")]
+    CnameNotSingleton,
+    #[error("RRset must contain at least one record")]
+    EmptyRRset,
+    #[error("RRset values must all share the same type")]
+    MixedRRset,
+    #[error("no such RRset {owner} {rtype}")]
+    NoSuchRRset { owner: String, rtype: String },
 }
 
 /// A loaded, indexed zone.
@@ -45,14 +68,14 @@ pub struct Zone {
     origin: Name,
     // Lowercased owner + QType → all RRs sharing that owner/type/class.
     // Same `(owner, class)` with different types are separate entries.
-    index: HashMap<IndexKey, Vec<ResourceRecord>>,
+    pub(crate) index: HashMap<IndexKey, Vec<ResourceRecord>>,
     soa: ResourceRecord,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct IndexKey {
-    owner: Name,
-    qtype: QType,
+pub(crate) struct IndexKey {
+    pub owner: Name,
+    pub qtype: QType,
 }
 
 impl Zone {
@@ -109,7 +132,7 @@ impl Zone {
         let soa = soa_rr;
 
         for rec in doc.records {
-            let owner_full = qualify(&rec.name, &origin)?;
+            let owner_full = qualify_name(&rec.name, &origin)?;
             if !owner_full
                 .to_ascii_lowercase()
                 .ends_with_name(&origin_lower)
@@ -154,24 +177,19 @@ fn parse_name(s: &str) -> Result<Name, ZoneError> {
 /// - `"@"` → the origin itself
 /// - `"foo"` (no trailing dot) → `foo.<origin>`
 /// - `"foo.example.com."` (trailing dot) → absolute; origin ignored
-fn qualify(name: &str, origin: &Name) -> Result<Name, ZoneError> {
+pub fn qualify_name(name: &str, origin: &Name) -> Result<Name, ZoneError> {
     if name == "@" {
         return Ok(origin.clone());
     }
     if name.ends_with('.') {
         return parse_name(name);
     }
-    // Relative: append origin labels.
+    // Relative: append origin labels (without the trailing dot of `to_ascii`).
+    let origin_ascii = origin.to_ascii();
     let full = if origin.is_root() {
         name.to_string()
     } else {
-        // Reconstruct origin as an ASCII string.
-        let parts: Vec<String> = origin
-            .labels()
-            .iter()
-            .map(|l| String::from_utf8_lossy(l).into_owned())
-            .collect();
-        format!("{name}.{}", parts.join("."))
+        format!("{name}.{}", origin_ascii.trim_end_matches('.'))
     };
     parse_name(&full)
 }
@@ -181,80 +199,20 @@ fn convert_record(
     ttl: u32,
     rec: toml_schema::Record,
 ) -> Result<ResourceRecord, ZoneError> {
-    let owner_str = format_name(&owner);
-    let rtype_upper = rec.rtype.to_ascii_uppercase();
-    let rdata_err = |msg: String| ZoneError::Rdata {
-        owner: owner_str.clone(),
-        rtype: rtype_upper.clone(),
-        msg,
-    };
-    let data = match rtype_upper.as_str() {
-        "A" => RData::A(
-            rec.value
-                .parse()
-                .map_err(|e: std::net::AddrParseError| rdata_err(e.to_string()))?,
-        ),
-        "AAAA" => RData::Aaaa(
-            rec.value
-                .parse()
-                .map_err(|e: std::net::AddrParseError| rdata_err(e.to_string()))?,
-        ),
-        "NS" => RData::Ns(parse_name(&rec.value)?),
-        "CNAME" => RData::Cname(parse_name(&rec.value)?),
-        "PTR" => RData::Ptr(parse_name(&rec.value)?),
-        "TXT" => RData::Txt(vec![rec.value.as_bytes().to_vec()]),
-        "MX" => {
-            let (pref, exch) = rec
-                .value
-                .split_once(' ')
-                .ok_or_else(|| rdata_err("expected `<preference> <exchange>`".into()))?;
-            let preference: u16 = pref
-                .parse()
-                .map_err(|e: std::num::ParseIntError| rdata_err(e.to_string()))?;
-            RData::Mx {
-                preference,
-                exchange: parse_name(exch.trim())?,
-            }
-        }
-        _ => return Err(rdata_err("unsupported record type in M1".into())),
-    };
+    let data = parse_rdata(&rec.rtype, &rec.value).map_err(|e| match e {
+        ZoneError::Rdata { rtype, msg, .. } => ZoneError::Rdata {
+            owner: owner.to_ascii(),
+            rtype,
+            msg,
+        },
+        other => other,
+    })?;
     Ok(ResourceRecord {
         name: owner,
         class: QClass::IN,
         ttl,
         data,
     })
-}
-
-fn format_name(n: &Name) -> String {
-    let parts: Vec<String> = n
-        .labels()
-        .iter()
-        .map(|l| String::from_utf8_lossy(l).into_owned())
-        .collect();
-    if parts.is_empty() {
-        ".".to_string()
-    } else {
-        parts.join(".")
-    }
-}
-
-trait EndsWithName {
-    fn ends_with_name(&self, suffix: &Name) -> bool;
-}
-
-impl EndsWithName for Name {
-    fn ends_with_name(&self, suffix: &Name) -> bool {
-        let a = self.labels();
-        let b = suffix.labels();
-        if b.len() > a.len() {
-            return false;
-        }
-        let tail = &a[a.len() - b.len()..];
-        tail.iter()
-            .zip(b.iter())
-            .all(|(x, y)| x.eq_ignore_ascii_case(y))
-    }
 }
 
 #[cfg(test)]
