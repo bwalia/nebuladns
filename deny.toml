@@ -34,6 +34,8 @@ allow = [
     "CC0-1.0",
     "Zlib",
     "MPL-2.0",
+    # webpki-roots (via reqwest/hyper-rustls) — CDLA permissive data license.
+    "CDLA-Permissive-2.0",
 ]
 confidence-threshold = 0.93
 

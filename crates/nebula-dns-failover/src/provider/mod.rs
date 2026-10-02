@@ -38,6 +38,7 @@ pub enum ProviderError {
 }
 
 #[async_trait]
+#[allow(clippy::double_must_use)] // async_trait + Result both contribute must_use
 pub trait Provider: Send + Sync {
     async fn ready(&self) -> Result<(), ProviderError>;
 

@@ -87,7 +87,8 @@ jobs:
           tool: cross
       - run: |
           cross build --release --target ${{ matrix.target }} \
-            --bin nebuladns --bin nebulactl \
+            --bin nebuladns --bin nebulactl
+          cross build --release --target ${{ matrix.target }} \
             -p nebula-dns-failover --bin nebula-dns-failover
 
   deny:
