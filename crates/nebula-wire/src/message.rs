@@ -298,7 +298,7 @@ mod tests {
         assert!(back_edns.do_bit);
         // OPT RR is consumed out of `additional`; counts reflect that.
         assert_eq!(back.header.arcount, 1);
-        assert!(back.additional.is_empty());
+        assert_eq!(back.additional.len(), 0);
     }
 
     #[test]

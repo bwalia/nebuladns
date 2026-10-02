@@ -56,7 +56,7 @@ async fn initialize_and_list_tools_over_stdio() {
     let line = reader.next_line().await.unwrap().expect("response line");
     let resp: Value = serde_json::from_str(&line).unwrap();
     let tools = resp["result"]["tools"].as_array().unwrap();
-    assert!(!tools.is_empty());
+    assert_ne!(tools.len(), 0, "tools/list returned no tools");
     let names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
     assert!(names.contains(&"health_check"));
     assert!(names.contains(&"list_zones"));

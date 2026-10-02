@@ -178,6 +178,6 @@ mod tests {
         let raw = b"HTTP/1.0 204 No Content\r\n\r\n";
         let r = parse_response(raw).unwrap();
         assert_eq!(r.status, 204);
-        assert!(r.body.is_empty());
+        assert_eq!(r.body.len(), 0);
     }
 }

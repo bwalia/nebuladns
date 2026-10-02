@@ -371,6 +371,7 @@ feature that would have prevented both of our incidents. It's core to NebulaDNS 
 | `nebula-metrics` | Always-on Prometheus registry. |
 | `nebula-cli` | `nebulactl` admin CLI. |
 | `nebula-mcp` | Model Context Protocol server. Exposes admin ops to Claude / any MCP client. |
+| `nebula-dns-failover` | Health-aware DNS failover controller (probe POPs → rewrite managed A/CNAME). See [`crates/nebula-dns-failover/README.md`](crates/nebula-dns-failover/README.md). |
 | `nebula-testutil` | Test harness + reference-peer drivers. |
 
 ---
