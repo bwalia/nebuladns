@@ -191,26 +191,15 @@ fn desire_active_passive(
 ) -> DesireResult {
     let primary_up = health.is_up(&host.primary);
     let secondary_up = health.is_up(&host.secondary);
-    let primary_health = health.health_of(&host.primary);
-    let secondary_health = health.health_of(&host.secondary);
 
     // Unknown primary: do not failover yet (anti-flap / cold start).
-    if primary_health == PopHealth::Unknown && secondary_health == PopHealth::Unknown {
-        if let Some(last) = runtime.last_applied.clone() {
-            return DesireResult {
-                target: last,
-                state: ServingState::DegradedBothDown,
-                both_down: true,
-                reason: "cold_start_hold_last".into(),
-            };
-        }
-        // Seed with primary before any successful apply.
-        return DesireResult {
-            target: target_for_pops(cfg, host, &[host.primary.as_str()]),
-            state: ServingState::Primary,
-            both_down: false,
-            reason: "cold_start_prefer_primary".into(),
-        };
+    if health.health_of(&host.primary) == PopHealth::Unknown {
+        return warming_hold(
+            runtime,
+            target_for_pops(cfg, host, &[host.primary.as_str()]),
+            ServingState::Primary,
+            "cold_start_prefer_primary",
+        );
     }
 
     if primary_up {
@@ -276,6 +265,18 @@ fn desire_active_active(
     health: &HealthTracker,
     runtime: &HostRuntime,
 ) -> DesireResult {
+    // Cold start: don't drop or alarm on POPs whose health isn't confirmed yet.
+    if health.health_of(&host.primary) == PopHealth::Unknown
+        || health.health_of(&host.secondary) == PopHealth::Unknown
+    {
+        return warming_hold(
+            runtime,
+            target_for_pops(cfg, host, &[host.primary.as_str(), host.secondary.as_str()]),
+            ServingState::ActiveActive,
+            "cold_start_seed_all",
+        );
+    }
+
     let mut ups = Vec::new();
     if health.is_up(&host.primary) {
         ups.push(host.primary.as_str());
@@ -304,6 +305,31 @@ fn desire_active_active(
         state: ServingState::ActiveActive,
         both_down: false,
         reason: format!("active_active_up={}", ups.join("+")),
+    }
+}
+
+/// Health is `Unknown` only until hysteresis first settles, so this is a
+/// warm-up state, not an outage: hold the last answer (or seed one) without
+/// changing serving state or flagging both-down.
+fn warming_hold(
+    runtime: &HostRuntime,
+    seed: DesiredTarget,
+    seed_state: ServingState,
+    seed_reason: &str,
+) -> DesireResult {
+    match runtime.last_applied.clone() {
+        Some(last) => DesireResult {
+            target: last,
+            state: runtime.state,
+            both_down: false,
+            reason: "cold_start_hold_last".into(),
+        },
+        None => DesireResult {
+            target: seed,
+            state: seed_state,
+            both_down: false,
+            reason: seed_reason.into(),
+        },
     }
 }
 
@@ -455,6 +481,61 @@ mod tests {
         assert_eq!(
             d.target,
             DesiredTarget::A(vec!["195.20.255.201".parse().unwrap()])
+        );
+    }
+
+    #[test]
+    fn warmup_never_reports_both_down() {
+        let cfg = test_cfg();
+        let health = HealthTracker::new(&cfg).unwrap();
+        let mut eng = PolicyEngine::new(&cfg);
+        let host = &cfg.hostnames[0];
+        let primary = DesiredTarget::A(vec!["195.20.255.201".parse().unwrap()]);
+
+        // Two cycles before hysteresis settles: seed, then hold.
+        for reason in ["cold_start_prefer_primary", "cold_start_hold_last"] {
+            let d = eng.desire(&cfg, host, &health);
+            assert!(!d.both_down, "{reason}");
+            assert_eq!(d.state, ServingState::Primary);
+            assert_eq!(d.target, primary);
+            assert_eq!(d.reason, reason);
+            eng.mark_applied(&host.name, d.target, d.state);
+        }
+        assert_eq!(eng.last_transition(&host.name), None);
+    }
+
+    #[test]
+    fn unknown_primary_does_not_failover() {
+        let cfg = test_cfg();
+        let mut health = HealthTracker::new(&cfg).unwrap();
+        health.force_sample("lon1", false); // one failure: still Unknown
+        mark_up(&mut health, "lon2");
+        let mut eng = PolicyEngine::new(&cfg);
+        let d = eng.desire(&cfg, &cfg.hostnames[0], &health);
+        assert_eq!(d.state, ServingState::Primary);
+        assert_eq!(
+            d.target,
+            DesiredTarget::A(vec!["195.20.255.201".parse().unwrap()])
+        );
+        assert!(!d.both_down);
+    }
+
+    #[test]
+    fn active_active_warmup_keeps_both() {
+        let mut cfg = test_cfg();
+        cfg.hostnames[0].mode = FailoverMode::ActiveActive;
+        let mut health = HealthTracker::new(&cfg).unwrap();
+        mark_up(&mut health, "lon2"); // lon1 still Unknown
+        let mut eng = PolicyEngine::new(&cfg);
+        let d = eng.desire(&cfg, &cfg.hostnames[0], &health);
+        assert!(!d.both_down);
+        assert_eq!(d.state, ServingState::ActiveActive);
+        assert_eq!(
+            d.target,
+            DesiredTarget::A(vec![
+                "195.20.255.201".parse().unwrap(),
+                "85.190.106.189".parse().unwrap(),
+            ])
         );
     }
 }
