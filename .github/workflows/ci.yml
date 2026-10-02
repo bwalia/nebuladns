@@ -85,7 +85,7 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cross
-      - run: cross build --release --target ${{ matrix.target }} --bin nebuladns --bin nebulactl
+      - run: cross build --release --target ${{ matrix.target }} --bin nebuladns --bin nebulactl --bin nebula-dns-failover
 
   deny:
     name: cargo-deny

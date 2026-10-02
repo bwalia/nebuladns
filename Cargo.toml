@@ -13,6 +13,7 @@ members = [
     "crates/nebula-metrics",
     "crates/nebula-cli",
     "crates/nebula-mcp",
+    "crates/nebula-dns-failover",
     "crates/nebula-testutil",
     "xtask",
 ]
@@ -103,6 +104,9 @@ axum = { version = "0.7", features = ["macros", "http2"] }
 tower = "0.5"
 tower-http = { version = "0.5", features = ["trace", "timeout", "cors", "compression-gzip"] }
 hyper = "1.4"
+# Outbound HTTPS (edge health probes + optional Cloudflare DNS provider).
+# rustls only — keeps musl/cross builds free of OpenSSL.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 utoipa = { version = "4.2", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "7.1", features = ["axum"] }
 
@@ -146,6 +150,7 @@ nebula-transfer = { path = "crates/nebula-transfer" }
 nebula-api = { path = "crates/nebula-api" }
 nebula-verify = { path = "crates/nebula-verify" }
 nebula-metrics = { path = "crates/nebula-metrics" }
+nebula-dns-failover = { path = "crates/nebula-dns-failover" }
 nebula-testutil = { path = "crates/nebula-testutil" }
 
 [profile.release]

@@ -1,0 +1,33 @@
+# Example config for nebula-dns-failover (same as deploy/dns-failover/config.example.toml)
+
+listen = "127.0.0.1:9119"
+dry_run = true
+interval = "10s"
+probe_timeout = "3s"
+consecutive_fail = 3
+consecutive_ok = 3
+ttl = 30
+
+[provider]
+type = "nebuladns"
+api_base = "http://127.0.0.1:8080"
+zone_name = "fictionally.org"
+
+[pops.lon1]
+display_name = "London lon1"
+public_ipv4 = "195.20.255.201"
+health_urls = ["https://lon1.pop0.uk/healthz"]
+
+[pops.lon2]
+display_name = "London lon2/pop0"
+public_ipv4 = "85.190.106.189"
+health_urls = ["https://lon2.pop0.uk/healthz"]
+
+[[hostnames]]
+name = "abtesting.fictionally.org"
+mode = "active-passive"
+primary = "lon1"
+secondary = "lon2"
+record_type = "A"
+proxied = false
+enabled = true

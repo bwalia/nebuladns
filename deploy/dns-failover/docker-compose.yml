@@ -1,0 +1,27 @@
+# Optional compose sidecar / standalone control host.
+
+services:
+  dns-failover:
+    image: nebuladns/nebula-dns-failover:latest
+    # Build from workspace (until a dedicated image stage lands in CI):
+    # build:
+    #   context: ../..
+    #   dockerfile: deploy/docker/Dockerfile
+    #   args: { BIN: nebula-dns-failover }
+    network_mode: host
+    environment:
+      NEBULA_API_TOKEN: ${NEBULA_API_TOKEN:-}
+      CF_API_TOKEN: ${CF_API_TOKEN:-}
+      FAILOVER_API_TOKEN: ${FAILOVER_API_TOKEN:-}
+      RUST_LOG: info
+    volumes:
+      - ./config.example.toml:/etc/nebuladns/dns-failover.toml:ro
+      - dns_failover_logs:/var/log/nebuladns
+    command:
+      - /usr/local/bin/nebula-dns-failover
+      - --config
+      - /etc/nebuladns/dns-failover.toml
+    restart: unless-stopped
+
+volumes:
+  dns_failover_logs:
