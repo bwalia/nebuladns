@@ -16,6 +16,95 @@ Operator runbook: [`docs/runbooks/DnsFailover.md`](../../docs/runbooks/DnsFailov
 
 ---
 
+## System architecture
+
+You pick **one** DNS writer. NebulaDNS and Cloudflare are **alternate providers**,
+not both in the write path at once.
+
+| Piece | Role |
+|-------|------|
+| `nebula-dns-failover` | Health + policy only. Does **not** serve DNS or terminate HTTPS. Run on a **control host** (not only on the POP under test). |
+| `lon1` / `lon2` | Edge **traffic** POPs. Probed via `/healthz`. Their `public_ipv4` values become the hostname’s A targets. |
+| NebulaDNS **or** Cloudflare | Authoritative place that **owns the zone records**. The controller upserts A/CNAME there. |
+| Resolvers / clients | Learn the new POP IP after TTL + cache; then connect to lon1 or lon2. |
+
+### Nameservers (`ns1` / `ns2`) vs edge POPs (`lon1` / `lon2`)
+
+These are different layers:
+
+| Name | What it is |
+|------|------------|
+| `ns1.nebuladns.net` | Authoritative **NebulaDNS** host (glue A/AAAA at the parent). Listed in the zone’s **NS** set when NebulaDNS is authoritative. |
+| `ns2.nebuladns.net` | Optional **secondary** NebulaDNS host in the same NS set (same zone data, often via AXFR/IXFR). Not the lon2 traffic POP. |
+| `lon1` / `lon2` | Edge proxies / application edges. Failover **rewrites application hostnames** (e.g. `abtesting.fictionally.org`) to point at these IPs. |
+
+### Mode A — `provider.type = "nebuladns"` (example config default)
+
+Registrar NS for the zone → `ns1.nebuladns.net` (and `ns2…` if you run a secondary).  
+You need a host (VM/k8s/container) running **NebulaDNS**. Token: `NEBULA_API_TOKEN`.  
+**Cloudflare is not used** for failover writes.
+
+```mermaid
+flowchart LR
+  subgraph control["Control host"]
+    FC["nebula-dns-failover"]
+  end
+  subgraph auth["Authoritative DNS"]
+    NS1["ns1.nebuladns.net<br/>NebulaDNS :53 + API"]
+    NS2["ns2.nebuladns.net<br/>optional secondary"]
+  end
+  subgraph edges["Edge POPs"]
+    L1["lon1"]
+    L2["lon2"]
+  end
+  R["Public resolvers"] --> C["Clients"]
+  FC -->|"probe /healthz"| L1
+  FC -->|"probe /healthz"| L2
+  FC -->|"PUT records"| NS1
+  NS1 -.->|"zone transfer"| NS2
+  NS1 --> R
+  NS2 --> R
+  C -->|"HTTPS to POP IP"| L1
+  C --> L2
+```
+
+### Mode B — `provider.type = "cloudflare"`
+
+Registrar NS → Cloudflare’s nameservers.  
+**No NebulaDNS host required** for the failover write path. Token: `CF_API_TOKEN`.  
+`ns1.nebuladns.net` is not in this path unless you later migrate the zone.
+
+```mermaid
+flowchart LR
+  subgraph control["Control host"]
+    FC["nebula-dns-failover"]
+  end
+  subgraph auth["Authoritative DNS"]
+    CF["Cloudflare DNS API"]
+  end
+  subgraph edges["Edge POPs"]
+    L1["lon1"]
+    L2["lon2"]
+  end
+  R["Public resolvers"] --> C["Clients"]
+  FC -->|"probe /healthz"| L1
+  FC -->|"probe /healthz"| L2
+  FC -->|"upsert marked records"| CF
+  CF --> R
+  C --> L1
+  C --> L2
+```
+
+Config switch:
+
+```toml
+[provider]
+type = "nebuladns"    # → NebulaDNS (+ NEBULA_API_TOKEN); NS = ns1/ns2.nebuladns.net
+# type = "cloudflare" # → Cloudflare (+ CF_API_TOKEN); NS = Cloudflare
+```
+
+---
+
 ## Flow
 
 ```mermaid
@@ -63,7 +152,7 @@ sequenceDiagram
 
 ---
 
-## Architecture (crate layout)
+## Crate layout
 
 | Module | Role |
 |--------|------|
