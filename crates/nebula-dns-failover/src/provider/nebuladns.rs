@@ -295,10 +295,7 @@ mod tests {
             token: "t".into(),
             zone: "fictionally.org".into(),
         };
-        assert_eq!(
-            p.owner_relative("abtesting.fictionally.org"),
-            "abtesting"
-        );
+        assert_eq!(p.owner_relative("abtesting.fictionally.org"), "abtesting");
         assert_eq!(p.owner_relative("fictionally.org."), "@");
     }
 }

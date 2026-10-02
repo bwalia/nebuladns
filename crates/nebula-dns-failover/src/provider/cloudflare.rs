@@ -78,10 +78,7 @@ impl CloudflareProvider {
         Ok(id)
     }
 
-    async fn with_retry<F, Fut>(
-        &self,
-        mut make: F,
-    ) -> Result<reqwest::Response, ProviderError>
+    async fn with_retry<F, Fut>(&self, mut make: F) -> Result<reqwest::Response, ProviderError>
     where
         F: FnMut() -> Fut,
         Fut: std::future::Future<Output = Result<reqwest::Response, reqwest::Error>>,
@@ -97,7 +94,9 @@ impl CloudflareProvider {
             }
             return Ok(resp);
         }
-        Err(ProviderError::Api("cloudflare rate limit retries exhausted".into()))
+        Err(ProviderError::Api(
+            "cloudflare rate limit retries exhausted".into(),
+        ))
     }
 
     async fn list_raw(&self, name: &str) -> Result<Vec<CfRecord>, ProviderError> {
@@ -226,10 +225,7 @@ impl Provider for CloudflareProvider {
                 rtype: r.type_field.clone(),
                 content: r.content.clone(),
                 ttl: r.ttl,
-                managed: r
-                    .comment
-                    .as_deref()
-                    .is_some_and(|c| c.contains(MARKER)),
+                managed: r.comment.as_deref().is_some_and(|c| c.contains(MARKER)),
             })
             .collect())
     }
@@ -247,20 +243,12 @@ impl Provider for CloudflareProvider {
         // Never touch unmarked records.
         let managed: Vec<_> = all
             .iter()
-            .filter(|r| {
-                r.comment
-                    .as_deref()
-                    .is_some_and(|c| c.contains(MARKER))
-            })
+            .filter(|r| r.comment.as_deref().is_some_and(|c| c.contains(MARKER)))
             .cloned()
             .collect();
         let foreign: Vec<_> = all
             .iter()
-            .filter(|r| {
-                !r.comment
-                    .as_deref()
-                    .is_some_and(|c| c.contains(MARKER))
-            })
+            .filter(|r| !r.comment.as_deref().is_some_and(|c| c.contains(MARKER)))
             .collect();
         if !foreign.is_empty() {
             debug!(
@@ -302,17 +290,8 @@ impl Provider for CloudflareProvider {
                     || existing.comment.as_deref() != Some(comment)
                     || existing.proxied != proxied
                 {
-                    self.update_record(
-                        &existing.id,
-                        "A",
-                        name,
-                        ip,
-                        ttl,
-                        comment,
-                        proxied,
-                        dry_run,
-                    )
-                    .await?;
+                    self.update_record(&existing.id, "A", name, ip, ttl, comment, proxied, dry_run)
+                        .await?;
                     changed = true;
                 }
             } else {
@@ -343,11 +322,7 @@ impl Provider for CloudflareProvider {
         let all = self.list_raw(name).await?;
         let managed: Vec<_> = all
             .iter()
-            .filter(|r| {
-                r.comment
-                    .as_deref()
-                    .is_some_and(|c| c.contains(MARKER))
-            })
+            .filter(|r| r.comment.as_deref().is_some_and(|c| c.contains(MARKER)))
             .cloned()
             .collect();
 
@@ -481,7 +456,9 @@ mod tests {
             content: "1.2.3.4".into(),
             ttl: 30,
             proxied: false,
-            comment: Some("nebula-dns-failover | hostname=app.example.com | policy=lon1-primary | v=1".into()),
+            comment: Some(
+                "nebula-dns-failover | hostname=app.example.com | policy=lon1-primary | v=1".into(),
+            ),
         };
         let foreign = CfRecord {
             id: "2".into(),

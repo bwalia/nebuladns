@@ -30,9 +30,15 @@ pub struct Config {
     /// When true, log planned DNS writes but never call the provider mutate path.
     #[serde(default)]
     pub dry_run: bool,
-    #[serde(default = "default_interval", deserialize_with = "deserialize_duration")]
+    #[serde(
+        default = "default_interval",
+        deserialize_with = "deserialize_duration"
+    )]
     pub interval: Duration,
-    #[serde(default = "default_probe_timeout", deserialize_with = "deserialize_duration")]
+    #[serde(
+        default = "default_probe_timeout",
+        deserialize_with = "deserialize_duration"
+    )]
     pub probe_timeout: Duration,
     #[serde(default = "default_consecutive_fail")]
     pub consecutive_fail: u32,
@@ -211,7 +217,12 @@ impl Config {
         }
         match self.provider.kind {
             ProviderKind::Nebuladns => {
-                if self.provider.api_base.as_ref().map_or(true, String::is_empty) {
+                if self
+                    .provider
+                    .api_base
+                    .as_ref()
+                    .map_or(true, String::is_empty)
+                {
                     return Err(ConfigError::Validation(
                         "provider.api_base required for nebuladns provider".into(),
                     ));
@@ -304,9 +315,7 @@ impl<'de> Deserialize<'de> for TomlDuration {
                 Ok(TomlDuration(Duration::from_secs(n)))
             }
             fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
-                parse_duration(v)
-                    .map(TomlDuration)
-                    .map_err(E::custom)
+                parse_duration(v).map(TomlDuration).map_err(E::custom)
             }
         }
         deserializer.deserialize_any(V)

@@ -64,8 +64,15 @@ pub async fn run_once(cfg: Config, audit_path: Option<PathBuf>) -> ExitCode {
     let mut policy = PolicyEngine::new(&cfg);
 
     health.probe_all(&cfg, &metrics).await;
-    let summary = reconcile_all(&cfg, &health, &mut policy, provider.as_ref(), &metrics, &audit)
-        .await;
+    let summary = reconcile_all(
+        &cfg,
+        &health,
+        &mut policy,
+        provider.as_ref(),
+        &metrics,
+        &audit,
+    )
+    .await;
 
     if summary.apply_failed {
         ExitCode::DnsApplyFailed
