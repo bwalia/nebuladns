@@ -85,7 +85,10 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cross
-      - run: cross build --release --target ${{ matrix.target }} --bin nebuladns --bin nebulactl --bin nebula-dns-failover
+      - run: |
+          cross build --release --target ${{ matrix.target }} \
+            --bin nebuladns --bin nebulactl \
+            -p nebula-dns-failover --bin nebula-dns-failover
 
   deny:
     name: cargo-deny
@@ -95,6 +98,9 @@ jobs:
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
+          # Action image ships a pinned musl toolchain; rust-toolchain.toml
+          # `channel = "stable"` otherwise fails with "not installed".
+          rust-version: "1.85.0"
 
   audit:
     name: cargo-audit
