@@ -82,14 +82,18 @@ jobs:
         with:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
+        with:
+          # Avoid host build-script artifacts leaking into the cross container
+          # (GLIBC_2.30 gettid relocation errors on aarch64-musl).
+          cache-cross-compilation: true
+          prefix-key: musl-cross-v2
       - uses: taiki-e/install-action@v2
         with:
           tool: cross
       - run: |
           cross build --release --target ${{ matrix.target }} \
-            --bin nebuladns --bin nebulactl
-          cross build --release --target ${{ matrix.target }} \
-            -p nebula-dns-failover --bin nebula-dns-failover
+            -p nebula-server -p nebula-cli -p nebula-dns-failover \
+            --bin nebuladns --bin nebulactl --bin nebula-dns-failover
 
   deny:
     name: cargo-deny
