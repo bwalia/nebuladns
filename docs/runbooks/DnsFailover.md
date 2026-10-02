@@ -19,6 +19,26 @@ Hostname may keep pointing at a dead edge until TTL expires after a successful
 failover apply. If both POPs are down the controller **fail-opens** (keeps
 last-known-good DNS) and alerts — it never blanks the RRset.
 
+## Architecture
+
+Pick **one** provider. NebulaDNS and Cloudflare are alternatives, not stacked.
+
+| Mode | Zone nameservers | Need NebulaDNS host? | Token |
+|------|------------------|----------------------|-------|
+| `provider.type = "nebuladns"` | e.g. `ns1.nebuladns.net` (+ `ns2…` for secondary) | **Yes** — NebulaDNS serves `:53` and the record API | `NEBULA_API_TOKEN` |
+| `provider.type = "cloudflare"` | Cloudflare NS | **No** for failover writes | `CF_API_TOKEN` |
+
+**Do not confuse:**
+
+| Name | Layer |
+|------|--------|
+| `ns1` / `ns2.nebuladns.net` | Authoritative **DNS servers** for the zone (NebulaDNS primary / secondary). |
+| `lon1` / `lon2` | Edge **traffic** POPs. Failover points application A records at these IPs. |
+
+`nebula-dns-failover` always needs a **control host**. That is separate from hosting NebulaDNS (only required in NebulaDNS mode).
+
+Full diagrams: [`crates/nebula-dns-failover/README.md`](../../crates/nebula-dns-failover/README.md#system-architecture).
+
 ## Where to run
 
 Run on a **control host that is not the POP under test** (or accept SPOF if the
