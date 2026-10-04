@@ -83,10 +83,11 @@ jobs:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
         with:
-          # Avoid host build-script artifacts leaking into the cross container
-          # (GLIBC_2.30 gettid relocation errors on aarch64-musl).
-          cache-cross-compilation: true
-          prefix-key: musl-cross-v2
+          # Per-target key: each cross image has a different glibc, so host
+          # build-script binaries from one target must not be reused by
+          # another (GLIBC_2.30 gettid relocation errors on aarch64-musl).
+          key: ${{ matrix.target }}
+          prefix-key: musl-cross-v3
       - uses: taiki-e/install-action@v2
         with:
           tool: cross
