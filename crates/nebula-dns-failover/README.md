@@ -284,4 +284,5 @@ Cloudflare writes carry comment marker
 | `GET /v1/status` | none | POP + hostname snapshot |
 | `POST /v1/hostnames/{fqdn}/failover` | Bearer | Force secondary |
 | `POST /v1/hostnames/{fqdn}/failback` | Bearer | Force primary |
+| `POST /v1/hostnames/{fqdn}/auto` | Bearer | Clear manual override (back to health-driven) |
 | `POST /v1/hostnames/{fqdn}/reconcile` | Bearer | Run cycle now |

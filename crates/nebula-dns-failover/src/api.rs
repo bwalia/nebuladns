@@ -70,6 +70,7 @@ pub fn router(state: ApiState) -> Router {
         .route("/v1/status", get(status))
         .route("/v1/hostnames/:name/failover", post(force_failover))
         .route("/v1/hostnames/:name/failback", post(force_failback))
+        .route("/v1/hostnames/:name/auto", post(clear_override))
         .route("/v1/hostnames/:name/reconcile", post(force_reconcile))
         .with_state(state)
 }
@@ -118,27 +119,14 @@ async fn force_failover(
     Path(name): Path<String>,
     headers: HeaderMap,
 ) -> Response {
-    if let Err(resp) = authorize(&state, &headers) {
-        return resp;
-    }
-    let ok = state
-        .policy
-        .write()
-        .await
-        .set_override(&name, ManualOverride::ForceSecondary);
-    if !ok {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "unknown hostname"})),
-        )
-            .into_response();
-    }
-    let _ = state.reconcile_tx.send(()).await;
-    (
-        StatusCode::OK,
-        Json(serde_json::json!({"ok": true, "override": "secondary"})),
+    apply_override(
+        &state,
+        &name,
+        &headers,
+        ManualOverride::ForceSecondary,
+        "secondary",
     )
-        .into_response()
+    .await
 }
 
 async fn force_failback(
@@ -146,39 +134,68 @@ async fn force_failback(
     Path(name): Path<String>,
     headers: HeaderMap,
 ) -> Response {
-    if let Err(resp) = authorize(&state, &headers) {
+    apply_override(
+        &state,
+        &name,
+        &headers,
+        ManualOverride::ForcePrimary,
+        "primary",
+    )
+    .await
+}
+
+/// Clear any manual override so health-driven policy decides again.
+async fn clear_override(
+    State(state): State<ApiState>,
+    Path(name): Path<String>,
+    headers: HeaderMap,
+) -> Response {
+    apply_override(&state, &name, &headers, ManualOverride::None, "none").await
+}
+
+async fn apply_override(
+    state: &ApiState,
+    name: &str,
+    headers: &HeaderMap,
+    mode: ManualOverride,
+    label: &str,
+) -> Response {
+    if let Err(resp) = authorize(state, headers) {
         return resp;
     }
-    let ok = state
-        .policy
-        .write()
-        .await
-        .set_override(&name, ManualOverride::ForcePrimary);
+    let ok = state.policy.write().await.set_override(name, mode);
     if !ok {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "unknown hostname"})),
-        )
-            .into_response();
+        return unknown_hostname();
     }
     let _ = state.reconcile_tx.send(()).await;
     (
         StatusCode::OK,
-        Json(serde_json::json!({"ok": true, "override": "primary"})),
+        Json(serde_json::json!({"ok": true, "override": label})),
     )
         .into_response()
 }
 
 async fn force_reconcile(
     State(state): State<ApiState>,
-    Path(_name): Path<String>,
+    Path(name): Path<String>,
     headers: HeaderMap,
 ) -> Response {
     if let Err(resp) = authorize(&state, &headers) {
         return resp;
     }
+    if !state.policy.read().await.manages(&name) {
+        return unknown_hostname();
+    }
     let _ = state.reconcile_tx.send(()).await;
     (StatusCode::OK, Json(serde_json::json!({"ok": true}))).into_response()
+}
+
+fn unknown_hostname() -> Response {
+    (
+        StatusCode::NOT_FOUND,
+        Json(serde_json::json!({"error": "unknown hostname"})),
+    )
+        .into_response()
 }
 
 #[allow(clippy::result_large_err)]

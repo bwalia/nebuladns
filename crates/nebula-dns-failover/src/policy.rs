@@ -126,6 +126,10 @@ impl PolicyEngine {
         }
     }
 
+    pub fn manages(&self, name: &str) -> bool {
+        self.hosts.contains_key(name)
+    }
+
     pub fn state_of(&self, name: &str) -> ServingState {
         self.hosts
             .get(name)

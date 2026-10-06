@@ -267,6 +267,7 @@ Register it with Claude Desktop in `~/Library/Application Support/Claude/claude_
       "command": "/absolute/path/to/target/release/nebula-mcp",
       "env": {
         "NEBULA_API": "127.0.0.1:8080",
+        "NEBULA_FAILOVER_API": "127.0.0.1:9119",
         "NEBULA_MCP_ALLOW_WRITES": "0"
       }
     }
@@ -276,10 +277,26 @@ Register it with Claude Desktop in `~/Library/Application Support/Claude/claude_
 
 Or add it to Claude Code: `claude mcp add nebuladns /absolute/path/to/nebula-mcp`.
 
-Mutating tools (`create_zone`, `replace_zone`, `add_records`, `rollback_zone`,
-`force_notify`, `trigger_dnssec_rollover`, `deploy`) refuse to run unless
-`NEBULA_MCP_ALLOW_WRITES=1` is set — a per-process kill switch that prevents the model
-from changing DNS state in read-only sessions.
+Mutating tools (`create_zone`, `replace_zone`, `add_records`, `set_record`,
+`delete_record`, `rollback_zone`, `force_notify`, `trigger_dnssec_rollover`, `deploy`,
+and the `failover_*` write tools) refuse to run unless `NEBULA_MCP_ALLOW_WRITES=1` is
+set — a per-process kill switch that prevents the model from changing DNS state in
+read-only sessions.
+
+Failover tools talk to [`nebula-dns-failover`](crates/nebula-dns-failover/README.md)
+(`NEBULA_FAILOVER_API`, default `127.0.0.1:9119`):
+
+| Tool | Gate | Effect |
+|------|------|--------|
+| `failover_status` | read | POP health + per-hostname serving state / override |
+| `failover_force_secondary` | write | Pin hostname to secondary (sticky) |
+| `failover_force_primary` | write | Pin hostname to primary (sticky) |
+| `failover_clear_override` | write | Back to health-driven policy |
+| `failover_reconcile` | write | Probe + reconcile now |
+
+Write tools also need `NEBULA_FAILOVER_TOKEN` (the controller's `FAILOVER_API_TOKEN`).
+Overrides persist until cleared, so the tool descriptions tell the model to confirm
+with an operator before pinning.
 
 ---
 

@@ -15,12 +15,15 @@ use crate::protocol::{
     Incoming, InitializeResult, Response, RpcError, ServerCapabilities, ServerInfo, ToolCallResult,
     ToolsCapability, PROTOCOL_VERSION,
 };
-use crate::tools;
+use crate::tools::{self, Clients};
 
 #[derive(Debug, Clone)]
 pub struct Config {
     pub api_addr: SocketAddr,
     pub token: Option<String>,
+    /// `nebula-dns-failover` operator API (separate service, separate token).
+    pub failover_addr: SocketAddr,
+    pub failover_token: Option<String>,
     pub allow_writes: bool,
 }
 
@@ -29,6 +32,9 @@ impl Config {
     ///
     /// - `NEBULA_API` — admin endpoint (default `127.0.0.1:8080`, matching nebulactl)
     /// - `NEBULA_TOKEN` — optional bearer token for when M5+ auth is live
+    /// - `NEBULA_FAILOVER_API` — failover controller (default `127.0.0.1:9119`)
+    /// - `NEBULA_FAILOVER_TOKEN` — bearer for the controller's mutating endpoints
+    ///   (its `FAILOVER_API_TOKEN`)
     /// - `NEBULA_MCP_ALLOW_WRITES` — `1`/`true` to enable mutating tools
     pub fn from_env() -> Result<Self> {
         let api_addr = std::env::var("NEBULA_API")
@@ -36,6 +42,13 @@ impl Config {
             .parse()
             .map_err(|e| anyhow::anyhow!("NEBULA_API is not a valid SocketAddr: {e}"))?;
         let token = std::env::var("NEBULA_TOKEN").ok().filter(|s| !s.is_empty());
+        let failover_addr = std::env::var("NEBULA_FAILOVER_API")
+            .unwrap_or_else(|_| "127.0.0.1:9119".to_string())
+            .parse()
+            .map_err(|e| anyhow::anyhow!("NEBULA_FAILOVER_API is not a valid SocketAddr: {e}"))?;
+        let failover_token = std::env::var("NEBULA_FAILOVER_TOKEN")
+            .ok()
+            .filter(|s| !s.is_empty());
         let allow_writes = matches!(
             std::env::var("NEBULA_MCP_ALLOW_WRITES").as_deref(),
             Ok("1" | "true" | "TRUE" | "yes")
@@ -43,6 +56,8 @@ impl Config {
         Ok(Self {
             api_addr,
             token,
+            failover_addr,
+            failover_token,
             allow_writes,
         })
     }
@@ -50,13 +65,17 @@ impl Config {
 
 /// Run the MCP server against stdio until EOF.
 pub async fn run_stdio(cfg: Config) -> Result<()> {
-    let client = ApiClient::new(cfg.api_addr, cfg.token.clone());
+    let clients = Clients {
+        api: ApiClient::new(cfg.api_addr, cfg.token.clone()),
+        failover: ApiClient::new(cfg.failover_addr, cfg.failover_token.clone()),
+    };
     let stdin = tokio::io::stdin();
     let mut stdout = tokio::io::stdout();
     let mut reader = BufReader::new(stdin).lines();
 
     tracing::info!(
         api = %cfg.api_addr,
+        failover_api = %cfg.failover_addr,
         allow_writes = cfg.allow_writes,
         "nebula-mcp ready"
     );
@@ -65,7 +84,7 @@ pub async fn run_stdio(cfg: Config) -> Result<()> {
         if line.trim().is_empty() {
             continue;
         }
-        let response = handle_line(&line, &client, cfg.allow_writes).await;
+        let response = handle_line(&line, &clients, cfg.allow_writes).await;
         if let Some(resp) = response {
             let bytes = serde_json::to_vec(&resp)?;
             stdout.write_all(&bytes).await?;
@@ -78,7 +97,7 @@ pub async fn run_stdio(cfg: Config) -> Result<()> {
 
 /// Process a single line. Returns `None` for notifications (no response) or parse
 /// failures we can't attach to an id.
-async fn handle_line(line: &str, client: &ApiClient, allow_writes: bool) -> Option<Response> {
+async fn handle_line(line: &str, clients: &Clients, allow_writes: bool) -> Option<Response> {
     let msg: Incoming = match serde_json::from_str(line) {
         Ok(m) => m,
         Err(err) => {
@@ -94,10 +113,10 @@ async fn handle_line(line: &str, client: &ApiClient, allow_writes: bool) -> Opti
         return None;
     };
 
-    Some(dispatch(id, &msg, client, allow_writes).await)
+    Some(dispatch(id, &msg, clients, allow_writes).await)
 }
 
-async fn dispatch(id: Value, msg: &Incoming, client: &ApiClient, allow_writes: bool) -> Response {
+async fn dispatch(id: Value, msg: &Incoming, clients: &Clients, allow_writes: bool) -> Response {
     match msg.method.as_str() {
         "initialize" => Response::ok(
             id,
@@ -131,7 +150,7 @@ async fn dispatch(id: Value, msg: &Incoming, client: &ApiClient, allow_writes: b
             // Tool-level errors (API 404, validation failures) come back as
             // `isError: true` inside a successful JSON-RPC response so the model
             // sees them and can react. Transport-level invariants use JSON-RPC errors.
-            let result = match tools::invoke(name, &args, client, allow_writes).await {
+            let result = match tools::invoke(name, &args, clients, allow_writes).await {
                 Ok(r) => r,
                 Err(e) => ToolCallResult::error(format!("{e:#}")),
             };
@@ -149,8 +168,11 @@ async fn dispatch(id: Value, msg: &Incoming, client: &ApiClient, allow_writes: b
 mod tests {
     use super::*;
 
-    fn fake_client() -> ApiClient {
-        ApiClient::new("127.0.0.1:0".parse().unwrap(), None)
+    fn fake_client() -> Clients {
+        Clients {
+            api: ApiClient::new("127.0.0.1:0".parse().unwrap(), None),
+            failover: ApiClient::new("127.0.0.1:0".parse().unwrap(), None),
+        }
     }
 
     #[tokio::test]
