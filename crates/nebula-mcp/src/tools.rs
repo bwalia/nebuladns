@@ -14,6 +14,14 @@ use serde_json::{json, Value};
 use crate::client::ApiClient;
 use crate::protocol::{ToolCallResult, ToolDescriptor};
 
+/// API clients the tools talk to. `nebula-dns-failover` is a separate service with its
+/// own address and bearer token, so it gets its own client.
+#[derive(Debug, Clone)]
+pub struct Clients {
+    pub api: ApiClient,
+    pub failover: ApiClient,
+}
+
 /// Returns the static tool catalogue advertised via `tools/list`.
 ///
 /// Kept as a single function despite length: splitting this into per-category helpers
@@ -219,6 +227,46 @@ pub fn catalogue() -> Vec<ToolDescriptor> {
                 "additionalProperties": false,
             }),
         },
+        // -------- DNS failover controller (nebula-dns-failover) --------
+        ToolDescriptor {
+            name: "failover_status",
+            description: "Snapshot from the nebula-dns-failover controller: per-POP health \
+                          (up/down/unknown — unknown means hysteresis hasn't settled yet), \
+                          and per-hostname serving state, last applied target, last \
+                          transition, and any manual override. Also reports dry_run.",
+            input_schema: empty_schema(),
+        },
+        ToolDescriptor {
+            name: "failover_force_secondary",
+            description: "[write] Pin a hostname to its secondary POP. The override is \
+                          STICKY: health-driven failover/failback is disabled for this \
+                          hostname until failover_clear_override is called. Confirm with the \
+                          operator first. Requires NEBULA_MCP_ALLOW_WRITES=1 and \
+                          NEBULA_FAILOVER_TOKEN.",
+            input_schema: hostname_schema(),
+        },
+        ToolDescriptor {
+            name: "failover_force_primary",
+            description: "[write] Pin a hostname to its primary POP (sticky, like \
+                          failover_force_secondary). Confirm with the operator first. \
+                          Requires NEBULA_MCP_ALLOW_WRITES=1 and NEBULA_FAILOVER_TOKEN.",
+            input_schema: hostname_schema(),
+        },
+        ToolDescriptor {
+            name: "failover_clear_override",
+            description: "[write] Remove a manual override so health-driven policy decides \
+                          again, then reconcile. Requires NEBULA_MCP_ALLOW_WRITES=1 and \
+                          NEBULA_FAILOVER_TOKEN.",
+            input_schema: hostname_schema(),
+        },
+        ToolDescriptor {
+            name: "failover_reconcile",
+            description: "[write] Run a probe + reconcile cycle now instead of waiting for \
+                          the next interval. Changes no policy, but may apply DNS if the \
+                          desired target differs. Requires NEBULA_MCP_ALLOW_WRITES=1 and \
+                          NEBULA_FAILOVER_TOKEN.",
+            input_schema: hostname_schema(),
+        },
     ]
 }
 
@@ -231,9 +279,10 @@ pub fn catalogue() -> Vec<ToolDescriptor> {
 pub async fn invoke(
     name: &str,
     args: &Value,
-    client: &ApiClient,
+    clients: &Clients,
     allow_writes: bool,
 ) -> Result<ToolCallResult> {
+    let client = &clients.api;
     let args = if args.is_null() {
         Value::Object(serde_json::Map::new())
     } else {
@@ -346,6 +395,14 @@ pub async fn invoke(
             guard_write(allow_writes)?;
             api_post_json(client, "/api/v1/deploy", &args).await
         }
+        // ---- failover controller ----
+        "failover_status" => api_get_json(&clients.failover, "/v1/status").await,
+        "failover_force_secondary" => {
+            failover_action(clients, &args, "failover", allow_writes).await
+        }
+        "failover_force_primary" => failover_action(clients, &args, "failback", allow_writes).await,
+        "failover_clear_override" => failover_action(clients, &args, "auto", allow_writes).await,
+        "failover_reconcile" => failover_action(clients, &args, "reconcile", allow_writes).await,
         other => Ok(ToolCallResult::error(format!("unknown tool: {other}"))),
     }
 }
@@ -374,6 +431,20 @@ fn zone_name_schema() -> Value {
     })
 }
 
+fn hostname_schema() -> Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "hostname": {
+                "type": "string",
+                "description": "Managed hostname (FQDN) as listed by failover_status."
+            }
+        },
+        "required": ["hostname"],
+        "additionalProperties": false,
+    })
+}
+
 fn str_field(args: &Value, key: &str) -> Result<String> {
     args.get(key)
         .and_then(Value::as_str)
@@ -381,22 +452,28 @@ fn str_field(args: &Value, key: &str) -> Result<String> {
         .ok_or_else(|| anyhow::anyhow!("missing or non-string `{key}`"))
 }
 
-/// Build `/api/v1/zones/<name><suffix>`. `name` is percent-encoded minimally — zone names
-/// are RFC-1035 labels joined by dots, so only dots and alphanumerics plus `-` appear.
-/// Reject anything else up front rather than shipping a malformed URL.
+/// Build `/api/v1/zones/<name><suffix>`.
 fn zone_path(args: &Value, suffix: &str, _version: Option<&str>) -> Result<String> {
-    let name = str_field(args, "name")?;
+    let name = dns_name_field(args, "name")?;
+    Ok(format!("/api/v1/zones/{name}{suffix}"))
+}
+
+/// Read a DNS name argument for use as a URL path segment. Names are RFC-1035 labels
+/// joined by dots, so only dots, alphanumerics, `-` and `_` appear — reject anything
+/// else up front rather than shipping a malformed (or path-traversing) URL.
+fn dns_name_field(args: &Value, key: &str) -> Result<String> {
+    let name = str_field(args, key)?;
     let name = name.trim_end_matches('.');
     if name.is_empty() {
-        anyhow::bail!("zone name is empty");
+        anyhow::bail!("`{key}` is empty");
     }
     if !name
         .bytes()
         .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'-' | b'_'))
     {
-        anyhow::bail!("zone name contains invalid characters: {name}");
+        anyhow::bail!("`{key}` contains invalid characters: {name}");
     }
-    Ok(format!("/api/v1/zones/{name}{suffix}"))
+    Ok(name.to_string())
 }
 
 fn guard_write(allow_writes: bool) -> Result<()> {
@@ -405,6 +482,23 @@ fn guard_write(allow_writes: bool) -> Result<()> {
     } else {
         anyhow::bail!("this tool mutates DNS state; set NEBULA_MCP_ALLOW_WRITES=1 to enable it")
     }
+}
+
+/// `POST /v1/hostnames/<hostname>/<action>` on the failover controller.
+async fn failover_action(
+    clients: &Clients,
+    args: &Value,
+    action: &str,
+    allow_writes: bool,
+) -> Result<ToolCallResult> {
+    guard_write(allow_writes)?;
+    let hostname = dns_name_field(args, "hostname")?;
+    api_post_json(
+        &clients.failover,
+        &format!("/v1/hostnames/{hostname}/{action}"),
+        &Value::Null,
+    )
+    .await
 }
 
 async fn health_check(client: &ApiClient) -> Result<ToolCallResult> {
@@ -468,6 +562,11 @@ mod tests {
             "set_record",
             "delete_record",
             "get_audit_log",
+            "failover_status",
+            "failover_force_secondary",
+            "failover_force_primary",
+            "failover_clear_override",
+            "failover_reconcile",
         ] {
             assert!(names.contains(&expected), "missing tool: {expected}");
         }
@@ -492,6 +591,47 @@ mod tests {
         let args = json!({"name": "example.com."});
         let p = zone_path(&args, "/history", None).unwrap();
         assert_eq!(p, "/api/v1/zones/example.com/history");
+    }
+
+    #[tokio::test]
+    async fn failover_writes_refused_without_gate() {
+        // Unroutable clients: the gate must refuse before any connection attempt.
+        let unreachable = ApiClient::new("127.0.0.1:0".parse().unwrap(), None);
+        let clients = Clients {
+            api: unreachable.clone(),
+            failover: unreachable,
+        };
+        let args = json!({"hostname": "abtesting.fictionally.org"});
+        for tool in [
+            "failover_force_secondary",
+            "failover_force_primary",
+            "failover_clear_override",
+            "failover_reconcile",
+        ] {
+            let err = invoke(tool, &args, &clients, false).await.unwrap_err();
+            assert!(
+                err.to_string().contains("NEBULA_MCP_ALLOW_WRITES"),
+                "{tool}: {err}"
+            );
+        }
+    }
+
+    #[test]
+    fn failover_hostname_rejects_path_traversal() {
+        for bad in ["../status", "a/b", "evil host", ""] {
+            assert!(
+                dns_name_field(&json!({"hostname": bad}), "hostname").is_err(),
+                "{bad}"
+            );
+        }
+        assert_eq!(
+            dns_name_field(
+                &json!({"hostname": "abtesting.fictionally.org."}),
+                "hostname"
+            )
+            .unwrap(),
+            "abtesting.fictionally.org"
+        );
     }
 
     #[test]

@@ -88,6 +88,9 @@ curl -s -X POST -H "Authorization: Bearer $TOK" \
 # Force primary
 curl -s -X POST -H "Authorization: Bearer $TOK" \
   localhost:9119/v1/hostnames/abtesting.fictionally.org/failback
+# Return to automatic (health-driven) — overrides are sticky until cleared
+curl -s -X POST -H "Authorization: Bearer $TOK" \
+  localhost:9119/v1/hostnames/abtesting.fictionally.org/auto
 # Reconcile now
 curl -s -X POST -H "Authorization: Bearer $TOK" \
   localhost:9119/v1/hostnames/abtesting.fictionally.org/reconcile
