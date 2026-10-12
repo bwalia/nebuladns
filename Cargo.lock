@@ -1057,10 +1057,13 @@ name = "nebula-mcp"
 version = "0.1.0-m0"
 dependencies = [
  "anyhow",
+ "axum",
+ "nebula-dns-failover",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
  "tokio",
+ "toml",
  "tracing",
  "tracing-subscriber",
 ]
