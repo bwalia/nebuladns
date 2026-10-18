@@ -97,6 +97,7 @@ serviceMonitor:
   scrapeTimeout: 10s
   labels: {}
 
+# Alerts from rules/nebuladns.rules.yml (copy of deploy/prometheus/nebuladns.rules.yml).
 prometheusRule:
   enabled: false
   labels: {}

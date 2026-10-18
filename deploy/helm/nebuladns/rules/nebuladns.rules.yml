@@ -1,0 +1,178 @@
+# Prometheus alerting rules for NebulaDNS and nebula-dns-failover.
+#
+# Source of truth. Used as-is by plain Prometheus (`rule_files:`), mounted by the
+# Docker Compose rig, and embedded in the Helm chart's PrometheusRule (CI fails if
+# deploy/helm/nebuladns/rules/ drifts). Unit tests: tests/nebuladns.rules.test.yml.
+#
+# Scrape job names: NebulaDNS targets must have "nebuladns" in the job name, the
+# failover controller "dns-failover". The Helm ServiceMonitor and the Compose rig
+# already do. Data-plane rules key on metric names and work with any job.
+#
+# Severities: `page` wakes someone up (DNS is wrong or about to be); `ticket` is
+# next-business-day.
+
+groups:
+  - name: nebuladns.availability
+    rules:
+      - alert: NebulaDNSDown
+        expr: up{job=~".*nebuladns.*"} == 0
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: "NebulaDNS {{ $labels.instance }} is down"
+          description: "Prometheus has not scraped {{ $labels.instance }} ({{ $labels.job }}) for 2 minutes."
+          runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSDown.md"
+
+      - alert: NebulaDNSAllInstancesDown
+        expr: sum by (job) (up{job=~".*nebuladns.*"}) == 0
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: "Every NebulaDNS instance in {{ $labels.job }} is down"
+          description: "No instance in {{ $labels.job }} is scrapeable. Clients get timeouts once resolver caches expire."
+          runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSDown.md#all-instances-down"
+
+      - alert: NebulaDNSTargetsMissing
+        expr: absent(up{job=~".*nebuladns.*"})
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "Prometheus has no NebulaDNS scrape targets"
+          description: "No series match up{job=~\".*nebuladns.*\"}. Service discovery or the scrape config is broken, so NebulaDNSDown can't fire."
+          runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSDown.md#targets-missing"
+
+      - alert: NebulaDNSVersionDrift
+        expr: count by (job) (count by (job, version) (nebula_build_info)) > 1
+        for: 1h
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $labels.job }} is running {{ $value }} different NebulaDNS versions"
+          description: "Instances have run mixed versions for over an hour; a rollout or rollback probably stopped part-way."
+          runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSDown.md#version-drift"
+
+  - name: nebuladns.answers
+    rules:
+      # Authoritative servers should almost never SERVFAIL; any sustained share means
+      # a broken zone or an internal error. Ratios need >= 0.5 qps so a quiet DTAP
+      # environment can't page on a handful of queries.
+      - alert: NebulaDNSServfailRatioHigh
+        expr: |
+          (
+            sum by (job, instance) (rate(nebula_dns_queries_total{rcode="SERVFAIL"}[5m]))
+            / sum by (job, instance) (rate(nebula_dns_queries_total[5m]))
+          ) > 0.01
+          and sum by (job, instance) (rate(nebula_dns_queries_total[5m])) > 0.5
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: "{{ $labels.instance }} answers {{ $value | humanizePercentage }} SERVFAIL"
+          description: "Over 1% of answers have been SERVFAIL for 10 minutes."
+          runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSAnswers.md#servfail"
+
+      - alert: NebulaDNSRefusedRatioHigh
+        expr: |
+          (
+            sum by (job, instance) (rate(nebula_dns_queries_total{rcode="REFUSED"}[15m]))
+            / sum by (job, instance) (rate(nebula_dns_queries_total[15m]))
+          ) > 0.25
+          and sum by (job, instance) (rate(nebula_dns_queries_total[15m])) > 0.5
+        for: 30m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $labels.instance }} refuses {{ $value | humanizePercentage }} of queries"
+          description: "Over 25% of queries are for zones this server doesn't host: a client or forwarder is using NebulaDNS as a resolver, or something is scanning it."
+          runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSAnswers.md#refused"
+
+      # In-process latency; normal p99 is ~100 µs. Buckets top out at ~33 ms.
+      - alert: NebulaDNSLatencyHigh
+        expr: |
+          histogram_quantile(0.99,
+            sum by (job, instance, le) (rate(nebula_dns_query_duration_seconds_bucket[5m]))
+          ) > 0.005
+          and sum by (job, instance) (rate(nebula_dns_queries_total[5m])) > 0.5
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $labels.instance }} p99 latency is {{ $value | humanizeDuration }}"
+          description: "In-process p99 has been above 5 ms for 10 minutes (normal is ~100 µs)."
+          runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSAnswers.md#latency"
+
+      - alert: NebulaDNSDropsHigh
+        expr: sum by (job, instance, reason) (rate(nebula_dns_dropped_total[5m])) > 10
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $labels.instance }} drops {{ $value | humanize }}/s ({{ $labels.reason }})"
+          description: "Requests are being dropped before a response for 10 minutes."
+          runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSAnswers.md#drops"
+
+  - name: nebuladns.failover
+    rules:
+      - alert: NebulaDNSFailoverControllerDown
+        expr: up{job=~".*dns-failover.*"} == 0
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: "nebula-dns-failover {{ $labels.instance }} is down"
+          description: "Nothing is watching POP health: a POP outage will not move DNS."
+          runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/DnsFailover.md#alert-nebuladnsfailovercontrollerdown"
+
+      # The controller decided on a target but can't write it: DNS is still pointing
+      # at the old (possibly dead) POP.
+      - alert: NebulaDNSFailoverApplyFailing
+        expr: sum by (job, hostname) (rate(nebula_dns_failover_dns_apply_total{result="error"}[5m])) > 0
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "Failover can't update DNS for {{ $labels.hostname }}"
+          description: "DNS writes for {{ $labels.hostname }} have failed for 5 minutes; the record may still point at a dead POP."
+          runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/DnsFailover.md#alert-nebuladnsfailoverapplyfailing"
+
+      - alert: NebulaDNSFailoverBothPopsDown
+        expr: max by (job, hostname) (nebula_dns_failover_state) == 4
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: "Both POPs down for {{ $labels.hostname }}"
+          description: "The controller is fail-open: DNS stays on the last good target, but neither POP passes health checks."
+          runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/DnsFailover.md#alert-nebuladnsfailoverbothpopsdown"
+
+      - alert: NebulaDNSFailoverPopDown
+        expr: max by (job, pop) (nebula_dns_failover_pop_up) == 0
+        for: 5m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "POP {{ $labels.pop }} is failing health checks"
+          description: "Traffic for hostnames using {{ $labels.pop }} as primary has moved to the secondary."
+          runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/DnsFailover.md#alert-nebuladnsfailoverpopdown"
+
+      - alert: NebulaDNSFailoverFlapping
+        expr: changes(nebula_dns_failover_state[30m]) > 4
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $labels.hostname }} changed serving state {{ $value }} times in 30 minutes"
+          description: "Each flip waits out resolver caches; tune consecutive_fail / consecutive_ok / failback_delay."
+          runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/DnsFailover.md#alert-nebuladnsfailoverflapping"
+
+      - alert: NebulaDNSFailoverManualOverrideStale
+        expr: max by (job, hostname) (nebula_dns_failover_state) >= 5
+        for: 4h
+        labels:
+          severity: ticket
+        annotations:
+          summary: "Manual override on {{ $labels.hostname }} for over 4 hours"
+          description: "Overrides are sticky: health-driven failover is off for this hostname until someone calls /auto."
+          runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/DnsFailover.md#alert-nebuladnsfailovermanualoverridestale"

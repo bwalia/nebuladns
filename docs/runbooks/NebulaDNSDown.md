@@ -1,8 +1,11 @@
 # Runbook — `NebulaDNSDown`
 
+Also covers `NebulaDNSAllInstancesDown`, `NebulaDNSTargetsMissing` and
+`NebulaDNSVersionDrift` (sections below). Rules: `deploy/prometheus/nebuladns.rules.yml`.
+
 ## Summary
 
-The Prometheus scraper cannot reach `/metrics` on a NebulaDNS instance for 2+ minutes.
+Prometheus has not scraped `/metrics` on a NebulaDNS instance for 2+ minutes.
 
 ## Severity
 
@@ -10,39 +13,77 @@ The Prometheus scraper cannot reach `/metrics` on a NebulaDNS instance for 2+ mi
 
 ## Impact
 
-A NebulaDNS pod is unreachable. If this is the only replica, DNS is down and resolvers
-are serving stale or no data.
+One authoritative server is unreachable. Resolvers retry the other NS records, so with
+two or more healthy instances users see slower first lookups, not failures. If this was
+the only instance, see [All instances down](#all-instances-down).
 
 ## Dashboards
 
-- `NebulaDNS Overview` Grafana dashboard
-- `NebulaDNS Runtime & Cost`
+`NebulaDNS Overview` → **Fleet** row (Instances table, Scrape health) and
+**Queries by instance**.
 
 ## Diagnosis
 
-1. Check pod status:
-   ```
-   kubectl -n <ns> get pods -l app.kubernetes.io/name=nebuladns
-   kubectl -n <ns> describe pod <pod>
-   kubectl -n <ns> logs <pod> --tail=200
-   ```
-2. Check liveness from inside the cluster:
-   ```
-   kubectl -n <ns> port-forward <pod> 8080:8080
-   curl -sv http://localhost:8080/livez
-   ```
-3. If the container is crash-looping, inspect the JSON logs for the fatal record.
+A scrape failure is either the process being down or Prometheus not reaching it.
+
+**systemd hosts (Ansible deploy):**
+```bash
+systemctl status nebuladns
+journalctl -u nebuladns -n 200 --no-pager        # JSON logs; look for the fatal record
+curl -s http://127.0.0.1:8080/livez               # admin API; 127.0.0.1:18080 with environments/private.yml
+curl -s http://127.0.0.1:9090/metrics | head      # metrics bind (19090 with private.yml)
+dig @<dns-bind-ip> <zone> SOA +short              # is DNS itself answering?
+```
+If DNS answers but `/metrics` doesn't, it's a scrape problem: check the metrics bind
+address, the host firewall, and the Prometheus target address.
+
+**Kubernetes:**
+```bash
+kubectl -n <ns> get pods -l app.kubernetes.io/name=nebuladns
+kubectl -n <ns> describe pod <pod>
+kubectl -n <ns> logs <pod> --tail=200
+kubectl -n <ns> port-forward <pod> 8080:8080 && curl -sv http://localhost:8080/livez
+```
 
 ## Remediation
 
-- Pod OOM-killed → raise `resources.limits.memory` in `values.yaml`; re-roll.
-- CrashLoopBackOff with config error → `kubectl get cm -o yaml` and validate the mounted
-  `nebuladns.toml`; server prints the specific field that failed to parse.
-- Node cordon / AZ outage → `PodDisruptionBudget` should prevent total loss; confirm
-  another replica is serving. If none, a manual `kubectl rollout restart` on a different
-  node pool may be needed.
-- If the whole `StatefulSet` is down, fall back to the static secondary declared in the
-  parent zone while you investigate.
+- **Crashed / exited:** `journalctl` (or pod logs) shows the cause. A config or zone parse
+  error names the file and field. Fix it and `systemctl restart nebuladns`, or roll back:
+  `ansible-playbook -i inventory.ini rollback.yml`.
+- **Bind failure (`EADDRINUSE`):** something else holds :53. On Ubuntu/Debian that's
+  usually the systemd-resolved stub; bind NebulaDNS to a specific IP
+  (`nebuladns_dns_interface`) instead of `0.0.0.0`.
+- **WireGuard bind not available at boot:** the unit is ordered after `wg-quick@<iface>`;
+  check `systemctl status wg-quick@wg0` and the drop-in
+  `/etc/systemd/system/nebuladns.service.d/10-dns-interface.conf`.
+- **Pod OOM-killed:** raise `resources.limits.memory` in `values.yaml`; re-roll.
+- `systemctl reload nebuladns` re-reads zones (SIGHUP) and is safe; it no longer kills
+  the process.
+
+## All instances down
+
+`NebulaDNSAllInstancesDown`: nothing in the job is scrapeable. **DNS for the hosted zones
+fails once resolver caches expire** (SOA minimum / record TTLs).
+
+1. Confirm from outside Prometheus: `dig @<each-ns-ip> <zone> SOA`.
+2. If DNS is actually answering, Prometheus lost reachability (network change, firewall,
+   Prometheus itself). Treat as [Targets missing](#targets-missing).
+3. If DNS is down everywhere, restore one instance first (restart, or `rollback.yml` if a
+   deploy just went out), then the rest.
+
+## Targets missing
+
+`NebulaDNSTargetsMissing`: Prometheus has **no** series for `up{job=~".*nebuladns.*"}`, so
+`NebulaDNSDown` can't fire. Usually a renamed scrape job (the rules expect `nebuladns` in
+the job name), a removed ServiceMonitor, or broken service discovery. Check
+Prometheus → Status → Targets.
+
+## Version drift
+
+`NebulaDNSVersionDrift` (`ticket`): instances have reported different `version` labels on
+`nebula_build_info` for over an hour, so a rollout or rollback stopped part-way. The Fleet
+table shows which instance runs what. Finish the rollout (re-run the deploy) or roll the
+stragglers back.
 
 ## Escalation
 

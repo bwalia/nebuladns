@@ -447,6 +447,26 @@ POP) drive every panel. Annotations mark restarts and failover state changes.
 - **Source of truth:** `deploy/docker/compose/grafana/dashboards/overview.json`. The chart
   ships a copy in `deploy/helm/nebuladns/dashboards/`; CI fails if they drift.
 
+### Alerts
+
+`deploy/prometheus/nebuladns.rules.yml` holds 14 alerts. Each one links a runbook in
+`docs/runbooks/`.
+
+| Area | Alerts |
+|---|---|
+| Availability | `NebulaDNSDown` (page), `NebulaDNSAllInstancesDown` (page), `NebulaDNSTargetsMissing`, `NebulaDNSVersionDrift` |
+| Answers | `NebulaDNSServfailRatioHigh` (page), `NebulaDNSRefusedRatioHigh`, `NebulaDNSLatencyHigh`, `NebulaDNSDropsHigh` |
+| Failover | `NebulaDNSFailoverControllerDown` (page), `NebulaDNSFailoverApplyFailing` (page), `NebulaDNSFailoverBothPopsDown` (page), `NebulaDNSFailoverPopDown`, `NebulaDNSFailoverFlapping`, `NebulaDNSFailoverManualOverrideStale` |
+
+Alerts not marked page are tickets.
+
+- **Plain Prometheus (VM hosts):** add the file under `rule_files:`. Scrape jobs need
+  `nebuladns` and `dns-failover` in their names.
+- **Docker Compose:** loaded automatically; see http://localhost:9091/alerts.
+- **Kubernetes:** `--set prometheusRule.enabled=true`. The chart embeds a copy, and CI fails
+  if it drifts.
+- **Tests:** `promtool` unit tests in `deploy/prometheus/tests/` run in CI.
+
 ---
 
 ## Operations

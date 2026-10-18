@@ -2,6 +2,10 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+# Alerts from deploy/prometheus/nebuladns.rules.yml (see http://localhost:9091/alerts).
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
 scrape_configs:
   - job_name: nebuladns
     static_configs:

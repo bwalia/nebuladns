@@ -1,0 +1,274 @@
+# promtool unit tests for ../nebuladns.rules.yml.
+#   docker run --rm -v "$PWD/deploy/prometheus:/p" -w /p/tests --entrypoint promtool \
+#     prom/prometheus:v2.54.1 test rules nebuladns.rules.test.yml
+rule_files:
+  - ../nebuladns.rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  # ------------------------------------------------------------------ availability
+  - name: one instance down pages after 2m; fleet not all down
+    interval: 1m
+    input_series:
+      - series: 'up{job="nebuladns", instance="ns1:9090"}'
+        values: "1 1 0 0 0 0 0"
+      - series: 'up{job="nebuladns", instance="ns2:9090"}'
+        values: "1x6"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: NebulaDNSDown
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: NebulaDNSDown
+        exp_alerts:
+          - exp_labels: { severity: page, job: nebuladns, instance: "ns1:9090" }
+            exp_annotations:
+              summary: "NebulaDNS ns1:9090 is down"
+              description: "Prometheus has not scraped ns1:9090 (nebuladns) for 2 minutes."
+              runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSDown.md"
+      - eval_time: 5m
+        alertname: NebulaDNSAllInstancesDown
+        exp_alerts: []
+
+  - name: whole fleet down
+    interval: 1m
+    input_series:
+      - series: 'up{job="nebuladns", instance="ns1:9090"}'
+        values: "0x4"
+      - series: 'up{job="nebuladns", instance="ns2:9090"}'
+        values: "0x4"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: NebulaDNSAllInstancesDown
+        exp_alerts:
+          - exp_labels: { severity: page, job: nebuladns }
+            exp_annotations:
+              summary: "Every NebulaDNS instance in nebuladns is down"
+              description: "No instance in nebuladns is scrapeable. Clients get timeouts once resolver caches expire."
+              runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSDown.md#all-instances-down"
+
+  - name: no targets at all
+    interval: 1m
+    input_series:
+      - series: 'up{job="something-else", instance="x:1"}'
+        values: "1x15"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: NebulaDNSTargetsMissing
+        exp_alerts:
+          - exp_labels: { severity: ticket }
+            exp_annotations:
+              summary: "Prometheus has no NebulaDNS scrape targets"
+              description: "No series match up{job=~\".*nebuladns.*\"}. Service discovery or the scrape config is broken, so NebulaDNSDown can't fire."
+              runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSDown.md#targets-missing"
+
+  # Samples every minute: anything sparser than the 5m staleness window goes absent
+  # between samples and resets `for`.
+  - name: mixed versions for over an hour
+    interval: 1m
+    input_series:
+      - series: 'nebula_build_info{job="nebuladns", instance="ns1:9090", version="0.2.0"}'
+        values: "1x80"
+      - series: 'nebula_build_info{job="nebuladns", instance="ns2:9090", version="0.1.0"}'
+        values: "1x80"
+    alert_rule_test:
+      - eval_time: 50m
+        alertname: NebulaDNSVersionDrift
+        exp_alerts: []
+      - eval_time: 70m
+        alertname: NebulaDNSVersionDrift
+        exp_alerts:
+          - exp_labels: { severity: ticket, job: nebuladns }
+            exp_annotations:
+              summary: "nebuladns is running 2 different NebulaDNS versions"
+              description: "Instances have run mixed versions for over an hour; a rollout or rollback probably stopped part-way."
+              runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSDown.md#version-drift"
+
+  # ----------------------------------------------------------------------- answers
+  - name: SERVFAIL above 1% with real traffic pages
+    interval: 1m
+    input_series:
+      # 10 qps NOERROR + 0.2 qps SERVFAIL (~2%).
+      - series: 'nebula_dns_queries_total{job="nebuladns", instance="ns1:9090", proto="udp", qtype="A", rcode="NOERROR"}'
+        values: "0+600x20"
+      - series: 'nebula_dns_queries_total{job="nebuladns", instance="ns1:9090", proto="udp", qtype="A", rcode="SERVFAIL"}'
+        values: "0+12x20"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: NebulaDNSServfailRatioHigh
+        exp_alerts: []
+      - eval_time: 16m
+        alertname: NebulaDNSServfailRatioHigh
+        exp_alerts:
+          - exp_labels: { severity: page, job: nebuladns, instance: "ns1:9090" }
+            exp_annotations:
+              summary: "ns1:9090 answers 1.961% SERVFAIL"
+              description: "Over 1% of answers have been SERVFAIL for 10 minutes."
+              runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSAnswers.md#servfail"
+
+  - name: SERVFAIL ratio ignored below the traffic floor
+    interval: 1m
+    input_series:
+      # 0.1 qps total, half SERVFAIL: too little traffic to page on.
+      - series: 'nebula_dns_queries_total{job="nebuladns", instance="ns1:9090", proto="udp", qtype="A", rcode="NOERROR"}'
+        values: "0+3x20"
+      - series: 'nebula_dns_queries_total{job="nebuladns", instance="ns1:9090", proto="udp", qtype="A", rcode="SERVFAIL"}'
+        values: "0+3x20"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: NebulaDNSServfailRatioHigh
+        exp_alerts: []
+
+  - name: REFUSED share above 25% opens a ticket
+    interval: 1m
+    input_series:
+      - series: 'nebula_dns_queries_total{job="nebuladns", instance="ns1:9090", proto="udp", qtype="A", rcode="NOERROR"}'
+        values: "0+120x60"
+      - series: 'nebula_dns_queries_total{job="nebuladns", instance="ns1:9090", proto="udp", qtype="A", rcode="REFUSED"}'
+        values: "0+120x60"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: NebulaDNSRefusedRatioHigh
+        exp_alerts: []
+      - eval_time: 50m
+        alertname: NebulaDNSRefusedRatioHigh
+        exp_alerts:
+          - exp_labels: { severity: ticket, job: nebuladns, instance: "ns1:9090" }
+            exp_annotations:
+              summary: "ns1:9090 refuses 50% of queries"
+              description: "Over 25% of queries are for zones this server doesn't host: a client or forwarder is using NebulaDNS as a resolver, or something is scanning it."
+              runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSAnswers.md#refused"
+
+  - name: p99 above 5ms for 10m
+    interval: 1m
+    input_series:
+      # 10 qps, every query lands in the 8.192 ms bucket.
+      - series: 'nebula_dns_query_duration_seconds_bucket{job="nebuladns", instance="ns1:9090", proto="udp", qtype="A", rcode="NOERROR", le="0.004096"}'
+        values: "0x20"
+      - series: 'nebula_dns_query_duration_seconds_bucket{job="nebuladns", instance="ns1:9090", proto="udp", qtype="A", rcode="NOERROR", le="0.008192"}'
+        values: "0+600x20"
+      - series: 'nebula_dns_query_duration_seconds_bucket{job="nebuladns", instance="ns1:9090", proto="udp", qtype="A", rcode="NOERROR", le="+Inf"}'
+        values: "0+600x20"
+      - series: 'nebula_dns_queries_total{job="nebuladns", instance="ns1:9090", proto="udp", qtype="A", rcode="NOERROR"}'
+        values: "0+600x20"
+    alert_rule_test:
+      - eval_time: 16m
+        alertname: NebulaDNSLatencyHigh
+        exp_alerts:
+          - exp_labels: { severity: ticket, job: nebuladns, instance: "ns1:9090" }
+            exp_annotations:
+              summary: "ns1:9090 p99 latency is 8.151ms"
+              description: "In-process p99 has been above 5 ms for 10 minutes (normal is ~100 µs)."
+              runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSAnswers.md#latency"
+
+  - name: sustained drops
+    interval: 1m
+    input_series:
+      - series: 'nebula_dns_dropped_total{job="nebuladns", instance="ns1:9090", reason="malformed"}'
+        values: "0+1200x20"
+    alert_rule_test:
+      - eval_time: 16m
+        alertname: NebulaDNSDropsHigh
+        exp_alerts:
+          - exp_labels: { severity: ticket, job: nebuladns, instance: "ns1:9090", reason: malformed }
+            exp_annotations:
+              summary: "ns1:9090 drops 20/s (malformed)"
+              description: "Requests are being dropped before a response for 10 minutes."
+              runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSAnswers.md#drops"
+
+  # ---------------------------------------------------------------------- failover
+  - name: controller down
+    interval: 1m
+    input_series:
+      - series: 'up{job="nebula-dns-failover", instance="ctl:9119"}'
+        values: "0x4"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: NebulaDNSFailoverControllerDown
+        exp_alerts:
+          - exp_labels: { severity: page, job: nebula-dns-failover, instance: "ctl:9119" }
+            exp_annotations:
+              summary: "nebula-dns-failover ctl:9119 is down"
+              description: "Nothing is watching POP health: a POP outage will not move DNS."
+              runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/DnsFailover.md#alert-nebuladnsfailovercontrollerdown"
+
+  # The #97 failure mode: the controller wants the secondary, every write fails.
+  - name: apply errors page; a single blip doesn't
+    interval: 1m
+    input_series:
+      - series: 'nebula_dns_failover_dns_apply_total{job="nebula-dns-failover", hostname="app.example.com", result="error"}'
+        values: "0+30x15"
+      - series: 'nebula_dns_failover_dns_apply_total{job="nebula-dns-failover", hostname="blip.example.com", result="error"}'
+        values: "0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: NebulaDNSFailoverApplyFailing
+        exp_alerts:
+          - exp_labels: { severity: page, job: nebula-dns-failover, hostname: app.example.com }
+            exp_annotations:
+              summary: "Failover can't update DNS for app.example.com"
+              description: "DNS writes for app.example.com have failed for 5 minutes; the record may still point at a dead POP."
+              runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/DnsFailover.md#alert-nebuladnsfailoverapplyfailing"
+
+  - name: both POPs down, one POP down
+    interval: 1m
+    input_series:
+      - series: 'nebula_dns_failover_state{job="nebula-dns-failover", hostname="app.example.com"}'
+        values: "1 4 4 4 4 4 4 4"
+      - series: 'nebula_dns_failover_pop_up{job="nebula-dns-failover", pop="lon1"}'
+        values: "0x7"
+      - series: 'nebula_dns_failover_pop_up{job="nebula-dns-failover", pop="lon2"}'
+        values: "1x7"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: NebulaDNSFailoverBothPopsDown
+        exp_alerts:
+          - exp_labels: { severity: page, job: nebula-dns-failover, hostname: app.example.com }
+            exp_annotations:
+              summary: "Both POPs down for app.example.com"
+              description: "The controller is fail-open: DNS stays on the last good target, but neither POP passes health checks."
+              runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/DnsFailover.md#alert-nebuladnsfailoverbothpopsdown"
+      - eval_time: 6m
+        alertname: NebulaDNSFailoverPopDown
+        exp_alerts:
+          - exp_labels: { severity: ticket, job: nebula-dns-failover, pop: lon1 }
+            exp_annotations:
+              summary: "POP lon1 is failing health checks"
+              description: "Traffic for hostnames using lon1 as primary has moved to the secondary."
+              runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/DnsFailover.md#alert-nebuladnsfailoverpopdown"
+
+  - name: flapping, and a single failover is not flapping
+    interval: 1m
+    input_series:
+      - series: 'nebula_dns_failover_state{job="nebula-dns-failover", hostname="flappy.example.com"}'
+        values: "1 2 1 2 1 2 1 2 1 2"
+      - series: 'nebula_dns_failover_state{job="nebula-dns-failover", hostname="steady.example.com"}'
+        values: "1 1 2 2 2 2 2 2 2 2"
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: NebulaDNSFailoverFlapping
+        exp_alerts:
+          - exp_labels: { severity: ticket, job: nebula-dns-failover, hostname: flappy.example.com }
+            exp_annotations:
+              summary: "flappy.example.com changed serving state 9 times in 30 minutes"
+              description: "Each flip waits out resolver caches; tune consecutive_fail / consecutive_ok / failback_delay."
+              runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/DnsFailover.md#alert-nebuladnsfailoverflapping"
+
+  - name: manual override left on
+    interval: 1m
+    input_series:
+      - series: 'nebula_dns_failover_state{job="nebula-dns-failover", hostname="app.example.com"}'
+        values: "6x310"
+    alert_rule_test:
+      - eval_time: 3h
+        alertname: NebulaDNSFailoverManualOverrideStale
+        exp_alerts: []
+      - eval_time: 5h
+        alertname: NebulaDNSFailoverManualOverrideStale
+        exp_alerts:
+          - exp_labels: { severity: ticket, job: nebula-dns-failover, hostname: app.example.com }
+            exp_annotations:
+              summary: "Manual override on app.example.com for over 4 hours"
+              description: "Overrides are sticky: health-driven failover is off for this hostname until someone calls /auto."
+              runbook_url: "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/DnsFailover.md#alert-nebuladnsfailovermanualoverridestale"
