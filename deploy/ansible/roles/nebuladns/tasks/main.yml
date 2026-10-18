@@ -127,6 +127,9 @@
     # "binary won't even start". A real config-validator subcommand lands in M5.
   notify: Restart nebuladns
 
+# A reload keeps serving the old zones if a file doesn't parse, so the deploy would
+# report success. Validate with the staged binary first so a bad zone fails the
+# deploy before it reaches the host.
 - name: Deploy zone files
   ansible.builtin.copy:
     src: "{{ item.src }}"
@@ -134,10 +137,11 @@
     owner: root
     group: "{{ nebuladns_group }}"
     mode: "0640"
+    validate: "{{ nebuladns_bin_dir }}/nebuladns-{{ nebuladns_version }} --check-zone %s"
   loop: "{{ nebuladns_zones }}"
   loop_control:
     label: "{{ item.name }}"
-  notify: Restart nebuladns
+  notify: Reload nebuladns
 
 - name: Install systemd unit
   ansible.builtin.copy:

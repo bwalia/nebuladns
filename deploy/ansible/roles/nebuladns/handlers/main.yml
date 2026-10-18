@@ -3,7 +3,16 @@
   ansible.builtin.systemd:
     daemon_reload: true
 
+# Restart runs before Reload (handlers fire in definition order). When a deploy changes
+# both the binary and zones, the restart already loads the new zones, and the SIGHUP
+# never reaches an old binary that would exit on it.
 - name: Restart nebuladns
   ansible.builtin.systemd:
     name: nebuladns
     state: restarted
+
+# Zone-only changes: SIGHUP swaps the zones in atomically with no dropped queries.
+- name: Reload nebuladns
+  ansible.builtin.systemd:
+    name: nebuladns
+    state: reloaded

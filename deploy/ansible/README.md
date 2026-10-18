@@ -36,10 +36,15 @@ deploy/ansible/
 5. Grants `CAP_NET_BIND_SERVICE` so the server can bind `:53` without running as root.
 6. Renders `/etc/nebuladns/nebuladns.toml` from the Jinja template.
 7. Copies zone TOML files declared in `nebuladns_zones` (search path: role's
-   `files/zones/` and `deploy/ansible/files/zones/`).
+   `files/zones/` and `deploy/ansible/files/zones/`). Each file is checked with the
+   staged binary's `--check-zone` first, so a bad zone fails the deploy without
+   touching the host.
 8. Installs the systemd unit from `deploy/systemd/nebuladns.service` (the single source
    of truth — no duplicated unit file).
-9. `daemon-reload` + restart as needed (only when files actually changed).
+9. `daemon-reload` + restart when the binary, config or unit changed. A zone-only change
+   reloads instead (`systemctl reload`, SIGHUP), which swaps zones in atomically
+   with no dropped queries. When both happen, the restart runs first and already picks
+   up the new zones.
 10. Probes `http://<api_bind>/livez` until 200 OK; fails the deploy if it never goes
     green. `/livez` on the admin API is the contract from M0.
 11. Prunes old versioned binaries, keeping the current + one previous.
