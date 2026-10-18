@@ -171,6 +171,7 @@ jobs:
             --set "zones[0].name=example.com" \
             --set "zones[0].content=origin = \"example.com.\"" \
             --set grafanaDashboard.enabled=true \
+            --set prometheusRule.enabled=true \
             > /tmp/rendered.yaml
       - name: Install kubeconform
         run: |
@@ -183,6 +184,22 @@ jobs:
           kubeconform -strict -summary -schema-location default \
             -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
             /tmp/rendered.yaml
+
+  prometheus-rules:
+    name: prometheus rules (promtool)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Helm chart copy in sync
+        # The chart embeds a copy (Helm can't read outside the chart). Regenerate with:
+        # cp deploy/prometheus/nebuladns.rules.yml deploy/helm/nebuladns/rules/
+        run: diff -u deploy/prometheus/nebuladns.rules.yml deploy/helm/nebuladns/rules/nebuladns.rules.yml
+      - name: promtool check + unit tests
+        run: |
+          docker run --rm -v "$PWD/deploy/prometheus:/p" -w /p --entrypoint promtool \
+            prom/prometheus:v2.54.1 check rules nebuladns.rules.yml
+          docker run --rm -v "$PWD/deploy/prometheus:/p" -w /p/tests --entrypoint promtool \
+            prom/prometheus:v2.54.1 test rules nebuladns.rules.test.yml
 
   dockerfile:
     name: hadolint
