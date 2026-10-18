@@ -402,8 +402,17 @@ compile time via enum-typed labels.
 ```promql
 # Wire / query pipeline — live today
 nebula_dns_queries_total{proto,qtype,rcode}
-nebula_dns_query_duration_seconds_bucket{proto,qtype,le}
+nebula_dns_query_duration_seconds_bucket{proto,qtype,rcode,le}
 nebula_dns_dropped_total{reason}
+nebula_build_info{version,commit,rustc,target} 1
+
+# Failover controller (nebula-dns-failover, :9119) — live today
+nebula_dns_failover_state{hostname}              # 1 primary … 4 degraded (see HELP)
+nebula_dns_failover_pop_up{pop}                  # 0 | 1
+nebula_dns_failover_transitions_total{hostname,from,to,reason}
+nebula_dns_failover_dns_apply_total{hostname,result}
+nebula_dns_failover_probe_latency_milliseconds{pop}
+nebula_dns_failover_last_success_unixtime
 
 # Transfers (M3)
 nebula_axfr_attempts_total{peer,zone,direction,result}
@@ -413,14 +422,30 @@ nebula_peer_version_info{peer,software,version}   # the 1326 signal
 # Propagation verifier (M6)
 nebula_zone_propagation_converged{zone}           # 0 | 1
 
-# Runtime
-nebula_build_info{version,commit,rustc,target} 1
+# Runtime (planned)
 nebula_process_resident_memory_bytes
 nebula_memory_hot_path_allocations_total          # MUST stay at 0
 ```
 
-A Grafana dashboard (`NebulaDNS Overview`) is provisioned automatically in the Docker
-Compose rig at http://localhost:3000.
+### Grafana dashboard
+
+`NebulaDNS Overview` (uid `nebuladns-overview`) covers every live metric above:
+- **Overview:** instances up/down, query rate, p99, SERVFAIL / NXDOMAIN / REFUSED ratios, drops.
+- **Traffic:** by protocol, query type, rcode and instance.
+- **Latency:** percentiles, heatmap, p99 by query type and by instance.
+- **Errors and drops:** non-NOERROR responses, drops by reason.
+- **Fleet:** per-instance table (version, up, load, p99, error ratio) and scrape health.
+- **Failover controller:** serving state, POP health, probe latency, state changes, apply
+  results, transition history.
+
+Variables (data source, job, instance, protocol, query type, rcode, failover job, hostname,
+POP) drive every panel. Annotations mark restarts and failover state changes.
+
+- **Docker Compose:** provisioned automatically at http://localhost:3000.
+- **Kubernetes:** `--set grafanaDashboard.enabled=true` renders a ConfigMap for the Grafana
+  sidecar (kube-prometheus-stack).
+- **Source of truth:** `deploy/docker/compose/grafana/dashboards/overview.json`. The chart
+  ships a copy in `deploy/helm/nebuladns/dashboards/`; CI fails if they drift.
 
 ---
 

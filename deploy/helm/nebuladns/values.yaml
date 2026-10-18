@@ -101,10 +101,13 @@ prometheusRule:
   enabled: false
   labels: {}
 
+# NebulaDNS Overview dashboard as a ConfigMap for the Grafana sidecar.
 grafanaDashboard:
   enabled: false
   labels:
     grafana_dashboard: "1"
+  # e.g. grafana_folder: NebulaDNS (sidecar folderAnnotation)
+  annotations: {}
 
 # Contents of /etc/nebuladns/nebuladns.toml mounted into the pod. Zones are appended to
 # this automatically from `.Values.zones` below.

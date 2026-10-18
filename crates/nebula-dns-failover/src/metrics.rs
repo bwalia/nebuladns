@@ -71,13 +71,14 @@ impl FailoverMetrics {
             "Serving state: 1=primary 2=secondary 3=active_active 4=degraded 5=manual_primary 6=manual_secondary.",
             state.clone(),
         );
+        // Counters get `_total` appended by prometheus_client; don't repeat it here.
         registry.register(
-            "transitions_total",
+            "transitions",
             "Count of serving-state transitions.",
             transitions.clone(),
         );
         registry.register(
-            "dns_apply_total",
+            "dns_apply",
             "DNS apply attempts by result (noop|planned|applied|error).",
             dns_apply.clone(),
         );
@@ -167,5 +168,36 @@ impl FailoverMetrics {
 impl Default for FailoverMetrics {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exported_names_match_dashboard_and_runbook() {
+        let m = FailoverMetrics::new();
+        m.set_pop_up("lon", 1);
+        m.set_state("www.example.com", 1);
+        m.inc_transition("www.example.com", "primary", "secondary", "pop_down");
+        m.inc_dns_apply("www.example.com", "applied");
+        m.observe_probe_latency("lon", 0.012);
+        m.touch_last_success();
+        let out = m.render().unwrap();
+        for name in [
+            "nebula_dns_failover_pop_up{",
+            "nebula_dns_failover_state{",
+            "nebula_dns_failover_transitions_total{",
+            "nebula_dns_failover_dns_apply_total{",
+            "nebula_dns_failover_probe_latency_milliseconds{",
+            "nebula_dns_failover_last_success_unixtime ",
+        ] {
+            assert!(out.contains(name), "missing {name} in:\n{out}");
+        }
+        assert!(
+            !out.contains("_total_total"),
+            "counter name double-suffixed:\n{out}"
+        );
     }
 }
