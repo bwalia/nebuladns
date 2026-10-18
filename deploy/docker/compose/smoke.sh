@@ -60,7 +60,7 @@ fi
 
 echo "== /metrics =="
 metrics_body="$(curl -fsS --max-time 3 "http://$HOST:9090/metrics" 2>&1 || echo MISSING)"
-if printf '%s' "$metrics_body" | grep -q '^nebula_dns_queries_total'; then
+if printf '%s' "$metrics_body" | grep -q '^nebula_dns_queries_total{'; then
   echo "  pass  nebula_dns_queries_total exposed"
   pass=$((pass + 1))
 else

@@ -203,8 +203,10 @@ impl DnsMetrics {
             ),
             dropped: Family::<DropLabels, Counter>::default(),
         };
+        // prometheus_client appends `_total` to counters; registering "dns_queries_total"
+        // exported `nebula_dns_queries_total_total`, which no dashboard or alert queried.
         registry.register(
-            "dns_queries_total",
+            "dns_queries",
             "Queries received, labelled by transport, qtype (bounded), and rcode (bounded).",
             m.queries.clone(),
         );
@@ -214,7 +216,7 @@ impl DnsMetrics {
             m.latency.clone(),
         );
         registry.register(
-            "dns_dropped_total",
+            "dns_dropped",
             "Requests dropped before response.",
             m.dropped.clone(),
         );
@@ -239,10 +241,32 @@ mod tests {
         m.latency.get_or_create(&labels).observe(0.00005);
         let mut out = String::new();
         prometheus_client::encoding::text::encode(&mut out, &reg).unwrap();
-        assert!(out.contains("nebula_dns_queries_total"));
+        assert!(out.contains("nebula_dns_queries_total{"));
+        assert!(
+            !out.contains("_total_total"),
+            "counter name double-suffixed:\n{out}"
+        );
         assert!(out.contains("proto=\"udp\""));
         assert!(out.contains("qtype=\"A\""));
         assert!(out.contains("rcode=\"NOERROR\""));
         assert!(out.contains("nebula_dns_query_duration_seconds"));
+    }
+
+    #[test]
+    fn dropped_counter_has_single_total_suffix() {
+        let mut reg = Registry::with_prefix("nebula");
+        let m = DnsMetrics::register(&mut reg);
+        m.dropped
+            .get_or_create(&DropLabels {
+                reason: DropReason::Malformed,
+            })
+            .inc();
+        let mut out = String::new();
+        prometheus_client::encoding::text::encode(&mut out, &reg).unwrap();
+        assert!(
+            out.contains("nebula_dns_dropped_total{reason=\"malformed\"} 1"),
+            "{out}"
+        );
+        assert!(!out.contains("_total_total"), "{out}");
     }
 }

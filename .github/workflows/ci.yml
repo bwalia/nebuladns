@@ -155,6 +155,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: azure/setup-helm@v5
+      - name: Grafana dashboard copies in sync
+        # Helm can't read files outside the chart, so it ships a copy of the Compose
+        # dashboard. Regenerate with: cp deploy/docker/compose/grafana/dashboards/overview.json
+        # deploy/helm/nebuladns/dashboards/nebuladns-overview.json
+        run: |
+          diff -u deploy/docker/compose/grafana/dashboards/overview.json \
+            deploy/helm/nebuladns/dashboards/nebuladns-overview.json
       - name: helm lint
         run: helm lint deploy/helm/nebuladns --strict
       - name: helm template (example with a zone)
@@ -163,6 +170,7 @@ jobs:
           helm template test deploy/helm/nebuladns \
             --set "zones[0].name=example.com" \
             --set "zones[0].content=origin = \"example.com.\"" \
+            --set grafanaDashboard.enabled=true \
             > /tmp/rendered.yaml
       - name: Install kubeconform
         run: |
