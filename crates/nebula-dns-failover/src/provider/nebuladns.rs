@@ -6,6 +6,8 @@
 //! Fail-closed: requires `NEBULA_API_TOKEN` / `provider.api_token`.
 
 use std::net::Ipv4Addr;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use async_trait::async_trait;
 use reqwest::Client;
@@ -71,6 +73,22 @@ impl NebulaDnsProvider {
             fqdn.to_string()
         }
     }
+}
+
+/// A fresh `Idempotency-Key` per apply attempt.
+///
+/// The record API keeps keys with no expiry: a reused key with a different body is
+/// rejected (409), and one with the same body is replayed without writing. A key
+/// derived from the owner (or its target) therefore broke every failover after the
+/// first write, or would silently skip a failback. The controller re-reads the live
+/// record every tick, so it doesn't need a key that is stable across ticks.
+fn idempotency_key(kind: &str, owner: &str) -> String {
+    static SEQ: AtomicU64 = AtomicU64::new(0);
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| d.as_nanos());
+    let seq = SEQ.fetch_add(1, Ordering::Relaxed);
+    format!("failover-{kind}-{owner}-{nanos}-{seq}")
 }
 
 #[async_trait]
@@ -200,7 +218,7 @@ impl Provider for NebulaDnsProvider {
         });
         let resp = self
             .auth(self.client.put(&url).json(&body))
-            .header("Idempotency-Key", format!("failover-a-{owner}-{ttl}"))
+            .header("Idempotency-Key", idempotency_key("a", &owner))
             .send()
             .await?;
         if !resp.status().is_success() {
@@ -255,7 +273,7 @@ impl Provider for NebulaDnsProvider {
         });
         let resp = self
             .auth(self.client.put(&url).json(&body))
-            .header("Idempotency-Key", format!("failover-cname-{owner}"))
+            .header("Idempotency-Key", idempotency_key("cname", &owner))
             .send()
             .await?;
         if !resp.status().is_success() {
