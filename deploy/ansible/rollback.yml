@@ -25,7 +25,9 @@
           if [ -n "{{ rollback_version }}" ]; then
             echo "nebuladns-{{ rollback_version }}"
           else
-            current="$(readlink nebuladns || true)"
+            # readlink returns the absolute path the role wrote; compare bare names
+            # with ls, or the current binary is never excluded and "rolls back" to itself.
+            current="$(basename "$(readlink nebuladns || true)")"
             # Pick the newest versioned binary that isn't the current one.
             # shellcheck disable=SC2012
             ls -1t nebuladns-* 2>/dev/null | grep -vx "${current}" | head -n 1

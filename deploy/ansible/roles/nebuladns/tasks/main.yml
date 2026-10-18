@@ -108,7 +108,9 @@
 - name: Grant CAP_NET_BIND_SERVICE so the server can bind :53 without root
   community.general.capabilities:
     path: "{{ nebuladns_bin_dir }}/nebuladns-{{ nebuladns_version }}"
-    capability: cap_net_bind_service=+ep
+    # `=ep`, matching getcap's output: the module compares the operator literally, so
+    # `+ep` / `=+ep` never match and the task reports a change on every run.
+    capability: cap_net_bind_service=ep
     state: present
   # On hosts that don't have python3-pylibacl installed this module fails with a clear
   # message — treat as a soft fail so the common case (systemd's AmbientCapabilities,

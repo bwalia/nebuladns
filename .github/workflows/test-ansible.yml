@@ -1,0 +1,55 @@
+name: test-ansible
+
+# Runs the real Ansible role against a disposable systemd container (see
+# deploy/ansible/tests/run.sh): interface bind, idempotency, reload on zone-only
+# changes, bad-zone rejection, restart on a new binary, and rollback.yml.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "crates/**"
+      - "deploy/ansible/**"
+      - "deploy/systemd/**"
+      - "Cargo.*"
+      - ".github/workflows/test-ansible.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "crates/**"
+      - "deploy/ansible/**"
+      - "deploy/systemd/**"
+      - "Cargo.*"
+      - ".github/workflows/test-ansible.yml"
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  role:
+    name: ansible role e2e (systemd container)
+    # Pinned to match the ubuntu:24.04 target image, so the glibc build runs there.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - name: Install ansible
+        run: |
+          pip install "ansible-core==2.17.*"
+          ansible-galaxy collection install -r deploy/ansible/requirements.yml
+      - name: Build nebuladns + nebulactl
+        run: cargo build --release -p nebula-server -p nebula-cli --bin nebuladns --bin nebulactl
+      - name: Run role end-to-end
+        run: deploy/ansible/tests/run.sh target/release/nebuladns target/release/nebulactl
