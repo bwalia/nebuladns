@@ -1,4 +1,4 @@
-//! Graceful-shutdown signal handling.
+//! Process signal handling: graceful shutdown (SIGINT / SIGTERM) and zone reload (SIGHUP).
 
 /// Resolves when the process should begin shutdown (SIGINT / SIGTERM).
 pub async fn signal() {
@@ -18,4 +18,14 @@ pub async fn signal() {
         let _ = tokio::signal::ctrl_c().await;
         tracing::info!("received Ctrl+C");
     }
+}
+
+/// SIGHUP stream for zone reloads (`systemctl reload nebuladns`).
+///
+/// Installing the handler replaces SIGHUP's default action. Without it, a reload
+/// terminates the process, and systemd counts a SIGHUP exit as clean, so
+/// `Restart=on-failure` would leave DNS down.
+#[cfg(unix)]
+pub fn hangup() -> std::io::Result<tokio::signal::unix::Signal> {
+    tokio::signal::unix::signal(tokio::signal::unix::SignalKind::hangup())
 }
