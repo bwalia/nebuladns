@@ -38,6 +38,9 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 [dev-dependencies]
+nebula-api = { workspace = true }
+nebula-metrics = { workspace = true }
+nebula-zone = { workspace = true }
 tokio = { workspace = true }
 axum = { workspace = true }
 tower = { workspace = true, features = ["util"] }
