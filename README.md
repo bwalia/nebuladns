@@ -431,6 +431,11 @@ Compose rig at http://localhost:3000.
   `MemoryDenyWriteExecute=true`.
 - **Graceful shutdown**: SIGTERM/SIGINT drains connections, signals `STOPPING=1`, lets
   in-flight requests finish, then exits cleanly.
+- **Zone reload**: `systemctl reload nebuladns` (SIGHUP) re-reads the `[[zones]]` list and
+  zone files and swaps them in atomically, with no dropped queries. A bad zone file is
+  logged and the previous zones keep serving. Binds, logging and API settings still need
+  a restart. Record-API writes are in-memory only, so a reload reverts them;
+  `nebula-dns-failover` re-applies its overrides on its next tick.
 - **Rollback**: atomic binary symlink swap — MTTR ≈ seconds per host.
 - **Zero-downtime restart**: supported via `nebuladns.socket` (socket activation).
 

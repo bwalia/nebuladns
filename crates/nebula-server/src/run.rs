@@ -171,6 +171,33 @@ pub async fn main(args: Args) -> Result<()> {
         });
     }
 
+    // Zone reload on SIGHUP. Installed before READY=1 so `systemctl reload` can never hit
+    // SIGHUP's default (terminate) action.
+    #[cfg(unix)]
+    {
+        let mut hangup = shutdown::hangup().context("install SIGHUP handler")?;
+        let zones = zone_registry.clone();
+        let cfg_path = cfg_path.map(Path::to_path_buf);
+        let token = shutdown_token.clone();
+        servers.spawn(async move {
+            loop {
+                tokio::select! {
+                    () = token.cancelled() => return Ok(()),
+                    sig = hangup.recv() => if sig.is_none() { return Ok(()) },
+                }
+                tracing::info!("received SIGHUP, reloading zones");
+                notify::reloading();
+                match reload_zones(cfg_path.as_deref(), &zones) {
+                    Ok(count) => tracing::info!(count, "zones reloaded"),
+                    Err(err) => {
+                        tracing::error!(error = ?err, "zone reload failed; still serving previous zones");
+                    }
+                }
+                notify::ready();
+            }
+        });
+    }
+
     // All subsystems are up — signal ready.
     state.set_ready(true);
     notify::ready();
@@ -193,6 +220,19 @@ pub async fn main(args: Args) -> Result<()> {
 
     tracing::info!("nebuladns stopped cleanly");
     Ok(())
+}
+
+/// Re-read the config's `[[zones]]` list and every zone file, then publish them in one
+/// atomic swap. Any error leaves the running zones untouched. Other config sections
+/// (binds, logging, API) still need a restart. Record-API writes live only in memory,
+/// so a reload reverts them to the zone files; `nebula-dns-failover` re-applies its
+/// overrides on its next tick.
+fn reload_zones(cfg_path: Option<&Path>, registry: &ZoneRegistry) -> Result<usize> {
+    let cfg = load_config(cfg_path)?;
+    let zones = load_zones(cfg_path, &cfg.zones)?;
+    let count = zones.len();
+    registry.replace(zones);
+    Ok(count)
 }
 
 fn load_zones(cfg_path: Option<&Path>, zones: &[ZoneConfig]) -> Result<Vec<Zone>> {

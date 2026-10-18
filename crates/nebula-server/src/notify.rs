@@ -15,6 +15,11 @@ pub mod platform {
         let _ = sd_notify::notify(false, &[NotifyState::Ready]);
     }
 
+    /// Send RELOADING=1. Follow with `ready()` once the reload has finished.
+    pub fn reloading() {
+        let _ = sd_notify::notify(false, &[NotifyState::Reloading]);
+    }
+
     /// Send STOPPING=1. Call at the start of graceful shutdown.
     pub fn stopping() {
         let _ = sd_notify::notify(false, &[NotifyState::Stopping]);
@@ -43,6 +48,7 @@ pub mod platform {
 #[cfg(not(target_os = "linux"))]
 pub mod platform {
     pub fn ready() {}
+    pub fn reloading() {}
     pub fn stopping() {}
     pub fn spawn_watchdog() -> Option<tokio::task::JoinHandle<()>> {
         None
