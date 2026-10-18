@@ -201,6 +201,28 @@ jobs:
           docker run --rm -v "$PWD/deploy/prometheus:/p" -w /p/tests --entrypoint promtool \
             prom/prometheus:v2.54.1 test rules nebuladns.rules.test.yml
 
+  alertmanager:
+    name: alertmanager routing (amtool)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: No webhook URLs committed
+        run: |
+          if git grep -nE 'hooks\.slack\.com/services/' -- ':!*.md'; then
+            echo "::error::Slack webhook URL committed; webhooks belong in *.url secret files"
+            exit 1
+          fi
+      - name: amtool check-config
+        run: |
+          docker run --rm \
+            -v "$PWD/deploy/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
+            -v "$PWD/deploy/alertmanager/templates:/etc/alertmanager/templates:ro" \
+            --entrypoint amtool prom/alertmanager:v0.27.0 check-config /etc/alertmanager/alertmanager.yml
+      - name: Routing + Slack template tests
+        run: |
+          docker run --rm -v "$PWD/deploy:/deploy:ro" --entrypoint sh \
+            prom/alertmanager:v0.27.0 /deploy/alertmanager/tests/routes.sh
+
   dockerfile:
     name: hadolint
     runs-on: ubuntu-latest

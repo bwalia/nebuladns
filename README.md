@@ -466,6 +466,8 @@ Alerts not marked page are tickets.
 - **Kubernetes:** `--set prometheusRule.enabled=true`. The chart embeds a copy, and CI fails
   if it drifts.
 - **Tests:** `promtool` unit tests in `deploy/prometheus/tests/` run in CI.
+- **Slack routing:** [`deploy/alertmanager/`](deploy/alertmanager/README.md) sends pages
+  (with `@here`) and tickets to separate Slack channels. It's included in the Compose rig.
 
 ---
 

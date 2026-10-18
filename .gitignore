@@ -15,6 +15,7 @@ Cargo.lock.bak
 .DS_Store
 
 # Local config / secrets
+*.url
 .env
 .env.*
 !.env.example

@@ -1,0 +1,77 @@
+# Alertmanager routing for the alerts in deploy/prometheus/nebuladns.rules.yml.
+#
+#   severity=page   -> slack-pages   (@here while firing, repeats hourly)
+#   severity=ticket -> slack-tickets (repeats daily)
+#
+# Webhook URLs are secrets and never committed. Alertmanager reads them from files:
+#   /etc/alertmanager/secrets/slack-pages.url
+#   /etc/alertmanager/secrets/slack-tickets.url
+# Each file holds one Slack incoming-webhook URL. A webhook is bound to its channel,
+# so two channels need two webhooks; for a single channel, put the same URL in both.
+#
+# Tests: tests/routes.sh (routing + template rendering, runs in CI).
+
+global:
+  resolve_timeout: 5m
+
+templates:
+  - /etc/alertmanager/templates/*.tmpl
+
+route:
+  receiver: slack-tickets
+  # One message per alert per job, not one per instance: an outage across the fleet
+  # arrives as a single Slack post listing every instance.
+  group_by: [alertname, job]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 24h
+  routes:
+    - receiver: slack-pages
+      matchers: ['severity="page"']
+      group_wait: 10s
+      repeat_interval: 1h
+    - receiver: slack-tickets
+      matchers: ['severity="ticket"']
+
+inhibit_rules:
+  # The fleet-wide alert already says it; don't also post every instance.
+  - source_matchers: ['alertname="NebulaDNSAllInstancesDown"']
+    target_matchers: ['alertname="NebulaDNSDown"']
+    equal: [job]
+  # Both POPs down implies each POP is down.
+  - source_matchers: ['alertname="NebulaDNSFailoverBothPopsDown"']
+    target_matchers: ['alertname="NebulaDNSFailoverPopDown"']
+    equal: [job]
+
+receivers:
+  - name: slack-pages
+    slack_configs:
+      - api_url_file: /etc/alertmanager/secrets/slack-pages.url
+        send_resolved: true
+        color: '{{ template "nebuladns.slack.color" . }}'
+        title: '{{ template "nebuladns.slack.title" . }}'
+        title_link: '{{ template "nebuladns.slack.runbook" . }}'
+        pretext: '{{ if eq .Status "firing" }}<!here>{{ end }}'
+        text: '{{ template "nebuladns.slack.text" . }}'
+        actions:
+          - type: button
+            text: Runbook
+            url: '{{ template "nebuladns.slack.runbook" . }}'
+          - type: button
+            text: Silence
+            url: '{{ template "nebuladns.slack.silence" . }}'
+  - name: slack-tickets
+    slack_configs:
+      - api_url_file: /etc/alertmanager/secrets/slack-tickets.url
+        send_resolved: true
+        color: '{{ template "nebuladns.slack.color" . }}'
+        title: '{{ template "nebuladns.slack.title" . }}'
+        title_link: '{{ template "nebuladns.slack.runbook" . }}'
+        text: '{{ template "nebuladns.slack.text" . }}'
+        actions:
+          - type: button
+            text: Runbook
+            url: '{{ template "nebuladns.slack.runbook" . }}'
+          - type: button
+            text: Silence
+            url: '{{ template "nebuladns.slack.silence" . }}'
