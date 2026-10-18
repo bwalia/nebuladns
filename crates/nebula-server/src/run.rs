@@ -41,6 +41,12 @@ pub struct Args {
     /// Used as the container HEALTHCHECK — `nebuladns healthcheck`.
     #[arg(long, hide = true)]
     pub healthcheck: bool,
+
+    /// Parse a zone file and exit non-zero if it is invalid. Ansible runs this as the
+    /// zone deploy's `validate:` step, because a SIGHUP reload keeps serving the old
+    /// zones on a parse error instead of failing.
+    #[arg(long, value_name = "FILE")]
+    pub check_zone: Option<PathBuf>,
 }
 
 /// Main entry. Owns the runtime and returns only on shutdown.
@@ -54,6 +60,15 @@ pub async fn main(args: Args) -> Result<()> {
 
     if args.healthcheck {
         return healthcheck().await;
+    }
+
+    if let Some(path) = &args.check_zone {
+        let text = std::fs::read_to_string(path)
+            .with_context(|| format!("read zone file {}", path.display()))?;
+        let zone = Zone::from_toml(&text)
+            .with_context(|| format!("parse zone file {}", path.display()))?;
+        println!("ok: {}", zone.origin());
+        return Ok(());
     }
 
     let cfg_path = args.config.as_deref();
