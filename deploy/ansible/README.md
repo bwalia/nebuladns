@@ -15,7 +15,8 @@ deploy/ansible/
 ├── inventory.example.ini     # template — the real inventory lives in a GitHub secret
 ├── environments/
 │   ├── staging.yml
-│   └── production.yml
+│   ├── production.yml
+│   └── private.yml           # DTAP: DNS on a WireGuard/LAN IP only
 └── roles/nebuladns/
     ├── defaults/main.yml
     ├── handlers/main.yml
@@ -110,6 +111,37 @@ ansible-playbook -i inventory.ini playbook.yml \
   -e nebuladns_version=dev-$(git rev-parse --short HEAD) \
   -e @environments/staging.yml
 ```
+
+## Private (DTAP) hosts: bind DNS to a WireGuard or LAN IP
+
+Some zones can't be published through Cloudflare, either because exposing internal
+addresses is unacceptable or because site resolvers with rebinding protection strip
+RFC1918 answers. Serve those zones from NebulaDNS on the private network, on the same box
+as nginx if you like (DNS uses :53 and nginx uses :80/:443).
+
+Set the interface per host in the inventory and deploy with `environments/private.yml`:
+
+```ini
+[nebuladns]
+app1  ansible_host=10.0.0.5  nebuladns_dns_interface=wg0   ; WireGuard server IP
+app2  ansible_host=10.0.0.6  nebuladns_dns_interface=eth0  ; LAN IP
+```
+
+```bash
+ansible-playbook -i inventory.ini playbook.yml -e @environments/private.yml ...
+```
+
+The role binds UDP and TCP :53 to that interface's IPv4 address. A specific address
+doesn't collide with the systemd-resolved stub on `127.0.0.53:53` and keeps DNS off
+public interfaces. The role also installs a unit drop-in that orders `nebuladns` after
+the interface and `wg-quick@<iface>`. The deploy fails early if the interface has no
+IPv4 address, or if an environment file's explicit `nebuladns_dns_*_bind` would override
+the bind the interface asks for.
+
+NebulaDNS is authoritative-only (out-of-zone queries get `REFUSED`), so clients shouldn't
+use it as their resolver. Add a conditional forwarder for the private zone on the site
+resolver (or on WireGuard peers, e.g. a `resolvectl domain wg0 ~dev.internal` route),
+and firewall :53 so only those resolvers and peers can reach it.
 
 ## Rollback
 

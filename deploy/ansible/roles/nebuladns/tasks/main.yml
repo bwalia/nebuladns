@@ -7,6 +7,33 @@
     msg: "nebuladns_version is 'unknown' — set via -e nebuladns_version=<tag> in production"
   when: nebuladns_version == "unknown"
 
+- name: Check the DNS interface has an IPv4 address
+  ansible.builtin.assert:
+    that:
+      - (nebuladns_dns_interface | replace('-', '_')) in ansible_facts
+      - ansible_facts[nebuladns_dns_interface | replace('-', '_')].ipv4.address is defined
+    fail_msg: >-
+      nebuladns_dns_interface={{ nebuladns_dns_interface }} has no IPv4 address on
+      {{ inventory_hostname }}. Is the interface (e.g. wg-quick@{{ nebuladns_dns_interface }})
+      up?
+    quiet: true
+  when: nebuladns_dns_interface | length > 0
+
+# An environment file passed with -e outranks the interface-derived default, so catch
+# `staging.yml`'s 0.0.0.0:53 silently replacing the bind the inventory asked for.
+- name: Check the DNS binds match nebuladns_dns_interface
+  ansible.builtin.assert:
+    that:
+      - nebuladns_dns_udp_bind == nebuladns_dns_listen_ip ~ ':53'
+      - nebuladns_dns_tcp_bind == nebuladns_dns_listen_ip ~ ':53'
+    fail_msg: >-
+      nebuladns_dns_interface={{ nebuladns_dns_interface }} resolves to
+      {{ nebuladns_dns_listen_ip }}, but the DNS binds are {{ nebuladns_dns_udp_bind }} /
+      {{ nebuladns_dns_tcp_bind }}. Drop nebuladns_dns_*_bind from the environment file
+      (see environments/private.yml).
+    quiet: true
+  when: nebuladns_dns_interface | length > 0
+
 - name: Ensure nebuladns group exists
   ansible.builtin.group:
     name: "{{ nebuladns_group }}"
@@ -119,6 +146,43 @@
     owner: root
     group: root
     mode: "0644"
+  notify:
+    - Reload systemd daemon
+    - Restart nebuladns
+
+# network-online.target doesn't wait for WireGuard, so order the unit after the
+# interface; otherwise the bind races wg-quick at boot.
+- name: Ensure the nebuladns unit drop-in dir exists
+  ansible.builtin.file:
+    path: /etc/systemd/system/nebuladns.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: nebuladns_dns_interface | length > 0
+
+- name: Order nebuladns after its DNS interface
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/nebuladns.service.d/10-dns-interface.conf
+    # Device unit names escape '-' as \x2d (systemd-escape).
+    content: |
+      # Managed by Ansible — do not edit on the host.
+      [Unit]
+      After=sys-subsystem-net-devices-{{ nebuladns_dns_interface | replace('-', '\\x2d') }}.device
+      After=wg-quick@{{ nebuladns_dns_interface }}.service
+    owner: root
+    group: root
+    mode: "0644"
+  when: nebuladns_dns_interface | length > 0
+  notify:
+    - Reload systemd daemon
+    - Restart nebuladns
+
+- name: Remove the interface ordering drop-in when unused
+  ansible.builtin.file:
+    path: /etc/systemd/system/nebuladns.service.d/10-dns-interface.conf
+    state: absent
+  when: nebuladns_dns_interface | length == 0
   notify:
     - Reload systemd daemon
     - Restart nebuladns
