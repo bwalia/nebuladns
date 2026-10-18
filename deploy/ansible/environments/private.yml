@@ -1,0 +1,22 @@
+---
+# Private (DTAP) environment: DNS answers only on a WireGuard or LAN address, for zones
+# that must not be published through Cloudflare. NebulaDNS is authoritative-only, so
+# clients reach it via a conditional forwarder on the site resolver, not as their resolver.
+#
+# Pick the interface per host in the inventory:
+#   app1  ansible_host=10.0.0.5  nebuladns_dns_interface=wg0   # WireGuard server IP
+#   app2  ansible_host=10.0.0.6  nebuladns_dns_interface=eth0  # LAN IP
+#
+# Do NOT set nebuladns_dns_udp_bind / nebuladns_dns_tcp_bind here: this file is passed
+# with -e, which would override the interface-derived bind.
+
+# These hosts run nginx too, so keep the admin API and metrics off :8080 / :9090.
+nebuladns_api_bind: "127.0.0.1:18080"
+nebuladns_metrics_bind: "127.0.0.1:19090"
+
+nebuladns_log_filter: "info,nebula=info"
+nebuladns_log_json: true
+
+nebuladns_serial: "100%"
+
+nebuladns_zones: []

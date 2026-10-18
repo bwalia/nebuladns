@@ -22,8 +22,18 @@ nebuladns_artifact_dir: "{{ role_path }}/files"
 # Listener binds. Override per environment in environments/*.yml.
 nebuladns_api_bind: "127.0.0.1:8080"
 nebuladns_metrics_bind: "127.0.0.1:9090"
-nebuladns_dns_udp_bind: "0.0.0.0:53"
-nebuladns_dns_tcp_bind: "0.0.0.0:53"
+nebuladns_dns_udp_bind: "{{ nebuladns_dns_listen_ip }}:53"
+nebuladns_dns_tcp_bind: "{{ nebuladns_dns_listen_ip }}:53"
+
+# Bind DNS to one interface's IPv4 (e.g. `wg0` for the WireGuard server IP, `eth0` for
+# the LAN IP) instead of 0.0.0.0. Set it per host in the inventory. Binding a specific
+# address keeps DNS off public interfaces and avoids the systemd-resolved stub
+# (127.0.0.53:53), which makes a 0.0.0.0:53 bind fail on stock Ubuntu/Debian.
+# Environment files that set the *_bind vars explicitly win over this.
+nebuladns_dns_interface: ""
+nebuladns_dns_listen_ip: >-
+  {{ ansible_facts[nebuladns_dns_interface | replace('-', '_')].ipv4.address
+     if nebuladns_dns_interface else '0.0.0.0' }}
 
 # Logging.
 nebuladns_log_filter: "info,nebula=info"
