@@ -40,7 +40,7 @@ jobs:
     # Pinned to match the ubuntu:24.04 target image, so the glibc build runs there.
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-python@v6
