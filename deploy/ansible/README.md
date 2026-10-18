@@ -148,6 +148,24 @@ use it as their resolver. Add a conditional forwarder for the private zone on th
 resolver (or on WireGuard peers, e.g. a `resolvectl domain wg0 ~dev.internal` route),
 and firewall :53 so only those resolvers and peers can reach it.
 
+## End-to-end test
+
+`tests/run.sh` deploys the role into a disposable systemd container and checks:
+- the DNS bind lands on the interface address
+- a rerun is idempotent
+- zone-only changes reload (same PID)
+- a bad zone fails the deploy while the old zone keeps serving
+- a new binary restarts the server
+- `rollback.yml` flips back
+
+CI runs it in `.github/workflows/test-ansible.yml` on every relevant push and PR, and nightly.
+Locally (Docker + `ansible-core`, Linux binaries for the Docker host's architecture):
+
+```bash
+ansible-galaxy collection install -r deploy/ansible/requirements.yml
+deploy/ansible/tests/run.sh path/to/nebuladns path/to/nebulactl
+```
+
 ## Rollback
 
 ```bash

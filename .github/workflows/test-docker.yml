@@ -19,6 +19,10 @@ on:
       - "zones/**"
       - "Cargo.*"
       - ".github/workflows/test-docker.yml"
+  # Nightly on main: catches new RustSec advisories and toolchain/runner drift
+  # even on days with no pushes.
+  schedule:
+    - cron: "17 3 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -88,13 +92,21 @@ jobs:
 
       - name: Prometheus scrape check
         run: |
-          # Give Prometheus one scrape cycle.
-          sleep 16
+          # Poll instead of sleeping one scrape interval: on a busy runner the first
+          # scrape can land after 16s, which made this step flaky.
           # Let curl URL-encode the PromQL for us; embedding %22 in shell-quoted strings
           # is one of those things that sometimes breaks and we lose an hour debugging it.
-          curl -fsSG 'http://127.0.0.1:9091/api/v1/query' \
-            --data-urlencode 'query=up{job="nebuladns"}' \
-            | tee /tmp/prom.json | grep -q '"value":\[.*,"1"\]'
+          for _ in $(seq 1 45); do
+            if curl -fsSG 'http://127.0.0.1:9091/api/v1/query' \
+                 --data-urlencode 'query=up{job="nebuladns"}' \
+                 | tee /tmp/prom.json | grep -q '"value":\[.*,"1"\]'; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Prometheus never reported up{job=\"nebuladns\"} == 1 within 90s:"
+          cat /tmp/prom.json
+          exit 1
 
       - name: Dump logs on failure
         if: failure()
