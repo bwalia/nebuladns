@@ -1,0 +1,20 @@
+{
+  "receiver": "slack-pages",
+  "status": "firing",
+  "externalURL": "http://alertmanager.example:9093",
+  "groupLabels": {"alertname": "NebulaDNSDown", "job": "nebuladns"},
+  "commonLabels": {"alertname": "NebulaDNSDown", "job": "nebuladns", "severity": "page"},
+  "commonAnnotations": {"runbook_url": "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSDown.md"},
+  "alerts": [
+    {"status": "firing",
+     "labels": {"alertname": "NebulaDNSDown", "job": "nebuladns", "severity": "page", "instance": "ns1:9090"},
+     "annotations": {"summary": "NebulaDNS ns1:9090 is down",
+                     "description": "Prometheus has not scraped ns1:9090 (nebuladns) for 2 minutes.",
+                     "runbook_url": "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSDown.md"}},
+    {"status": "firing",
+     "labels": {"alertname": "NebulaDNSDown", "job": "nebuladns", "severity": "page", "instance": "ns2:9090"},
+     "annotations": {"summary": "NebulaDNS ns2:9090 is down",
+                     "description": "Prometheus has not scraped ns2:9090 (nebuladns) for 2 minutes.",
+                     "runbook_url": "https://github.com/bwalia/nebuladns/blob/main/docs/runbooks/NebulaDNSDown.md"}}
+  ]
+}

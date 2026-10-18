@@ -1,0 +1,35 @@
+{{/* Slack message templates for deploy/alertmanager/alertmanager.yml. */}}
+
+{{/* "[FIRING:2] NebulaDNSDown (page)" or "[RESOLVED] NebulaDNSDown (page)" */}}
+{{ define "nebuladns.slack.title" -}}
+[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}{{ with .CommonLabels.severity }} ({{ . }}){{ end }}
+{{- end }}
+
+{{ define "nebuladns.slack.color" -}}
+{{ if eq .Status "resolved" }}good{{ else if eq .CommonLabels.severity "page" }}danger{{ else }}warning{{ end }}
+{{- end }}
+
+{{/* One bullet per alert: summary, then which instance / hostname / POP it's about. */}}
+{{ define "nebuladns.slack.text" -}}
+{{ range .Alerts -}}
+• {{ if eq .Status "resolved" }}~{{ .Annotations.summary }}~ resolved{{ else }}*{{ .Annotations.summary }}*{{ end }}
+{{- with .Labels.instance }} `{{ . }}`{{ end }}
+{{- with .Labels.hostname }} `{{ . }}`{{ end }}
+{{- with .Labels.pop }} `{{ . }}`{{ end }}
+{{ if eq .Status "firing" }}  {{ .Annotations.description }}
+{{ end -}}
+{{ end -}}
+{{- end }}
+
+{{ define "nebuladns.slack.runbook" -}}
+{{ (index .Alerts 0).Annotations.runbook_url }}
+{{- end }}
+
+{{/* Pre-filled silence form for this group's labels. */}}
+{{ define "nebuladns.slack.silence" -}}
+{{ .ExternalURL }}/#/silences/new?filter=%7B
+{{- range $i, $p := .CommonLabels.SortedPairs -}}
+{{- if $i }}%2C{{ end }}{{ $p.Name }}%3D%22{{ $p.Value | urlquery }}%22
+{{- end -}}
+%7D
+{{- end }}
