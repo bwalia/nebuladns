@@ -136,6 +136,10 @@ pub struct PopConfig {
 #[serde(deny_unknown_fields)]
 pub struct HostnameConfig {
     pub name: String,
+    /// Override `provider.zone_name` when this hostname lives in another zone
+    /// (e.g. apex of a second delegated child).
+    #[serde(default)]
+    pub zone_name: Option<String>,
     #[serde(default = "default_mode")]
     pub mode: FailoverMode,
     pub primary: String,

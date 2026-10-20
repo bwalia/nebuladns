@@ -4,7 +4,11 @@
 //! The provider replaces the A or CNAME RRset for that owner via
 //! `PUT /api/v1/zones/{zone}/records` and never touches other owners.
 //! Fail-closed: requires `NEBULA_API_TOKEN` / `provider.api_token`.
+//!
+//! Each hostname may override `provider.zone_name` via `hostname.zone_name`
+//! when managing records across multiple delegated zones.
 
+use std::collections::HashMap;
 use std::net::Ipv4Addr;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -22,7 +26,9 @@ pub struct NebulaDnsProvider {
     client: Client,
     base: String,
     token: String,
-    zone: String,
+    default_zone: String,
+    /// Lowercased FQDN (no trailing dot) → zone origin (no trailing dot).
+    zones_by_host: HashMap<String, String>,
 }
 
 impl NebulaDnsProvider {
@@ -47,6 +53,18 @@ impl NebulaDnsProvider {
                     "NEBULA_API_TOKEN or provider.api_token required (fail-closed)".into(),
                 )
             })?;
+        let default_zone = cfg.provider.zone_name.trim_end_matches('.').to_string();
+        let mut zones_by_host = HashMap::new();
+        for h in &cfg.hostnames {
+            let zone = h
+                .zone_name
+                .as_deref()
+                .unwrap_or(default_zone.as_str())
+                .trim_end_matches('.')
+                .to_string();
+            let key = h.name.trim_end_matches('.').to_ascii_lowercase();
+            zones_by_host.insert(key, zone);
+        }
         let client = Client::builder()
             .user_agent(concat!("nebula-dns-failover/", env!("CARGO_PKG_VERSION")))
             .build()?;
@@ -54,7 +72,8 @@ impl NebulaDnsProvider {
             client,
             base,
             token,
-            zone: cfg.provider.zone_name.trim_end_matches('.').to_string(),
+            default_zone,
+            zones_by_host,
         })
     }
 
@@ -62,12 +81,23 @@ impl NebulaDnsProvider {
         req.header("Authorization", format!("Bearer {}", self.token))
     }
 
+    fn zone_for(&self, fqdn: &str) -> &str {
+        let key = fqdn.trim_end_matches('.').to_ascii_lowercase();
+        self.zones_by_host
+            .get(&key)
+            .map(String::as_str)
+            .unwrap_or(self.default_zone.as_str())
+    }
+
     fn owner_relative(&self, fqdn: &str) -> String {
         let fqdn = fqdn.trim_end_matches('.');
-        let zone = self.zone.as_str();
-        if fqdn == zone {
+        let zone = self.zone_for(fqdn);
+        if fqdn.eq_ignore_ascii_case(zone) {
             "@".into()
-        } else if let Some(prefix) = fqdn.strip_suffix(&format!(".{zone}")) {
+        } else if let Some(prefix) = fqdn
+            .to_ascii_lowercase()
+            .strip_suffix(&format!(".{}", zone.to_ascii_lowercase()))
+        {
             prefix.to_string()
         } else {
             fqdn.to_string()
@@ -107,11 +137,12 @@ impl Provider for NebulaDnsProvider {
     }
 
     async fn get_records(&self, name: &str) -> Result<Vec<DnsRecord>, ProviderError> {
+        let zone = self.zone_for(name);
         let owner = self.owner_relative(name);
         let url = format!(
             "{}/api/v1/zones/{}/records?name={}",
             self.base,
-            urlencoding_zone(&self.zone),
+            urlencoding_zone(zone),
             owner
         );
         let resp = self.auth(self.client.get(&url)).send().await?;
@@ -182,6 +213,7 @@ impl Provider for NebulaDnsProvider {
             );
             return Ok(ApplyOutcome::Planned);
         }
+        let zone = self.zone_for(name);
         let owner = self.owner_relative(name);
         let existing = self.get_records(name).await?;
         let mut current: Vec<String> = existing
@@ -208,7 +240,7 @@ impl Provider for NebulaDnsProvider {
         let url = format!(
             "{}/api/v1/zones/{}/records",
             self.base,
-            urlencoding_zone(&self.zone)
+            urlencoding_zone(zone)
         );
         let body = json!({
             "name": owner,
@@ -249,6 +281,7 @@ impl Provider for NebulaDnsProvider {
             );
             return Ok(ApplyOutcome::Planned);
         }
+        let zone = self.zone_for(name);
         let owner = self.owner_relative(name);
         let existing = self.get_records(name).await?;
         let want = normalize_cname(target);
@@ -263,7 +296,7 @@ impl Provider for NebulaDnsProvider {
         let url = format!(
             "{}/api/v1/zones/{}/records",
             self.base,
-            urlencoding_zone(&self.zone)
+            urlencoding_zone(zone)
         );
         let body = json!({
             "name": owner,
@@ -311,9 +344,29 @@ mod tests {
             client: Client::new(),
             base: "http://127.0.0.1:8080".into(),
             token: "t".into(),
-            zone: "fictionally.org".into(),
+            default_zone: "fictionally.org".into(),
+            zones_by_host: HashMap::from([(
+                "abtesting.fictionally.org".into(),
+                "fictionally.org".into(),
+            )]),
         };
         assert_eq!(p.owner_relative("abtesting.fictionally.org"), "abtesting");
         assert_eq!(p.owner_relative("fictionally.org."), "@");
+    }
+
+    #[test]
+    fn owner_relative_apex_of_delegated_child() {
+        let p = NebulaDnsProvider {
+            client: Client::new(),
+            base: "http://127.0.0.1:8080".into(),
+            token: "t".into(),
+            default_zone: "failover.nebuladns.net".into(),
+            zones_by_host: HashMap::from([(
+                "abtesting.fictionally.org".into(),
+                "abtesting.fictionally.org".into(),
+            )]),
+        };
+        assert_eq!(p.owner_relative("abtesting.fictionally.org"), "@");
+        assert_eq!(p.zone_for("abtesting.fictionally.org"), "abtesting.fictionally.org");
     }
 }

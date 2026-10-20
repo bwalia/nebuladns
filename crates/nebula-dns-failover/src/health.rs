@@ -233,6 +233,7 @@ mod tests {
             pops,
             hostnames: vec![HostnameConfig {
                 name: "app.example.com".into(),
+                zone_name: None,
                 mode: crate::config::FailoverMode::ActivePassive,
                 primary: "lon1".into(),
                 secondary: "lon2".into(),
