@@ -33,6 +33,7 @@ Kubernetes operator — so the next failure is detected in seconds, not by custo
   - [systemd / Debian / Ubuntu](#systemd--debian--ubuntu)
   - [Build from source](#build-from-source)
 - [Why NebulaDNS](#why-nebuladns)
+- [Using this DNS (ns1 / ns2) for incidents and failover](#using-this-dns-ns1--ns2-for-incidents-and-failover)
 - [Architecture](#architecture)
 - [Observability](#observability)
 - [Operations](#operations)
@@ -332,6 +333,110 @@ the server, and the data plane is a first-class implementation of the API's cont
 Most importantly: **no alternative ships a first-class propagation gate.** That single
 primitive — "this change has reached all required downstreams; OK to proceed" — is the
 feature that would have prevented both of our incidents. It's core to NebulaDNS from M6.
+
+---
+
+## Using this DNS (ns1 / ns2) for incidents and failover
+
+Live fleet (co-located on diy-tax-return-infra cloud edge workers):
+
+| Name | Host | IP |
+|------|------|-----|
+| **ns1** | cloud001 | `72.62.211.28` |
+| **ns2** | vps002 | `85.190.106.88` |
+
+Apex **`nebuladns.net` stays on Cloudflare** (anycast). NebulaDNS is authoritative for
+zones you **NS-delegate** to ns1/ns2 (starter zone: `demo.nebuladns.net`). Operational
+Ansible + SSH live in the sibling checkout `diy-tax-return-infra`
+(`docs/runbooks/nebuladns.md`, `ansible/nebuladns.yml`). Product-side companion:
+[`docs/runbooks/NsSetupAndCloudflare.md`](docs/runbooks/NsSetupAndCloudflare.md).
+
+### Why this layout (incidents + failovers)
+
+DNS outages are usually not “the nameserver binary died” — they are **wrong answers,
+stale caches, or a single POP still advertised after it is dead**. This stack separates
+three jobs so each has a clear fix path:
+
+| Job | Who owns it | Why it matters in an incident |
+|-----|-------------|-------------------------------|
+| Apex / public NS anycast | **Cloudflare** | Resolvers keep finding the zone even if one of our VPs is down |
+| Authoritative answers for delegated zones | **NebulaDNS on ns1 + ns2** | Two independent authoritative hosts; dig either IP to see ground truth without Cloudflare cache |
+| App hostname traffic shift (lon1 ↔ lon2) | **`nebula-dns-failover`** rewriting **Cloudflare** A/CNAME | Health probes move clients off a dead edge in ~TTL (often 60–90s), fail-open keeps last-good RRset |
+
+**Do not confuse ns1/ns2 with lon1/lon2.** ns\* are DNS servers; lon\* are HTTP edge POPs.
+Failover rewrites *records that point at POPs* — it does not replace Cloudflare as the
+zone’s public nameservers (unless you deliberately cut over to Option A).
+
+**Best default for app failover today:** `provider.type = "cloudflare"` on the failover
+controller (see [`docs/runbooks/DnsFailover.md`](docs/runbooks/DnsFailover.md)). Use
+`provider.type = "nebuladns"` when the zone’s public NS are ns1/ns2.
+
+**Live CNAME failover test (ns1/ns2):** [`https://test.failover.nebuladns.net/`](https://test.failover.nebuladns.net/)
+— demo page shows which POP you landed on, live DoH CNAME + **TTL**, lon1/lon2
+`/healthz`, and the failover story. DNS: TTL 30, CNAME `lon1.pop0.uk` ↔
+`lon2.pop0.uk` via `nebula-dns-failover` on both NS hosts. Agent skill:
+[`.cursor/skills/dns-level-failover/SKILL.md`](.cursor/skills/dns-level-failover/SKILL.md).
+Reference pilot: [abtesting.fictionally.org](https://abtesting.fictionally.org/).
+
+### How to use it day to day
+
+**1. Point a name at NebulaDNS (delegated child)**
+
+1. Upsert Cloudflare glue via infra script (reads the wslproxy Cloudflare token
+   from k3s1 `wslproxy-system/wslproxy-settings`):
+   `python3 diy-tax-return-infra/scripts/nebuladns-cloudflare-dns.py`
+   — creates **A** `ns1`/`ns2` (DNS only) and **NS** `demo` → ns1 + ns2.
+2. Put the zone TOML on both hosts (Ansible sync) and reload.
+
+```bash
+# Ground truth — bypass Cloudflare and public recursion
+dig @72.62.211.28 www.demo.nebuladns.net A +norecurse
+dig @85.190.106.88 www.demo.nebuladns.net A +norecurse
+
+# What the world sees after delegation + TTL
+dig www.demo.nebuladns.net A +trace
+```
+
+**2. During a DNS / edge incident**
+
+```bash
+# Is NebulaDNS up on both NS?
+curl -sf http://127.0.0.1:18080/livez   # on each host (admin is localhost-only)
+dig @72.62.211.28 demo.nebuladns.net SOA +short
+dig @85.190.106.88 demo.nebuladns.net SOA +short
+
+# App hostname: what does Cloudflare currently return?
+dig +short app.example.com A
+
+# Failover controller (control host, not the POP under test)
+curl -sf http://127.0.0.1:9119/v1/status
+# Break-glass: pin to secondary / clear override — see DnsFailover.md
+```
+
+**3. Change a record fast (failover or hotfix)**
+
+- **Preferred for public app names on Cloudflare:** let `nebula-dns-failover` rewrite
+  managed A/CNAME via the Cloudflare API (marker-owned records only).
+- **On a Nebula-authoritative zone:** `PUT /api/v1/zones/{zone}/records` with a short TTL
+  (default 5s) — see [Fast record changes](#fast-record-changes-cname-failover). Reload
+  (`systemctl reload nebuladns`) reverts in-memory API writes to the zone file; the
+  failover controller re-applies on its next tick.
+
+**4. Redeploy / roll back NS hosts**
+
+```bash
+# From diy-tax-return-infra/ansible (existing cloud_workers SSH keys)
+ansible-playbook nebuladns.yml -e nebuladns_version=dev-<sha>
+# Or stop during a bad deploy:
+ansible nebuladns_hosts -b -m systemd -a 'name=nebuladns state=stopped'
+```
+
+### When to escalate to full Nebula apex (Option A)
+
+Only after both NS answer SOA for `nebuladns.net` and you want Cloudflare as
+**registrar only**. Switch the zone to custom nameservers ns1/ns2, then run failover with
+`provider.type = "nebuladns"`. Until then, keep the **split** model: Cloudflare apex +
+Nebula delegated zones + Cloudflare-backed failover.
 
 ---
 

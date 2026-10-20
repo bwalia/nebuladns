@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DNS failover demo · NebulaDNS</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #121a2b;
+    --ink: #e8eef8;
+    --muted: #8aa0bc;
+    --line: #24344f;
+    --ok: #3dcea7;
+    --warn: #f0b429;
+    --bad: #f07178;
+    --accent: #6eb6ff;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--ink); background:
+      radial-gradient(1200px 600px at 10% -10%, #1a2b4a 0%, transparent 55%),
+      radial-gradient(900px 500px at 100% 0%, #1b3a32 0%, transparent 45%),
+      var(--bg);
+    font: 16px/1.5 var(--sans);
+  }
+  main { max-width: 920px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+  h1 { font-size: clamp(1.6rem, 3vw, 2.2rem); margin: 0 0 .35rem; letter-spacing: -.02em; }
+  .sub { color: var(--muted); margin: 0 0 1.75rem; }
+  .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .card {
+    background: color-mix(in srgb, var(--panel) 92%, black);
+    border: 1px solid var(--line); border-radius: 14px; padding: 1rem 1.1rem;
+  }
+  .card h2 { margin: 0 0 .6rem; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+  .big { font: 600 1.35rem/1.25 var(--mono); word-break: break-all; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); } .accent { color: var(--accent); }
+  .path {
+    display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: 1.25rem 0 1.75rem;
+  }
+  .chip {
+    border: 1px solid var(--line); background: #0e1728; border-radius: 999px;
+    padding: .35rem .75rem; font: 500 .85rem/1 var(--mono);
+  }
+  .chip.active { border-color: var(--ok); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ok) 35%, transparent); }
+  .chip.dim { opacity: .45; }
+  .arrow { color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { text-align: left; padding: .45rem 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; width: 38%; }
+  code, .mono { font-family: var(--mono); font-size: .9em; }
+  .story { margin-top: 1.5rem; padding: 1rem 1.1rem; border-left: 3px solid var(--accent); background: #0e1728; border-radius: 0 12px 12px 0; }
+  .story p { margin: .4rem 0; color: var(--muted); }
+  .story strong { color: var(--ink); }
+  button {
+    margin-top: 1rem; background: var(--accent); color: #041018; border: 0; border-radius: 10px;
+    padding: .65rem 1rem; font-weight: 700; cursor: pointer;
+  }
+  button:hover { filter: brightness(1.08); }
+  footer { margin-top: 2rem; color: var(--muted); font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>DNS failover path</h1>
+  <p class="sub">Live demo for <code class="mono" id="fqdn">test.failover.nebuladns.net</code> — authoritative on <code class="mono">ns1</code>/<code class="mono">ns2.nebuladns.net</code>, CNAME flips between edge POPs with low TTL.</p>
+
+  <div class="path" id="path" aria-label="Failover path"></div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>You landed on</h2>
+      <div class="big accent" id="landed">detecting…</div>
+      <p class="sub" id="landedHint" style="margin:.5rem 0 0">POP that served this page</p>
+    </section>
+    <section class="card">
+      <h2>DNS says now</h2>
+      <div class="big" id="dnsNow">…</div>
+      <p class="sub" id="ttlLine" style="margin:.5rem 0 0">TTL —</p>
+    </section>
+    <section class="card">
+      <h2>lon1 /healthz</h2>
+      <div class="big" id="lon1">…</div>
+    </section>
+    <section class="card">
+      <h2>lon2 /healthz</h2>
+      <div class="big" id="lon2">…</div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:1rem">
+    <h2>What this proves</h2>
+    <table>
+      <tr><th>Hostname</th><td><code>test.failover.nebuladns.net</code></td></tr>
+      <tr><th>Authoritative NS</th><td><code>ns1.nebuladns.net</code> (72.62.211.28), <code>ns2.nebuladns.net</code> (85.190.106.88)</td></tr>
+      <tr><th>Record</th><td>CNAME · managed TTL <strong>30s</strong> (expect ~60–90s client visibility after flip)</td></tr>
+      <tr><th>Primary</th><td><code>lon1.pop0.uk</code> → 195.20.255.201</td></tr>
+      <tr><th>Secondary</th><td><code>lon2.pop0.uk</code> → 85.190.106.189</td></tr>
+      <tr><th>Controller</th><td><code>nebula-dns-failover</code> on both NS hosts · probes <code>/healthz</code> every 10s · 3 consecutive fails → flip</td></tr>
+      <tr><th>Reference pilot</th><td><a class="accent" href="https://abtesting.fictionally.org/">abtesting.fictionally.org</a> (same POP pair; Cloudflare or Nebula provider)</td></tr>
+    </table>
+    <button type="button" id="refresh">Refresh DNS + health</button>
+  </section>
+
+  <div class="story" id="story">
+    <p><strong>Story so far:</strong> loading…</p>
+  </div>
+
+  <footer>
+    NebulaDNS DNS-level failover demo · source in <code>deploy/failover-demo/</code> ·
+    dig: <code>dig @72.62.211.28 test.failover.nebuladns.net CNAME +ttl</code>
+  </footer>
+</main>
+<script>
+const FQDN = "test.failover.nebuladns.net";
+const POPS = {
+  lon1: { host: "lon1.pop0.uk", ipv4: "195.20.255.201", health: "https://lon1.pop0.uk/healthz" },
+  lon2: { host: "lon2.pop0.uk", ipv4: "85.190.106.189", health: "https://lon2.pop0.uk/healthz" },
+};
+const META = window.__FAILOVER_POP__ || null; // optional inject: { id, ipv4 }
+
+async function doh(name, type) {
+  const url = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`;
+  const r = await fetch(url, { headers: { Accept: "application/dns-json" } });
+  if (!r.ok) throw new Error(`DoH ${r.status}`);
+  return r.json();
+}
+
+function renderPath(activeId) {
+  const el = document.getElementById("path");
+  const steps = [
+    { id: "user", label: "User" },
+    { id: "dns", label: "NS ns1/ns2" },
+    { id: "lon1", label: "lon1" },
+    { id: "lon2", label: "lon2" },
+  ];
+  el.innerHTML = "";
+  steps.forEach((s, i) => {
+    if (i) {
+      const a = document.createElement("span");
+      a.className = "arrow"; a.textContent = "→"; el.appendChild(a);
+    }
+    const c = document.createElement("span");
+    c.className = "chip" + (s.id === activeId ? " active" : (s.id === "lon1" || s.id === "lon2") && s.id !== activeId ? " dim" : "");
+    c.textContent = s.label;
+    el.appendChild(c);
+  });
+}
+
+async function probe(url) {
+  const t0 = performance.now();
+  try {
+    const r = await fetch(url, { mode: "cors", cache: "no-store" });
+    const ms = Math.round(performance.now() - t0);
+    return { ok: r.ok, status: r.status, ms };
+  } catch (e) {
+    return { ok: false, status: 0, ms: Math.round(performance.now() - t0), err: String(e) };
+  }
+}
+
+function setHealth(id, res) {
+  const el = document.getElementById(id);
+  if (res.ok) {
+    el.className = "big ok";
+    el.textContent = `UP · HTTP ${res.status} · ${res.ms}ms`;
+  } else {
+    el.className = "big bad";
+    el.textContent = res.status ? `DOWN · HTTP ${res.status}` : `DOWN · ${res.err || "unreachable"}`;
+  }
+}
+
+async function detectLanding() {
+  // Prefer baked-in POP metadata from the edge deploy.
+  if (META && META.id) {
+    document.getElementById("landed").textContent = META.id;
+    document.getElementById("landedHint").textContent = `${META.ipv4 || ""} · baked into this POP’s copy of the page`;
+    return META.id;
+  }
+  try {
+    const r = await fetch("/pop.json", { cache: "no-store" });
+    if (r.ok) {
+      const j = await r.json();
+      document.getElementById("landed").textContent = j.id || j.pop || "unknown";
+      document.getElementById("landedHint").textContent = `${j.ipv4 || ""} · from /pop.json on this edge`;
+      return j.id || j.pop;
+    }
+  } catch (_) {}
+  document.getElementById("landed").textContent = location.hostname;
+  document.getElementById("landedHint").textContent = "No /pop.json — open via the failover hostname on an edge POP for full label";
+  return null;
+}
+
+async function refresh() {
+  document.getElementById("fqdn").textContent = FQDN;
+  const landed = await detectLanding();
+
+  let cname = "—", ttl = null, targetPop = null;
+  try {
+    const j = await doh(FQDN, "CNAME");
+    const ans = (j.Answer || []).find(a => a.type === 5);
+    if (ans) {
+      cname = ans.data.replace(/\.$/, "");
+      ttl = ans.TTL;
+      if (cname.includes("lon1")) targetPop = "lon1";
+      if (cname.includes("lon2")) targetPop = "lon2";
+    } else {
+      const a = await doh(FQDN, "A");
+      const ips = (a.Answer || []).filter(x => x.type === 1).map(x => x.data);
+      cname = ips.join(", ") || "no CNAME/A";
+      ttl = (a.Answer || [])[0]?.TTL ?? null;
+      if (ips.includes(POPS.lon1.ipv4)) targetPop = "lon1";
+      if (ips.includes(POPS.lon2.ipv4)) targetPop = "lon2";
+    }
+  } catch (e) {
+    cname = `DoH error: ${e.message}`;
+  }
+
+  document.getElementById("dnsNow").textContent = cname;
+  document.getElementById("dnsNow").className = "big " + (targetPop === "lon2" ? "warn" : "ok");
+  document.getElementById("ttlLine").textContent = ttl != null
+    ? `TTL ${ttl}s · after a flip, recursive caches typically catch up in ~2–3×TTL`
+    : "TTL unknown";
+
+  const [h1, h2] = await Promise.all([probe(POPS.lon1.health), probe(POPS.lon2.health)]);
+  setHealth("lon1", h1);
+  setHealth("lon2", h2);
+
+  renderPath(targetPop || landed || "dns");
+
+  const story = document.getElementById("story");
+  let line;
+  if (targetPop === "lon1" && h1.ok) {
+    line = `<p><strong>Healthy path:</strong> DNS CNAME is <code>${cname}</code> (TTL ${ttl}s). lon1 /healthz is up, so users land on <strong>lon1</strong>.</p>
+      <p>If lon1 stays down for 3 probe intervals (~30s), <code>nebula-dns-failover</code> rewrites the CNAME to <code>lon2.pop0.uk.</code> Clients learn the new target after TTL expiry.</p>`;
+  } else if (targetPop === "lon2") {
+    line = `<p><strong>Failover path active:</strong> DNS was updated to <code>${cname}</code> because lon1 was unhealthy (or forced). You are visiting via <strong>lon2</strong>.</p>
+      <p>When lon1 /healthz recovers for consecutive_ok probes (plus failback_delay), DNS flips back to <code>lon1.pop0.uk.</code></p>`;
+  } else if (!h1.ok && h2.ok) {
+    line = `<p><strong>lon1 looks down from this browser</strong> while lon2 is up. If the controller agrees, DNS should move to lon2 within ~TTL. Refresh shortly.</p>`;
+  } else {
+    line = `<p><strong>Check dig + controller:</strong> <code>dig @72.62.211.28 ${FQDN} CNAME +ttl</code> and <code>curl -s localhost:9119/v1/status</code> on ns1/ns2.</p>`;
+  }
+  if (landed && targetPop && landed !== targetPop) {
+    line += `<p class="warn"><strong>Mismatch:</strong> page POP label is <code>${landed}</code> but public DNS points at <code>${targetPop}</code> — cache or sticky path; wait for TTL.</p>`;
+  }
+  story.innerHTML = line;
+}
+
+document.getElementById("refresh").addEventListener("click", refresh);
+refresh();
+setInterval(refresh, 15000);
+</script>
+</body>
+</html>
