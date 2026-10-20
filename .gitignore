@@ -30,6 +30,12 @@ ui/node_modules
 ui/dist
 ui/.vite
 
+# Staged Ansible deploy binaries (built/copied locally or from CI)
+/deploy/ansible/roles/nebuladns/files/nebuladns
+/deploy/ansible/roles/nebuladns/files/nebulactl
+/deploy/ansible/roles/nebuladns/files/nebula-dns-failover
+/deploy/ansible/roles/nebuladns/files/SHA256SUMS
+
 # Misc
 *.log
 /tmp
