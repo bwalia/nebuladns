@@ -409,6 +409,7 @@ mod tests {
             pops,
             hostnames: vec![HostnameConfig {
                 name: "abtesting.fictionally.org".into(),
+                zone_name: None,
                 mode: FailoverMode::ActivePassive,
                 primary: "lon1".into(),
                 secondary: "lon2".into(),
