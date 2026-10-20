@@ -3,11 +3,13 @@
 //! M1 answer path:
 //!   1. decode the query
 //!   2. find the most-specific zone containing the qname
-//!   3. look up the RRset; on a hit → authoritative answer, on a miss → NXDOMAIN+SOA
-//!   4. encode response with compression; UDP responses over 512 bytes get `TC=1`
+//!   3. look up the RRset; on a hit → authoritative answer
+//!   4. else if a CNAME exists at the owner → return that CNAME (RFC 1034 §3.6.2;
+//!      recursors chase the target — we do not chase in-process yet)
+//!   5. else → NXDOMAIN/NODATA + SOA
+//!   6. encode response with compression; UDP responses over 512 bytes get `TC=1`
 //!
-//! Wildcards, CNAME chasing, NS delegation, and proper negative responses (RFC 2308) land
-//! in M2. This module is deliberately tiny so we can iterate quickly against `dig`.
+//! In-zone CNAME chasing, wildcards, NS delegation, and full RFC 2308 NSEC land in M2.
 
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -59,33 +61,43 @@ pub fn answer(query: &Message, zones: &ZoneRegistry) -> Message {
     if let Some(records) = rrset {
         resp.header.rcode = RCode::NoError;
         resp.answers.extend(records.iter().cloned());
-    } else {
-        // Is the name itself known under any other type? If yes → NOERROR with no answers
-        // (NODATA). If no → NXDOMAIN. Both cases get the zone's SOA in the authority
-        // section to carry negative-caching TTL (RFC 2308). Full RFC 2308 NSEC handling
-        // lands in M2.
-        let has_any_type = [
-            QType::A,
-            QType::AAAA,
-            QType::NS,
-            QType::CNAME,
-            QType::MX,
-            QType::TXT,
-            QType::SOA,
-            QType::SRV,
-            QType::PTR,
-            QType::CAA,
-        ]
-        .iter()
-        .any(|t| zone.find(&q.qname, *t).is_some());
-        resp.header.rcode = if has_any_type {
-            RCode::NoError
-        } else {
-            RCode::NxDomain
-        };
-        resp.authority.push(zone.soa().clone());
+        return resp;
     }
 
+    // Chrome / stub resolvers query A/AAAA. Without returning the CNAME here they
+    // get NODATA and the browser shows DNS_PROBE_FINISHED_NXDOMAIN (RFC 1034 §3.6.2).
+    if q.qtype != QType::CNAME {
+        if let Some(cname) = zone.find(&q.qname, QType::CNAME) {
+            resp.header.rcode = RCode::NoError;
+            resp.answers.extend(cname.iter().cloned());
+            return resp;
+        }
+    }
+
+    // Is the name itself known under any other type? If yes → NOERROR with no answers
+    // (NODATA). If no → NXDOMAIN. Both cases get the zone's SOA in the authority
+    // section to carry negative-caching TTL (RFC 2308). Full RFC 2308 NSEC handling
+    // lands in M2.
+    let has_any_type = [
+        QType::A,
+        QType::AAAA,
+        QType::NS,
+        QType::CNAME,
+        QType::MX,
+        QType::TXT,
+        QType::SOA,
+        QType::SRV,
+        QType::PTR,
+        QType::CAA,
+    ]
+    .iter()
+    .any(|t| zone.find(&q.qname, *t).is_some());
+    resp.header.rcode = if has_any_type {
+        RCode::NoError
+    } else {
+        RCode::NxDomain
+    };
+    resp.authority.push(zone.soa().clone());
     resp
 }
 

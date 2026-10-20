@@ -181,3 +181,79 @@ async fn soa_query_returns_soa_record() {
 
     shutdown.cancel();
 }
+
+#[tokio::test]
+async fn a_query_returns_cname_when_present() {
+    // Authoritative servers must return the CNAME RRset for an A/AAAA query at a
+    // CNAME owner (RFC 1034 §3.6.2). Without this, Chrome shows NXDOMAIN.
+    const ZONE: &str = r#"
+origin = "failover.test."
+default_ttl = 30
+
+[soa]
+mname = "ns1.failover.test."
+rname = "hostmaster.failover.test."
+serial = 1
+refresh = 10800
+retry = 3600
+expire = 604800
+minimum = 30
+
+[[records]]
+name = "@"
+type = "NS"
+value = "ns1.failover.test."
+
+[[records]]
+name = "ns1"
+type = "A"
+value = "192.0.2.1"
+
+[[records]]
+name = "test"
+type = "CNAME"
+value = "lon1.failover.test."
+
+[[records]]
+name = "lon1"
+type = "A"
+value = "192.0.2.10"
+"#;
+
+    let zone = Zone::from_toml(ZONE).unwrap();
+    let zones = ZoneRegistry::new();
+    zones.replace([zone]);
+
+    let metrics_handle = Metrics::global();
+    let dns_metrics = metrics_handle.with_registry_mut(DnsMetrics::register);
+    let shutdown = CancellationToken::new();
+
+    let udp = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+    let udp_addr = udp.local_addr().unwrap();
+    drop(udp);
+
+    {
+        let zones = zones.clone();
+        let metrics = dns_metrics.clone();
+        let tok = shutdown.clone();
+        tokio::spawn(async move { serve_udp(udp_addr, zones, metrics, tok).await });
+    }
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    let sock = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+    sock.connect(udp_addr).await.unwrap();
+    let q = build_query(4, "test.failover.test", QType::A);
+    sock.send(&q).await.unwrap();
+
+    let mut buf = [0u8; 4096];
+    let n = tokio::time::timeout(std::time::Duration::from_secs(2), sock.recv(&mut buf))
+        .await
+        .expect("timeout")
+        .unwrap();
+    let resp = Message::decode(&buf[..n]).unwrap();
+    assert_eq!(resp.header.rcode, RCode::NoError);
+    assert_eq!(resp.answers.len(), 1);
+    assert!(matches!(resp.answers[0].data, RData::Cname(_)));
+
+    shutdown.cancel();
+}
