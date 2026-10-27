@@ -147,7 +147,8 @@ impl CloudflareProvider {
         let resp = self
             .with_retry(|| self.auth(self.client.post(&url).json(&body)).send())
             .await?;
-        let parsed: CfList<CfRecord> = resp.json().await?;
+        // POST/PUT return the record as a single object, not a list; only success/errors matter.
+        let parsed: CfEnvelope = resp.json().await?;
         if !parsed.success {
             return Err(cf_errors(&parsed.errors));
         }
@@ -200,7 +201,8 @@ impl CloudflareProvider {
         let resp = self
             .with_retry(|| self.auth(self.client.put(&url).json(&body)).send())
             .await?;
-        let parsed: CfList<CfRecord> = resp.json().await?;
+        // POST/PUT return the record as a single object, not a list; only success/errors matter.
+        let parsed: CfEnvelope = resp.json().await?;
         if !parsed.success {
             return Err(cf_errors(&parsed.errors));
         }
@@ -445,6 +447,15 @@ fn cf_errors(errors: &[CfError]) -> ProviderError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn write_response_decodes_as_envelope() {
+        // Shape of a real POST/PUT /dns_records reply: `result` is one record.
+        let body = r#"{"success":true,"errors":[],"messages":[],"result":{"id":"abc","name":"int.example.com","type":"CNAME","content":"lon2.pop0.uk","ttl":60,"proxied":false,"comment":"nebula-dns-failover | v=1"}}"#;
+        let parsed: CfEnvelope = serde_json::from_str(body).unwrap();
+        assert!(parsed.success);
+        assert!(serde_json::from_str::<CfList<CfRecord>>(body).is_err());
+    }
 
     /// Unit-level: marker filtering logic used by upsert.
     #[test]
