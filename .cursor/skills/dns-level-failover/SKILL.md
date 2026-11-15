@@ -6,7 +6,9 @@ description: >-
   and an optional demo page that shows the failover path. Use when the user asks
   for DNS failover, POP failover, lon1/lon2 switchover, abtesting.fictionally.org
   style failover, test.failover.nebuladns.net, or a page that shows TTL and which
-  POP served the request.
+  POP served the request. For first-time “add ns1/ns2 for a host then enable
+  failover”, prefer skill add-host-ns-failover.
+compatibility: Works with Claude Code, Cursor, and any agent that loads Agent Skills (SKILL.md).
 disable-model-invocation: false
 ---
 
@@ -17,6 +19,9 @@ edge POP `lon1` fails `/healthz`, rewrite a low-TTL CNAME/A to secondary `lon2`
 (and fail back when lon1 recovers). Reference pilot:
 [https://abtesting.fictionally.org/](https://abtesting.fictionally.org/). Live
 NebulaDNS demo hostname: `test.failover.nebuladns.net`.
+
+**Onboarding a new hostname onto ns1/ns2 first?** Use sibling skill
+`add-host-ns-failover`, then return here for controller/demo details.
 
 ## Non-negotiables
 

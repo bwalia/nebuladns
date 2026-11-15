@@ -374,8 +374,9 @@ controller (see [`docs/runbooks/DnsFailover.md`](docs/runbooks/DnsFailover.md)).
 **Live CNAME failover test (ns1/ns2):** [`https://test.failover.nebuladns.net/`](https://test.failover.nebuladns.net/)
 — demo page shows which POP you landed on, live DoH CNAME + **TTL**, lon1/lon2
 `/healthz`, and the failover story. DNS: TTL 30, CNAME `lon1.pop0.uk` ↔
-`lon2.pop0.uk` via `nebula-dns-failover` on both NS hosts. Agent skill:
-[`.cursor/skills/dns-level-failover/SKILL.md`](.cursor/skills/dns-level-failover/SKILL.md).
+`lon2.pop0.uk` via `nebula-dns-failover` on both NS hosts. Agent skills:
+[add ns1/ns2 + failover](.cursor/skills/add-host-ns-failover/SKILL.md),
+[failover controller / demo](.cursor/skills/dns-level-failover/SKILL.md).
 Reference pilot: [abtesting.fictionally.org](https://abtesting.fictionally.org/).
 
 ### How to use it day to day
