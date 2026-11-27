@@ -22,6 +22,8 @@ health_urls = ["https://lon1.pop0.uk/healthz"]
 display_name = "London lon2/pop0"
 public_ipv4 = "85.190.106.189"
 health_urls = ["https://lon2.pop0.uk/healthz"]
+# Optional: real hostnames fetched at this POP's IP (metrics only, never flips).
+# serve_checks = ["https://abtesting.fictionally.org/"]
 
 [[hostnames]]
 name = "abtesting.fictionally.org"

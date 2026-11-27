@@ -376,6 +376,7 @@ mod tests {
                 health_urls: vec!["http://x/healthz".into()],
                 insecure_skip_verify: false,
                 host_header: None,
+                serve_checks: Vec::new(),
             },
         );
         pops.insert(
@@ -386,6 +387,7 @@ mod tests {
                 health_urls: vec!["http://y/healthz".into()],
                 insecure_skip_verify: false,
                 host_header: None,
+                serve_checks: Vec::new(),
             },
         );
         Config {

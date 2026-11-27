@@ -85,8 +85,7 @@ impl NebulaDnsProvider {
         let key = fqdn.trim_end_matches('.').to_ascii_lowercase();
         self.zones_by_host
             .get(&key)
-            .map(String::as_str)
-            .unwrap_or(self.default_zone.as_str())
+            .map_or(self.default_zone.as_str(), String::as_str)
     }
 
     fn owner_relative(&self, fqdn: &str) -> String {
@@ -367,6 +366,9 @@ mod tests {
             )]),
         };
         assert_eq!(p.owner_relative("abtesting.fictionally.org"), "@");
-        assert_eq!(p.zone_for("abtesting.fictionally.org"), "abtesting.fictionally.org");
+        assert_eq!(
+            p.zone_for("abtesting.fictionally.org"),
+            "abtesting.fictionally.org"
+        );
     }
 }
