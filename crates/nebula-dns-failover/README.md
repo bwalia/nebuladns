@@ -195,6 +195,9 @@ curl -s localhost:9119/v1/status | jq .
 curl -s localhost:9119/metrics | grep nebula_dns_failover
 ```
 
+Metrics and the optional per-POP `serve_checks` (can the standby really serve
+a given hostname?) are listed in `docs/runbooks/DnsFailover.md`.
+
 Deploy artifacts: `deploy/dns-failover/` (systemd unit, compose, config example).
 
 ---

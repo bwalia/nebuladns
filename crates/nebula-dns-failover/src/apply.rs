@@ -83,6 +83,11 @@ pub async fn reconcile_all(
             metrics.inc_transition(&host.name, &from, desire.state.as_str(), &desire.reason);
         }
 
+        // Planned (dry run) wrote nothing, so the live target is unchanged.
+        if matches!(outcome, ApplyOutcome::Noop | ApplyOutcome::Applied) {
+            metrics.set_serving_target(&host.name, &desired_str);
+        }
+
         policy.mark_applied(&host.name, desire.target.clone(), desire.state);
 
         if matches!(outcome, ApplyOutcome::Applied) {
@@ -100,6 +105,9 @@ pub async fn reconcile_all(
             outcome: result_label.into(),
             both_down: desire.both_down,
         });
+    }
+    if !summary.apply_failed {
+        metrics.touch_last_reconcile();
     }
     summary
 }

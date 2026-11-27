@@ -130,6 +130,13 @@ pub struct PopConfig {
     pub insecure_skip_verify: bool,
     #[serde(default)]
     pub host_header: Option<String>,
+    /// Real-hostname URLs probed **at this POP's `public_ipv4`** (DNS for the
+    /// URL host is pinned to the POP; TLS SNI and Host stay the real name).
+    /// Answers "can this POP actually serve that site?" — e.g. the standby
+    /// returning 502 for one vhost while its `/healthz` is fine. Exported as
+    /// `nebula_dns_failover_serve_check_*`; never drives failover decisions.
+    #[serde(default)]
+    pub serve_checks: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -242,6 +249,18 @@ impl Config {
                     return Err(ConfigError::Validation(
                         "CF_API_TOKEN or provider.cf_api_token required for cloudflare".into(),
                     ));
+                }
+            }
+        }
+        for (id, pop) in &self.pops {
+            for url in &pop.serve_checks {
+                let parsed = reqwest::Url::parse(url).map_err(|e| {
+                    ConfigError::Validation(format!("pops.{id}.serve_checks: {url:?}: {e}"))
+                })?;
+                if !matches!(parsed.scheme(), "http" | "https") || parsed.host_str().is_none() {
+                    return Err(ConfigError::Validation(format!(
+                        "pops.{id}.serve_checks: {url:?} must be an http(s) URL with a host"
+                    )));
                 }
             }
         }
@@ -393,6 +412,31 @@ enabled = true
         assert_eq!(cfg.interval, Duration::from_secs(10));
         assert!(cfg.dry_run);
         assert_eq!(cfg.pops.len(), 2);
+    }
+
+    #[test]
+    fn serve_checks_parse_and_validate() {
+        let base = r#"
+hostnames = []
+[provider]
+type = "nebuladns"
+api_base = "http://127.0.0.1:8080"
+zone_name = "example.com"
+[pops.lon1]
+public_ipv4 = "195.20.255.201"
+health_urls = ["https://lon1.example/healthz"]
+"#;
+        let ok = format!("{base}serve_checks = [\"https://www.example.com/\"]\n");
+        let cfg: Config = toml::from_str(&ok).unwrap();
+        cfg.validate().unwrap();
+        assert_eq!(
+            cfg.pops["lon1"].serve_checks,
+            vec!["https://www.example.com/"]
+        );
+
+        let bad = format!("{base}serve_checks = [\"not a url\"]\n");
+        let cfg: Config = toml::from_str(&bad).unwrap();
+        assert!(cfg.validate().is_err());
     }
 
     #[test]
